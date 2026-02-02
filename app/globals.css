@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #2A0F14;
+  --color-primary-dark-light: #4A2328;
+  --color-primary-light: #EFE6E8;
+  
+  --font-sans: 'Inter', system-ui, sans-serif;
+  
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+}
+
+@theme {
+  --color-primary: oklch(var(--color-primary));
+  --color-primary-dark-light: oklch(var(--color-primary-dark-light));
+  --color-primary-light: oklch(var(--color-primary-light));
+  
+  --font-sans: var(--font-sans);
+  
+  --radius-lg: var(--radius-lg);
+  --radius-md: var(--radius-md);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #fff;
+}
