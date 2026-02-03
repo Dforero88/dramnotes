@@ -90,6 +90,7 @@ function createSqliteSchema(): DbSchema {
 
 function createMysqlSchema(): DbSchema {
   const { mysqlTable, varchar, text, int, double, datetime } = require('drizzle-orm/mysql-core')
+  const { sql } = require('drizzle-orm')
 
   const countries = mysqlTable('countries', {
     id: varchar('id', { length: 36 }).primaryKey(),
@@ -112,7 +113,7 @@ function createMysqlSchema(): DbSchema {
     tokenExpiry: datetime('token_expiry', { mode: 'date' }),
     resetPasswordToken: text('reset_password_token'),
     resetPasswordExpiry: datetime('reset_password_expiry', { mode: 'date' }),
-    createdAt: datetime('created_at', { mode: 'date' }).defaultNow(),
+    createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
     updatedAt: datetime('updated_at', { mode: 'date' }).$onUpdate(() => new Date()),
   })
 
@@ -151,7 +152,7 @@ function createMysqlSchema(): DbSchema {
     barcodeImageUrl: text('barcode_image_url'),
     labelImageUrl: text('label_image_url'),
     bottleImageUrl: text('bottle_image_url'),
-    createdAt: datetime('created_at', { mode: 'date' }).defaultNow(),
+    createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
     updatedAt: datetime('updated_at', { mode: 'date' }).$onUpdate(() => new Date()),
   })
 
