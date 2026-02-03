@@ -4,6 +4,8 @@ import { db, users } from '@/lib/db'
 import { eq } from 'drizzle-orm'
 import { verifyConfirmationToken } from '@/lib/auth/tokens'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)

@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { getJwtSecret } from '@/lib/auth/tokens'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
