@@ -34,9 +34,16 @@ export async function POST(request: NextRequest) {
     const user = userResult[0]
     
     // Générer token (30 minutes)
+    const secret = getJwtSecret()
+    if (!secret) {
+      return NextResponse.json(
+        { error: 'JWT_SECRET manquant dans les variables d\'environnement' },
+        { status: 500 }
+      )
+    }
     const resetToken = jwt.sign(
       { userId: user.id, email: user.email },
-      getJwtSecret(),
+      secret,
       { expiresIn: 30 * 60 }
     )
     

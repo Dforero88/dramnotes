@@ -18,9 +18,16 @@ export async function POST(request: NextRequest) {
     }
     
     // Vérifier le token JWT
+    const secret = getJwtSecret()
+    if (!secret) {
+      return NextResponse.json(
+        { error: 'JWT_SECRET manquant dans les variables d\'environnement' },
+        { status: 500 }
+      )
+    }
     let decoded: any
     try {
-      decoded = jwt.verify(token, getJwtSecret())
+      decoded = jwt.verify(token, secret)
     } catch (jwtError) {
       return NextResponse.json(
         { error: 'Token expiré ou invalide' },

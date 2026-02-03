@@ -58,6 +58,12 @@ export async function POST(request: NextRequest) {
     // 5. Générer ID et token
     const userId = generateId()
     const confirmationToken = generateConfirmationToken(userId, email, pseudo)
+    if (!confirmationToken) {
+      return NextResponse.json(
+        { error: 'JWT_SECRET manquant dans les variables d\'environnement' },
+        { status: 500 }
+      )
+    }
     
     // 6. Calculer l'expiration (30 minutes)
     const tokenExpiry = new Date(Date.now() + (30 * 60 * 1000))
