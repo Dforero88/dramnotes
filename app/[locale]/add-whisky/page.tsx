@@ -257,6 +257,8 @@ export default function AddWhiskyPage({
                 <Camera 
                   onCapture={handleImageCaptured}
                   isActive={isScanning}
+                  autoOpen
+                  showButton={false}
                 />
               )}
 
@@ -334,16 +336,27 @@ export default function AddWhiskyPage({
                 <div className="space-y-6">
                   <h2 className="text-2xl font-bold">Étape 2: Scanner l'étiquette</h2>
                   <p className="text-gray-600">Prenez une photo nette de l'étiquette.</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    id="label-image"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) onLabelSelected(file)
-                    }}
-                  />
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('label-image')?.click()}
+                      className="px-6 py-3 text-white rounded-lg"
+                      style={{ backgroundColor: 'var(--color-primary)' }}
+                    >
+                      📸 Prendre une photo de l’étiquette
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      id="label-image"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) onLabelSelected(file)
+                      }}
+                    />
+                  </div>
                   {labelImage && (
                     <img src={labelImage} className="max-w-full rounded-lg" alt="Label" />
                   )}
@@ -372,26 +385,84 @@ export default function AddWhiskyPage({
                     <label className="block text-sm font-medium text-gray-700">Nom</label>
                     <input name="name" defaultValue={whiskyData.name || ''} className="w-full border rounded px-3 py-2" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Distilled</label>
+                      <label className="block text-sm font-medium text-gray-700">Distiller</label>
+                      <input name="distiller" defaultValue={whiskyData.distiller || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Bottler</label>
+                      <input name="bottler" defaultValue={whiskyData.bottler || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Country</label>
+                      <input name="country" defaultValue={whiskyData.country || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Barcode (EAN13)</label>
+                      <input name="ean13" value={barcode || ''} readOnly className="w-full border rounded px-3 py-2 bg-gray-50" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Bottling type</label>
+                      <select name="bottling_type" defaultValue={whiskyData.bottling_type || ''} className="w-full border rounded px-3 py-2">
+                        <option value="">--</option>
+                        <option value="DB">Distiller Bottling (DB)</option>
+                        <option value="IB">Independent Bottling (IB)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Type</label>
+                      <input name="category" defaultValue={whiskyData.category || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Distilled year</label>
                       <input name="distilled_year" defaultValue={whiskyData.distilled_year || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Bottled</label>
+                      <label className="block text-sm font-medium text-gray-700">Bottled year</label>
                       <input name="bottled_year" defaultValue={whiskyData.bottled_year || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Age</label>
                       <input name="age" defaultValue={whiskyData.age || ''} className="w-full border rounded px-3 py-2" />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Cask type</label>
+                      <input name="cask_type" defaultValue={whiskyData.cask_type || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Batch ID</label>
+                      <input name="batch_id" defaultValue={whiskyData.batch_id || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Alcohol volume</label>
+                      <input name="alcohol_volume" defaultValue={whiskyData.alcohol_volume || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Bottled for</label>
+                      <input name="bottled_for" defaultValue={whiskyData.bottled_for || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Region</label>
+                      <input name="region" defaultValue={whiskyData.region || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Photo bouteille</label>
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('bottle-image')?.click()}
+                      className="px-6 py-3 text-white rounded-lg"
+                      style={{ backgroundColor: 'var(--color-primary)' }}
+                    >
+                      📸 Prendre une photo de la bouteille
+                    </button>
                     <input
+                      id="bottle-image"
                       type="file"
                       accept="image/*"
                       capture="environment"
+                      className="hidden"
                       onChange={(e) => setBottleFile(e.target.files?.[0] || null)}
                     />
                   </div>

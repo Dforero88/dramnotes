@@ -5,15 +5,30 @@ import { useRef } from 'react'
 interface CameraProps {
   onCapture: (imageData: string) => void
   isActive: boolean
+  autoOpen?: boolean
+  showButton?: boolean
+  buttonLabel?: string
 }
 
-export default function Camera({ onCapture, isActive }: CameraProps) {
+export default function Camera({
+  onCapture,
+  isActive,
+  autoOpen = false,
+  showButton = true,
+  buttonLabel = '📸 Prendre photo',
+}: CameraProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   if (!isActive) return null
 
   const openCamera = () => {
     inputRef.current?.click()
+  }
+
+  if (autoOpen) {
+    requestAnimationFrame(() => {
+      openCamera()
+    })
   }
 
   const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,17 +56,16 @@ export default function Camera({ onCapture, isActive }: CameraProps) {
         className="hidden"
       />
 
-      <div className="text-center">
-        <p className="text-sm text-gray-600 mb-4">
-          Prends une photo nette du code-barre avec la caméra du téléphone.
-        </p>
-        <button
-          onClick={openCamera}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          📸 Prendre photo
-        </button>
-      </div>
+      {showButton && (
+        <div className="text-center">
+          <button
+            onClick={openCamera}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            {buttonLabel}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
