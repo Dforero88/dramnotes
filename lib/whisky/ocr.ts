@@ -19,7 +19,9 @@ export interface WhiskyOcrResult {
 function getGoogleVisionKey(): { client_email: string; private_key: string } {
   const fs = require('fs')
   const path = require('path')
-  const keyPath = path.join(process.cwd(), 'config', 'google-vision-key.json')
+  const keyPath =
+    process.env.GOOGLE_VISION_KEY_PATH ||
+    path.join(process.cwd(), 'config', 'google-vision-key.json')
   if (!fs.existsSync(keyPath)) {
     throw new Error('Google Vision key file not found in config/google-vision-key.json')
   }
