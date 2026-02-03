@@ -36,6 +36,7 @@ export default function AddWhiskyPage({
   const [labelImage, setLabelImage] = useState<string>('')
   const [labelFile, setLabelFile] = useState<File | null>(null)
   const [bottleFile, setBottleFile] = useState<File | null>(null)
+  const [bottlePreview, setBottlePreview] = useState<string>('')
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrError, setOcrError] = useState('')
   const [whiskyData, setWhiskyData] = useState<any>({})
@@ -149,6 +150,19 @@ export default function AddWhiskyPage({
     reader.readAsDataURL(file)
   }
 
+  const onBottleSelected = (file: File | null) => {
+    setBottleFile(file)
+    if (!file) {
+      setBottlePreview('')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setBottlePreview(String(e.target?.result || ''))
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleLabelProcess = async () => {
     if (!labelFile) return
     setOcrLoading(true)
@@ -189,6 +203,23 @@ export default function AddWhiskyPage({
     })
     payload.ean13 = barcode || ''
     payload.added_by = ''
+
+    if (!payload.name || String(payload.name).trim() === '') {
+      setCreateError('Le nom est obligatoire')
+      return
+    }
+    if (!payload.type || String(payload.type).trim() === '') {
+      setCreateError('Le type est obligatoire')
+      return
+    }
+    if (payload.bottling_type === 'DB' && (!payload.distiller || String(payload.distiller).trim() === '')) {
+      setCreateError('Le distiller est obligatoire pour un embouteillage DB')
+      return
+    }
+    if (payload.bottling_type === 'IB' && (!payload.bottler || String(payload.bottler).trim() === '')) {
+      setCreateError('Le bottler est obligatoire pour un embouteillage IB')
+      return
+    }
 
     const upload = new FormData()
     upload.append('whisky_data', JSON.stringify(payload))
@@ -495,8 +526,11 @@ export default function AddWhiskyPage({
                       accept="image/*"
                       capture="environment"
                       className="hidden"
-                      onChange={(e) => setBottleFile(e.target.files?.[0] || null)}
+                      onChange={(e) => onBottleSelected(e.target.files?.[0] || null)}
                     />
+                    {bottlePreview && (
+                      <img src={bottlePreview} className="mt-4 max-w-xs rounded-lg" alt="Bouteille" />
+                    )}
                   </div>
                   {createError && <p className="text-red-600">{createError}</p>}
                   <button
