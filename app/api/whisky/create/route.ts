@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (duplicate.length > 0) {
-      return NextResponse.json({ error: 'Un whisky avec ce nom/années existe déjà' }, { status: 409 })
+      return NextResponse.json({ error: 'Un whisky avec ce nom/années existe déjà', code: 'DUPLICATE' }, { status: 409 })
     }
 
     let bottleImageUrl: string | null = null

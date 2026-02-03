@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Camera from '@/components/Camera'
 import BarcodeCropper from '@/components/BarcodeCropper'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
+import { useSession } from 'next-auth/react'
 
 export default function AddWhiskyPage({
   params
@@ -14,6 +15,7 @@ export default function AddWhiskyPage({
 }) {
   const { locale } = params
   const t = getTranslations(locale)
+  const { data: session, status } = useSession()
   
   const {
     barcode,
@@ -41,6 +43,7 @@ export default function AddWhiskyPage({
   const [ocrError, setOcrError] = useState('')
   const [whiskyData, setWhiskyData] = useState<any>({})
   const [createError, setCreateError] = useState('')
+  const [createStatus, setCreateStatus] = useState<'success' | 'duplicate' | null>(null)
   const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null }>>([])
 
   const typeOptions = [
@@ -220,6 +223,11 @@ export default function AddWhiskyPage({
   const handleCreateWhisky = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setCreateError('')
+    setCreateStatus(null)
+    if (!session?.user?.id) {
+      setCreateError('Vous devez être connecté pour ajouter un whisky')
+      return
+    }
     if (!bottleFile) {
       setCreateError('Veuillez ajouter une photo de la bouteille')
       return
@@ -231,7 +239,7 @@ export default function AddWhiskyPage({
       payload[key] = value
     })
     payload.ean13 = barcode || ''
-    payload.added_by = ''
+    payload.added_by = session?.user?.id || ''
 
     if (!payload.name || String(payload.name).trim() === '') {
       setCreateError('Le nom est obligatoire')
@@ -264,11 +272,39 @@ export default function AddWhiskyPage({
     })
     const json = await res.json()
     if (!res.ok) {
+      if (json?.code === 'DUPLICATE') {
+        setCreateStatus('duplicate')
+        setStep('exists')
+        return
+      }
       setCreateError(json?.error || 'Erreur serveur')
       return
     }
 
+    setCreateStatus('success')
     setStep('exists')
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <h1 className="text-2xl font-bold mb-4">Connexion requise</h1>
+            <p className="text-gray-600 mb-6">
+              Vous devez être connecté pour ajouter un whisky.
+            </p>
+            <Link
+              href={`/${locale}/login`}
+              className="px-6 py-3 text-white rounded-lg inline-block"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            >
+              Se connecter
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -575,6 +611,7 @@ export default function AddWhiskyPage({
                     type="submit"
                     className="px-6 py-2 text-white rounded-lg"
                     style={{ backgroundColor: 'var(--color-primary)' }}
+                    disabled={status !== 'authenticated'}
                   >
                     Créer le whisky
                   </button>
@@ -582,8 +619,13 @@ export default function AddWhiskyPage({
               )}
 
               {step === 'exists' && (
-                <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-700">✅ Terminé. Whisky enregistré ou déjà existant.</p>
+                <div className="p-6 border rounded-lg" style={{ borderColor: 'var(--color-primary)' }}>
+                  {createStatus === 'success' && (
+                    <p className="text-green-700">✅ Whisky créé avec succès.</p>
+                  )}
+                  {createStatus === 'duplicate' && (
+                    <p className="text-yellow-700">⚠️ Un whisky identique existe déjà (nom + années).</p>
+                  )}
                 </div>
               )}
             </>
