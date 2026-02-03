@@ -10,7 +10,13 @@ type DbSchema = {
 
 const databaseUrl = process.env.DATABASE_URL || ''
 const isMysqlUrl = databaseUrl.startsWith('mysql://') || databaseUrl.startsWith('mariadb://')
-const useMysql = isMysqlUrl || (process.env.NODE_ENV === 'production' && !databaseUrl.startsWith('file:'))
+const isProduction = process.env.NODE_ENV === 'production'
+
+if (isProduction && !isMysqlUrl) {
+  throw new Error('DATABASE_URL doit être une URL MySQL/MariaDB en production')
+}
+
+const useMysql = isMysqlUrl || isProduction
 
 function createSqliteSchema(): DbSchema {
   const { sqliteTable, text, integer, real } = require('drizzle-orm/sqlite-core')
