@@ -7,38 +7,6 @@ import Camera from '@/components/Camera'
 import BarcodeCropper from '@/components/BarcodeCropper'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 
-// Charge Quagga directement - VERSION CORRIGÉE
-const loadQuagga = (): Promise<void> => {
-  // Vérifie qu'on est côté client
-  if (typeof window === 'undefined') {
-    return Promise.reject(new Error('Quagga ne peut être chargé côté serveur'));
-  }
-
-  // Vérifie si déjà chargé
-  if ((window as any).Quagga) {
-    console.log('✅ Quagga déjà chargé');
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.7.7/dist/quagga.min.js';
-    script.async = true;
-    
-    script.onload = () => {
-      console.log('✅ Quagga chargé avec succès');
-      resolve();
-    };
-    
-    script.onerror = () => {
-      console.error('❌ Échec chargement Quagga');
-      reject(new Error('Failed to load Quagga'));
-    };
-    
-    document.head.appendChild(script);
-  });
-};
-
 export default function AddWhiskyPage({
   params
 }: {
@@ -73,37 +41,28 @@ export default function AddWhiskyPage({
   const [whiskyData, setWhiskyData] = useState<any>({})
   const [createError, setCreateError] = useState('')
 
-  // Charge Quagga au montage - VERSION CORRIGÉE
+  // Charge Quagga au montage
   useEffect(() => {
-  console.log('🔧 Chargement outils PrestaShop...')
-  
-  // Vérifier si déjà chargé
-  if ((window as any).Quagga) {
-    console.log('✅ Quagga déjà chargé')
-    setQuaggaLoaded(true)
-    return
-  }
-  
-  // Charger depuis le MÊME CDN que PrestaShop
-  const script = document.createElement('script')
-  script.src = 'https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.7.7/dist/quagga.min.js'
-  script.async = true
-  
-  script.onload = () => {
-    console.log('✅ Quagga chargé depuis CDN PrestaShop')
-    setQuaggaLoaded(true)
-  }
-  
-  script.onerror = () => {
-    console.error('❌ Échec chargement Quagga')
-  }
-  
-  document.head.appendChild(script)
-  
-  return () => {
-    // Nettoyage optionnel
-  }
-}, [])
+    // Vérifier si déjà chargé
+    if ((window as any).Quagga) {
+      setQuaggaLoaded(true)
+      return
+    }
+    
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.7.7/dist/quagga.min.js'
+    script.async = true
+    
+    script.onload = () => {
+      setQuaggaLoaded(true)
+    }
+    
+    script.onerror = () => {
+      console.error('❌ Échec chargement Quagga')
+    }
+    
+    document.head.appendChild(script)
+  }, [])
 
   const handleImageCaptured = (imageData: string) => {
     captureImage(imageData)
@@ -122,21 +81,6 @@ export default function AddWhiskyPage({
     // Affiche l'image cropée pour débogage
     console.log('🖼️ Image cropée (début):', croppedImage.substring(0, 100));
     console.log('📏 Taille image:', croppedImage.length);
-    
-    // Vérifie visuellement l'image
-    const win = window.open();
-    if (win) {
-      win.document.write(`
-        <html>
-          <body style="margin:0;padding:20px;background:#f0f0f0;">
-            <h3>Image cropée pour vérification :</h3>
-            <img src="${croppedImage}" style="max-width:100%;border:2px solid red;">
-            <p>Taille: ${croppedImage.length} caractères</p>
-            <p>Si tu vois bien le code-barre ici, Quagga devrait pouvoir le lire !</p>
-          </body>
-        </html>
-      `);
-    }
     
     // Scanner l'image cropée
     const success = await scanImage(croppedImage)
@@ -256,12 +200,6 @@ export default function AddWhiskyPage({
             <p className="text-yellow-700">
               <span className="inline-block animate-pulse">⏳</span> Chargement du scanner...
             </p>
-          </div>
-        )}
-
-        {quaggaLoaded && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-700">✅ Scanner prêt !</p>
           </div>
         )}
 
@@ -400,6 +338,7 @@ export default function AddWhiskyPage({
                     type="file"
                     accept="image/*"
                     capture="environment"
+                    id="label-image"
                     onChange={(e) => {
                       const file = e.target.files?.[0]
                       if (file) onLabelSelected(file)
@@ -410,8 +349,14 @@ export default function AddWhiskyPage({
                   )}
                   {ocrError && <p className="text-red-600">{ocrError}</p>}
                   <button
-                    onClick={handleLabelProcess}
-                    disabled={!labelFile || ocrLoading}
+                    onClick={() => {
+                      if (!labelFile) {
+                        setOcrError('Veuillez choisir une photo de l’étiquette.')
+                        return
+                      }
+                      handleLabelProcess()
+                    }}
+                    disabled={ocrLoading}
                     className="px-6 py-2 text-white rounded-lg"
                     style={{ backgroundColor: 'var(--color-primary)' }}
                   >
