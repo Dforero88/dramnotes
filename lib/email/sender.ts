@@ -22,17 +22,23 @@ const transporter = nodemailer.createTransport({
   }
 })
 
-// Vérifier la connexion SMTP
-transporter.verify((error) => {
-  if (error) {
-    console.error('❌ Erreur connexion SMTP:', error.message)
-  } else {
+let smtpVerified = false
+
+async function verifySmtpOnce() {
+  if (smtpVerified) return
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) return
+  try {
+    await transporter.verify()
+    smtpVerified = true
     console.log('✅ Serveur SMTP prêt')
+  } catch (error: any) {
+    console.error('❌ Erreur connexion SMTP:', error?.message || error)
   }
-})
+}
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
+    await verifySmtpOnce()
     const from = process.env.SMTP_FROM || 'no-reply@dramnotes.com'
     
     const info = await transporter.sendMail({

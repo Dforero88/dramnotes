@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db, users } from '@/lib/db'
 import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET!
+import { getJwtSecret } from '@/lib/auth/tokens'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Vérifier le token JWT
     let decoded: any
     try {
-      decoded = jwt.verify(token, JWT_SECRET)
+      decoded = jwt.verify(token, getJwtSecret())
     } catch (jwtError) {
       return NextResponse.json(
         { error: 'Token expiré ou invalide' },

@@ -2,7 +2,7 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
-function getJwtSecret(): string {
+export function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET
   if (!secret) {
     throw new Error('JWT_SECRET manquant dans les variables d\'environnement')

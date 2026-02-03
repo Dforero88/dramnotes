@@ -4,8 +4,7 @@ import { db, users } from '@/lib/db'
 import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { sendEmail } from '@/lib/email/sender'
-
-const JWT_SECRET = process.env.JWT_SECRET!
+import { getJwtSecret } from '@/lib/auth/tokens'
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Générer token (30 minutes)
     const resetToken = jwt.sign(
       { userId: user.id, email: user.email },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: 30 * 60 }
     )
     
