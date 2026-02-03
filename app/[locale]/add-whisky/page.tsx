@@ -41,6 +41,29 @@ export default function AddWhiskyPage({
   const [whiskyData, setWhiskyData] = useState<any>({})
   const [createError, setCreateError] = useState('')
 
+  const typeOptions = [
+    'American whiskey',
+    'Blend',
+    'Blended Grain',
+    'Blended Malt',
+    'Bourbon',
+    'Canadian Whisky',
+    'Corn',
+    'Rye',
+    'Single Grain',
+    'Single Malt',
+    'Single Pot Still',
+    'Spirit',
+    'Tennesse',
+    'Wheat',
+  ]
+
+  const normalizeType = (value: string) => value.trim().toLowerCase()
+  const mapTypeToOption = (value: string) => {
+    const needle = normalizeType(value)
+    return typeOptions.find((opt) => normalizeType(opt) === needle) || ''
+  }
+
   // Charge Quagga au montage
   useEffect(() => {
     // Vérifier si déjà chargé
@@ -138,7 +161,11 @@ export default function AddWhiskyPage({
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || 'Erreur OCR')
       }
-      setWhiskyData(json.whisky_data || {})
+      const parsed = json.whisky_data || {}
+      if (parsed?.type && typeof parsed.type === 'string') {
+        parsed.type = mapTypeToOption(parsed.type)
+      }
+      setWhiskyData(parsed)
       setStep('edit')
     } catch (err: any) {
       setOcrError(err?.message || 'Erreur OCR')
@@ -400,7 +427,7 @@ export default function AddWhiskyPage({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Barcode (EAN13)</label>
-                      <input name="ean13" value={barcode || ''} readOnly className="w-full border rounded px-3 py-2 bg-gray-50" />
+                      <input name="ean13" value={barcode || ''} readOnly disabled className="w-full border rounded px-3 py-2 bg-gray-50" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Bottling type</label>
@@ -412,7 +439,12 @@ export default function AddWhiskyPage({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Type</label>
-                      <input name="category" defaultValue={whiskyData.category || ''} className="w-full border rounded px-3 py-2" />
+                      <select name="type" defaultValue={whiskyData.type || ''} className="w-full border rounded px-3 py-2">
+                        <option value="">--</option>
+                        {typeOptions.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Distilled year</label>
