@@ -81,7 +81,10 @@ export async function GET(request: NextRequest) {
     const locale = 'fr'
     return NextResponse.redirect(`${process.env.APP_URL}/${locale}/confirmed`)
     
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.digest === 'DYNAMIC_SERVER_USAGE') {
+      return NextResponse.json({ ok: false }, { status: 200 })
+    }
     console.error('❌ Erreur confirmation:', error)
     return NextResponse.json(
       { error: 'Erreur serveur interne' },

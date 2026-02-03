@@ -73,7 +73,10 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ valid: true })
     
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.digest === 'DYNAMIC_SERVER_USAGE') {
+      return NextResponse.json({ ok: false }, { status: 200 })
+    }
     console.error('❌ Erreur validate-reset-token:', error)
     return NextResponse.json(
       { error: 'Erreur serveur' },
