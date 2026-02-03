@@ -11,6 +11,7 @@ export SMTP_SECURE="false"
 export SMTP_USER="info@dramnotes.com"
 export SMTP_PASSWORD="X**7588-&PLYhppN"
 export SMTP_FROM="info@dramnotes.com"
+export WHISKYSCAN_OPENAI_KEY="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"
 
 npm install --omit=dev
 npm start

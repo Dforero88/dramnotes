@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import Camera from '@/components/Camera'
@@ -62,10 +61,17 @@ export default function AddWhiskyPage({
     scanImage,
   } = useBarcodeScanner()
 
-  const [step, setStep] = useState<'scan' | 'crop' | 'result'>('scan')
+  const [step, setStep] = useState<'scan' | 'crop' | 'result' | 'label' | 'edit' | 'exists'>('scan')
   const [manualEntry, setManualEntry] = useState(false)
   const [scanError, setScanError] = useState('')
   const [quaggaLoaded, setQuaggaLoaded] = useState(false)
+  const [labelImage, setLabelImage] = useState<string>('')
+  const [labelFile, setLabelFile] = useState<File | null>(null)
+  const [bottleFile, setBottleFile] = useState<File | null>(null)
+  const [ocrLoading, setOcrLoading] = useState(false)
+  const [ocrError, setOcrError] = useState('')
+  const [whiskyData, setWhiskyData] = useState<any>({})
+  const [createError, setCreateError] = useState('')
 
   // Charge Quagga au montage - VERSION CORRIGÉE
   useEffect(() => {
@@ -142,8 +148,92 @@ export default function AddWhiskyPage({
     }
   }
 
-  const proceedToNextStep = () => {
-    window.location.href = `/${locale}/add-whisky/details?barcode=${barcode || ''}`
+  const checkBarcodeExistence = async (value: string) => {
+    const res = await fetch('/api/whisky/check-barcode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ barcode: value }),
+    })
+    const json = await res.json()
+    return Boolean(json?.exists)
+  }
+
+  const proceedToNextStep = async () => {
+    const value = barcode?.trim()
+    if (!value) {
+      setStep('label')
+      return
+    }
+
+    const exists = await checkBarcodeExistence(value)
+    if (exists) {
+      setStep('exists')
+    } else {
+      setStep('label')
+    }
+  }
+
+  const onLabelSelected = (file: File) => {
+    setLabelFile(file)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setLabelImage(String(e.target?.result || ''))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleLabelProcess = async () => {
+    if (!labelFile) return
+    setOcrLoading(true)
+    setOcrError('')
+    try {
+      const form = new FormData()
+      form.append('label_image', labelFile)
+      const res = await fetch('/api/whisky/ocr', { method: 'POST', body: form })
+      const json = await res.json()
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || 'Erreur OCR')
+      }
+      setWhiskyData(json.whisky_data || {})
+      setStep('edit')
+    } catch (err: any) {
+      setOcrError(err?.message || 'Erreur OCR')
+    } finally {
+      setOcrLoading(false)
+    }
+  }
+
+  const handleCreateWhisky = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setCreateError('')
+    if (!bottleFile) {
+      setCreateError('Veuillez ajouter une photo de la bouteille')
+      return
+    }
+
+    const formData = new FormData(e.currentTarget)
+    const payload: any = {}
+    formData.forEach((value, key) => {
+      payload[key] = value
+    })
+    payload.ean13 = barcode || ''
+    payload.added_by = ''
+
+    const upload = new FormData()
+    upload.append('whisky_data', JSON.stringify(payload))
+    upload.append('bottle_image', bottleFile)
+
+    const res = await fetch('/api/whisky/create', {
+      method: 'POST',
+      body: upload,
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      setCreateError(json?.error || 'Erreur serveur')
+      return
+    }
+
+    setStep('exists')
   }
 
   return (
@@ -153,7 +243,8 @@ export default function AddWhiskyPage({
         <div className="mb-8">
           <Link 
             href={`/${locale}/catalogue`}
-            className="text-blue-600 hover:underline"
+            className="hover:underline"
+            style={{ color: 'var(--color-primary)' }}
           >
             ← Retour au catalogue
           </Link>
@@ -204,7 +295,8 @@ export default function AddWhiskyPage({
                   <h2 className="text-2xl font-bold mb-6">📸 Prendre une photo du code-barre</h2>
                   <button
                     onClick={startScanning}
-                    className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-8 py-4 text-white rounded-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
                     disabled={!quaggaLoaded}
                   >
                     {quaggaLoaded ? 'Ouvrir la caméra' : 'Chargement scanner...'}
@@ -213,7 +305,8 @@ export default function AddWhiskyPage({
                     <p>Ou</p>
                     <button
                       onClick={() => setManualEntry(true)}
-                      className="mt-4 px-6 py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
+                      className="mt-4 px-6 py-3 border rounded-lg"
+                      style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                     >
                       Pas de code-barre
                     </button>
@@ -289,12 +382,88 @@ export default function AddWhiskyPage({
                       </button>
                       <button
                         onClick={proceedToNextStep}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        className="px-6 py-2 text-white rounded-lg"
+                        style={{ backgroundColor: 'var(--color-primary)' }}
                       >
                         {barcode ? 'Continuer avec code-barre →' : 'Continuer sans code-barre →'}
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+              
+              {step === 'label' && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold">Étape 2: Scanner l'étiquette</h2>
+                  <p className="text-gray-600">Prenez une photo nette de l'étiquette.</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) onLabelSelected(file)
+                    }}
+                  />
+                  {labelImage && (
+                    <img src={labelImage} className="max-w-full rounded-lg" alt="Label" />
+                  )}
+                  {ocrError && <p className="text-red-600">{ocrError}</p>}
+                  <button
+                    onClick={handleLabelProcess}
+                    disabled={!labelFile || ocrLoading}
+                    className="px-6 py-2 text-white rounded-lg"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                  >
+                    {ocrLoading ? 'Analyse en cours...' : 'Analyser l’étiquette'}
+                  </button>
+                </div>
+              )}
+
+              {step === 'edit' && (
+                <form className="space-y-4" onSubmit={handleCreateWhisky}>
+                  <h2 className="text-2xl font-bold">Étape 3: Vérifier & valider</h2>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Nom</label>
+                    <input name="name" defaultValue={whiskyData.name || ''} className="w-full border rounded px-3 py-2" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Distilled</label>
+                      <input name="distilled_year" defaultValue={whiskyData.distilled_year || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Bottled</label>
+                      <input name="bottled_year" defaultValue={whiskyData.bottled_year || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Age</label>
+                      <input name="age" defaultValue={whiskyData.age || ''} className="w-full border rounded px-3 py-2" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Photo bouteille</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(e) => setBottleFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
+                  {createError && <p className="text-red-600">{createError}</p>}
+                  <button
+                    type="submit"
+                    className="px-6 py-2 text-white rounded-lg"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                  >
+                    Créer le whisky
+                  </button>
+                </form>
+              )}
+
+              {step === 'exists' && (
+                <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-700">✅ Terminé. Whisky enregistré ou déjà existant.</p>
                 </div>
               )}
             </>
@@ -323,7 +492,8 @@ export default function AddWhiskyPage({
                 </button>
                 <button
                   onClick={proceedToNextStep}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-6 py-3 text-white rounded-lg"
+                  style={{ backgroundColor: 'var(--color-primary)' }}
                 >
                   Continuer →
                 </button>
