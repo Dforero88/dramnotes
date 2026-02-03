@@ -20,6 +20,7 @@ export default function Navigation() {
   }
   
   const [locale, setLocale] = useState<Locale>(detectLocale())
+  const [mobileOpen, setMobileOpen] = useState(false)
   const t = getTranslations(locale) // <-- Fonction maintenant !
   
   // Changer de langue
@@ -46,10 +47,17 @@ export default function Navigation() {
     <header>
       {/* Barre supérieure */}
       <div className="bg-white border-b">
-        <div className="container mx-auto px-6 py-4 flex items-center">
-          
-          {/* Logo centré */}
-          <div className="absolute left-1/2 transform -translate-x-1/2">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <button
+            className="md:hidden p-2 rounded border"
+            style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label="Menu"
+          >
+            ☰
+          </button>
+
+          <div className="flex-1 flex justify-center">
             <Link href={`/${locale}`}>
               <Image 
                 src="/logo.webp" 
@@ -61,54 +69,70 @@ export default function Navigation() {
             </Link>
           </div>
 
-          {/* Sélecteur langue + auth */}
-          <div className="ml-auto flex items-center space-x-4">
-            {/* Sélecteur de langue */}
-            <select 
-              value={locale}
-              onChange={(e) => changeLocale(e.target.value as Locale)}
-              className="border rounded px-2 py-1 text-sm"
-            >
-              <option value="fr">🇫🇷 Français</option>
-              <option value="en">🇬🇧 English</option>
-            </select>
+          <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-4">
+              <select 
+                value={locale}
+                onChange={(e) => changeLocale(e.target.value as Locale)}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="fr">🇫🇷 Français</option>
+                <option value="en">🇬🇧 English</option>
+              </select>
+              {session ? (
+                <>
+                  <span className="text-gray-600 hidden md:inline">
+                    {t('navigation.welcome')}, {session.user?.name || session.user?.email}
+                  </span>
+                  <button 
+                    onClick={() => signOut()}
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark-light"
+                  >
+                    {t('navigation.signOut')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    href={`/${locale}/login`} 
+                    className="px-4 py-2 text-primary hover:text-primary-dark-light"
+                  >
+                    {t('navigation.signIn')}
+                  </Link>
+                  <Link 
+                    href={`/${locale}/register`} 
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark-light"
+                  >
+                    {t('navigation.signUp')}
+                  </Link>
+                </>
+              )}
+            </div>
 
-            {/* Boutons auth */}
             {session ? (
-              <>
-                <span className="text-gray-600 hidden md:inline">
-                  {t('navigation.welcome')}, {session.user?.name || session.user?.email}
-                </span>
-                <button 
-                  onClick={() => signOut()}
-                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark-light"
-                >
-                  {t('navigation.signOut')}
-                </button>
-              </>
+              <button
+                onClick={() => signOut()}
+                className="md:hidden p-2 rounded border"
+                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                aria-label="Logout"
+              >
+                ⎋
+              </button>
             ) : (
-              <>
-                <Link 
-                  href={`/${locale}/login`} 
-                  className="px-4 py-2 text-primary hover:text-primary-dark-light"
-                >
-                  {t('navigation.signIn')}
-                </Link>
-                <Link 
-                  href={`/${locale}/register`} 
-                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark-light"
-                >
-                  {t('navigation.signUp')}
-                </Link>
-              </>
+              <Link
+                href={`/${locale}/login`}
+                className="md:hidden px-3 py-2 rounded border"
+                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+              >
+                {t('navigation.signIn')}
+              </Link>
             )}
           </div>
-          
         </div>
       </div>
 
       {/* Barre de navigation principale */}
-      <nav className="bg-primary">
+      <nav className="bg-primary hidden md:block">
         <div className="container mx-auto px-6">
           <div className="flex justify-center space-x-8 py-3">
             <Link 
@@ -161,6 +185,46 @@ export default function Navigation() {
           </div>
         </div>
       </nav>
+
+      {mobileOpen && (
+        <div className="md:hidden bg-white border-b">
+          <div className="px-6 py-4 space-y-3">
+            <select 
+              value={locale}
+              onChange={(e) => changeLocale(e.target.value as Locale)}
+              className="border rounded px-2 py-1 text-sm w-full"
+            >
+              <option value="fr">🇫🇷 Français</option>
+              <option value="en">🇬🇧 English</option>
+            </select>
+            <Link href={`/${locale}`} className="block text-primary">
+              {t('navigation.home')}
+            </Link>
+            <Link href={`/${locale}/catalogue`} className="block text-primary">
+              {t('navigation.catalogue')}
+            </Link>
+            {session && (
+              <>
+                <Link href={`/${locale}/notebook`} className="block text-primary">
+                  {t('navigation.notebook')}
+                </Link>
+                <Link href={`/${locale}/explorer`} className="block text-primary">
+                  {t('navigation.explorer')}
+                </Link>
+                <Link href={`/${locale}/map`} className="block text-primary">
+                  {t('navigation.map')}
+                </Link>
+                <Link href={`/${locale}/aromatic`} className="block text-primary">
+                  {t('navigation.aromaticWheel')}
+                </Link>
+                <Link href={`/${locale}/account`} className="block text-primary">
+                  {t('navigation.myAccount')}
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   )
 }

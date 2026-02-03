@@ -44,6 +44,7 @@ export default function AddWhiskyPage({
   const [whiskyData, setWhiskyData] = useState<any>({})
   const [createError, setCreateError] = useState('')
   const [createStatus, setCreateStatus] = useState<'success' | 'duplicate' | null>(null)
+  const [barcodeExists, setBarcodeExists] = useState(false)
   const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null }>>([])
 
   const typeOptions = [
@@ -158,8 +159,10 @@ export default function AddWhiskyPage({
 
     const exists = await checkBarcodeExistence(value)
     if (exists) {
-      setStep('exists')
+      setBarcodeExists(true)
+      setStep('scan')
     } else {
+      setBarcodeExists(false)
       setStep('label')
     }
   }
@@ -358,6 +361,11 @@ export default function AddWhiskyPage({
               {step === 'scan' && !isScanning && !image && (
                 <div className="text-center p-8">
                   <h2 className="text-2xl font-bold mb-6">📸 Prendre une photo du code-barre</h2>
+                  {barcodeExists && (
+                    <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
+                      Ce code-barres existe déjà dans le catalogue.
+                    </div>
+                  )}
                   <button
                     onClick={startScanning}
                     className="px-8 py-4 text-white rounded-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -624,7 +632,19 @@ export default function AddWhiskyPage({
                     <p className="text-green-700">✅ Whisky créé avec succès.</p>
                   )}
                   {createStatus === 'duplicate' && (
-                    <p className="text-yellow-700">⚠️ Un whisky identique existe déjà (nom + années).</p>
+                    <div className="space-y-4">
+                      <p className="text-yellow-700">⚠️ Un whisky identique existe déjà (nom + années).</p>
+                      <button
+                        onClick={() => {
+                          setStep('edit')
+                          setCreateStatus(null)
+                        }}
+                        className="px-6 py-2 rounded-lg border"
+                        style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                      >
+                        ← Retour modifier
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
