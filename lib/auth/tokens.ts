@@ -2,9 +2,12 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
-const JWT_SECRET = process.env.JWT_SECRET!
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET manquant dans les variables d\'environnement')
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET
+  if (!secret) {
+    throw new Error('JWT_SECRET manquant dans les variables d\'environnement')
+  }
+  return secret
 }
 
 const TOKEN_EXPIRY = 30 * 60 // 30 minutes en secondes
@@ -18,14 +21,14 @@ export interface ConfirmationTokenPayload {
 export function generateConfirmationToken(userId: string, email: string, pseudo: string): string {
   return jwt.sign(
     { userId, email, pseudo },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: TOKEN_EXPIRY }
   )
 }
 
 export function verifyConfirmationToken(token: string): ConfirmationTokenPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as ConfirmationTokenPayload
+    const decoded = jwt.verify(token, getJwtSecret()) as ConfirmationTokenPayload
     return decoded
   } catch (error) {
     console.error('❌ Token JWT invalide:', error)

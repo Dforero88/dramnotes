@@ -1,97 +1,188 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3'
-import Database from 'better-sqlite3'
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
+import crypto from 'crypto'
 
-// 1. DÉFINIR LES TABLES
-export const countries = sqliteTable('countries', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  nameFr: text('name_fr'),
-})
+type DbSchema = {
+  countries: any
+  users: any
+  distillers: any
+  bottlers: any
+  whiskies: any
+}
 
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-  email: text('email').notNull().unique(),
-  password: text('password').notNull(),
-  pseudo: text('pseudo').notNull().unique(),
-  visibility: text('visibility').default('private'),
-  address: text('address'),
-  zipCode: text('zip_code'),
-  town: text('town'),
-  countryId: text('country_id'),
-  
-  // CHAMPS POUR CONFIRMATION EMAIL
-  confirmedAt: integer('confirmed_at', { mode: 'timestamp' }),
-  confirmationToken: text('confirmation_token'),
-  tokenExpiry: integer('token_expiry', { mode: 'timestamp' }),
-  
-  // NOUVEAUX CHAMPS POUR RESET MOT DE PASSE
-  resetPasswordToken: text('reset_password_token'),
-  resetPasswordExpiry: integer('reset_password_expiry', { mode: 'timestamp' }),
-  
-  // CHAMPS MÉTADONNÉES
-  createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(() => new Date()),
-})
+const databaseUrl = process.env.DATABASE_URL || ''
+const isMysqlUrl = databaseUrl.startsWith('mysql://') || databaseUrl.startsWith('mariadb://')
+const useMysql = isMysqlUrl || (process.env.NODE_ENV === 'production' && !databaseUrl.startsWith('file:'))
 
-export const distillers = sqliteTable('distillers', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  countryId: text('country_id'),
-})
+function createSqliteSchema(): DbSchema {
+  const { sqliteTable, text, integer, real } = require('drizzle-orm/sqlite-core')
 
-export const bottlers = sqliteTable('bottlers', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-})
+  const countries = sqliteTable('countries', {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    nameFr: text('name_fr'),
+  })
 
-export const whiskies = sqliteTable('whiskies', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  distillerId: text('distiller_id'),
-  bottlerId: text('bottler_id'),
-  countryId: text('country_id'),
-  addedById: text('added_by_id'),
-  
-  // NOUVEAUX CHAMPS POUR CODE-BARRE
-  barcode: text('barcode'),
-  barcodeType: text('barcode_type'),
-  
-  bottlingType: text('bottling_type'),
-  distilledYear: integer('distilled_year'),
-  bottledYear: integer('bottled_year'),
-  age: integer('age'),
-  caskType: text('cask_type'),
-  batchId: text('batch_id'),
-  alcoholVolume: real('alcohol_volume'),
-  bottledFor: text('bottled_for'),
-  region: text('region'),
-  type: text('type'),
-  description: text('description'),
-  imageUrl: text('image_url'),
-  
-  // NOUVEAUX CHAMPS POUR PHOTOS
-  barcodeImageUrl: text('barcode_image_url'),
-  labelImageUrl: text('label_image_url'),
-  bottleImageUrl: text('bottle_image_url'),
-  
-  createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(() => new Date()),
-})
+  const users = sqliteTable('users', {
+    id: text('id').primaryKey(),
+    email: text('email').notNull().unique(),
+    password: text('password').notNull(),
+    pseudo: text('pseudo').notNull().unique(),
+    visibility: text('visibility').default('private'),
+    address: text('address'),
+    zipCode: text('zip_code'),
+    town: text('town'),
+    countryId: text('country_id'),
+    confirmedAt: integer('confirmed_at', { mode: 'timestamp' }),
+    confirmationToken: text('confirmation_token'),
+    tokenExpiry: integer('token_expiry', { mode: 'timestamp' }),
+    resetPasswordToken: text('reset_password_token'),
+    resetPasswordExpiry: integer('reset_password_expiry', { mode: 'timestamp' }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(() => new Date()),
+  })
 
-// 2. CRÉER LA CONNEXION
-const sqlite = new Database('./local.db')
-export const db = drizzle(sqlite)
+  const distillers = sqliteTable('distillers', {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    countryId: text('country_id'),
+  })
 
-// 3. INITIALISER LA BASE
-export async function initDB() {
-  // Vérifier si la table users existe déjà
-  const usersTableExists = await db.get<{ name: string }>(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='users'"
-  )
-  
+  const bottlers = sqliteTable('bottlers', {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+  })
+
+  const whiskies = sqliteTable('whiskies', {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    distillerId: text('distiller_id'),
+    bottlerId: text('bottler_id'),
+    countryId: text('country_id'),
+    addedById: text('added_by_id'),
+    barcode: text('barcode'),
+    barcodeType: text('barcode_type'),
+    bottlingType: text('bottling_type'),
+    distilledYear: integer('distilled_year'),
+    bottledYear: integer('bottled_year'),
+    age: integer('age'),
+    caskType: text('cask_type'),
+    batchId: text('batch_id'),
+    alcoholVolume: real('alcohol_volume'),
+    bottledFor: text('bottled_for'),
+    region: text('region'),
+    type: text('type'),
+    description: text('description'),
+    imageUrl: text('image_url'),
+    barcodeImageUrl: text('barcode_image_url'),
+    labelImageUrl: text('label_image_url'),
+    bottleImageUrl: text('bottle_image_url'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(() => new Date()),
+  })
+
+  return { countries, users, distillers, bottlers, whiskies }
+}
+
+function createMysqlSchema(): DbSchema {
+  const { mysqlTable, varchar, text, int, double, datetime } = require('drizzle-orm/mysql-core')
+
+  const countries = mysqlTable('countries', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    nameFr: varchar('name_fr', { length: 255 }),
+  })
+
+  const users = mysqlTable('users', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    email: varchar('email', { length: 255 }).notNull().unique(),
+    password: varchar('password', { length: 255 }).notNull(),
+    pseudo: varchar('pseudo', { length: 50 }).notNull().unique(),
+    visibility: varchar('visibility', { length: 20 }).default('private'),
+    address: varchar('address', { length: 255 }),
+    zipCode: varchar('zip_code', { length: 20 }),
+    town: varchar('town', { length: 100 }),
+    countryId: varchar('country_id', { length: 36 }),
+    confirmedAt: datetime('confirmed_at', { mode: 'date' }),
+    confirmationToken: text('confirmation_token'),
+    tokenExpiry: datetime('token_expiry', { mode: 'date' }),
+    resetPasswordToken: text('reset_password_token'),
+    resetPasswordExpiry: datetime('reset_password_expiry', { mode: 'date' }),
+    createdAt: datetime('created_at', { mode: 'date' }).defaultNow(),
+    updatedAt: datetime('updated_at', { mode: 'date' }).$onUpdate(() => new Date()),
+  })
+
+  const distillers = mysqlTable('distillers', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    countryId: varchar('country_id', { length: 36 }),
+  })
+
+  const bottlers = mysqlTable('bottlers', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+  })
+
+  const whiskies = mysqlTable('whiskies', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    distillerId: varchar('distiller_id', { length: 36 }),
+    bottlerId: varchar('bottler_id', { length: 36 }),
+    countryId: varchar('country_id', { length: 36 }),
+    addedById: varchar('added_by_id', { length: 36 }),
+    barcode: varchar('barcode', { length: 64 }),
+    barcodeType: varchar('barcode_type', { length: 32 }),
+    bottlingType: varchar('bottling_type', { length: 64 }),
+    distilledYear: int('distilled_year'),
+    bottledYear: int('bottled_year'),
+    age: int('age'),
+    caskType: varchar('cask_type', { length: 100 }),
+    batchId: varchar('batch_id', { length: 100 }),
+    alcoholVolume: double('alcohol_volume'),
+    bottledFor: varchar('bottled_for', { length: 255 }),
+    region: varchar('region', { length: 100 }),
+    type: varchar('type', { length: 100 }),
+    description: text('description'),
+    imageUrl: text('image_url'),
+    barcodeImageUrl: text('barcode_image_url'),
+    labelImageUrl: text('label_image_url'),
+    bottleImageUrl: text('bottle_image_url'),
+    createdAt: datetime('created_at', { mode: 'date' }).defaultNow(),
+    updatedAt: datetime('updated_at', { mode: 'date' }).$onUpdate(() => new Date()),
+  })
+
+  return { countries, users, distillers, bottlers, whiskies }
+}
+
+const schema: DbSchema = useMysql ? createMysqlSchema() : createSqliteSchema()
+export const { countries, users, distillers, bottlers, whiskies } = schema
+
+let dbInstance: any
+let sqliteInitialized = false
+
+function getDatabaseUrlForMysql(): string {
+  const url = process.env.DATABASE_URL
+  if (!url) {
+    throw new Error('DATABASE_URL manquant pour MySQL/MariaDB')
+  }
+  return url
+}
+
+function getSqliteFilePath(): string {
+  if (databaseUrl.startsWith('file:')) {
+    return databaseUrl.replace(/^file:/, '')
+  }
+  return './local.db'
+}
+
+function initSqlite(sqlite: any) {
+  if (process.env.NODE_ENV === 'production') return
+  if (sqliteInitialized) return
+
+  const usersTableExists = sqlite
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+    .get()
+
   if (!usersTableExists) {
-    await db.run(`
+    sqlite.prepare(`
       CREATE TABLE users (
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL UNIQUE,
@@ -110,36 +201,33 @@ export async function initDB() {
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
         updated_at INTEGER DEFAULT (strftime('%s', 'now'))
       )
-    `)
-    console.log('✅ Table users créée avec tous les champs')
+    `).run()
   } else {
-    const userColumns = await db.all<{ name: string }>("PRAGMA table_info(users)")
-    const userColumnNames = userColumns.map(col => col.name)
-    
+    const userColumns = sqlite.prepare("PRAGMA table_info(users)").all()
+    const userColumnNames = userColumns.map((col: any) => col.name)
+
     const usersColumnsToAdd = [
       'confirmed_at',
-      'confirmation_token', 
+      'confirmation_token',
       'token_expiry',
       'reset_password_token',
-      'reset_password_expiry'
+      'reset_password_expiry',
     ]
-    
-    usersColumnsToAdd.forEach(async (column) => {
+
+    usersColumnsToAdd.forEach((column) => {
       if (!userColumnNames.includes(column)) {
         const type = column.includes('token') ? 'TEXT' : 'INTEGER'
-        await db.run(`ALTER TABLE users ADD COLUMN ${column} ${type}`)
-        console.log(`✅ Colonne ${column} ajoutée à users`)
+        sqlite.prepare(`ALTER TABLE users ADD COLUMN ${column} ${type}`).run()
       }
     })
   }
-  
-  // Vérifier si la table whiskies existe
-  const whiskiesTableExists = await db.get<{ name: string }>(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='whiskies'"
-  )
-  
+
+  const whiskiesTableExists = sqlite
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='whiskies'")
+    .get()
+
   if (!whiskiesTableExists) {
-    await db.run(`
+    sqlite.prepare(`
       CREATE TABLE whiskies (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -167,60 +255,83 @@ export async function initDB() {
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
         updated_at INTEGER DEFAULT (strftime('%s', 'now'))
       )
-    `)
-    console.log('✅ Table whiskies créée avec tous les champs')
+    `).run()
   } else {
-    const whiskyColumns = await db.all<{ name: string }>("PRAGMA table_info(whiskies)")
-    const whiskyColumnNames = whiskyColumns.map(col => col.name)
-    
+    const whiskyColumns = sqlite.prepare("PRAGMA table_info(whiskies)").all()
+    const whiskyColumnNames = whiskyColumns.map((col: any) => col.name)
+
     const whiskiesColumnsToAdd = [
       'barcode',
       'barcode_type',
       'barcode_image_url',
       'label_image_url',
-      'bottle_image_url'
+      'bottle_image_url',
     ]
-    
-    whiskiesColumnsToAdd.forEach(async (column) => {
+
+    whiskiesColumnsToAdd.forEach((column) => {
       if (!whiskyColumnNames.includes(column)) {
         const type = column.includes('url') || column.includes('type') || column === 'barcode' ? 'TEXT' : 'INTEGER'
-        await db.run(`ALTER TABLE whiskies ADD COLUMN ${column} ${type}`)
-        console.log(`✅ Colonne ${column} ajoutée à whiskies`)
+        sqlite.prepare(`ALTER TABLE whiskies ADD COLUMN ${column} ${type}`).run()
       }
     })
   }
-  
-  // Créer les autres tables
-  await db.run(`
+
+  sqlite.prepare(`
     CREATE TABLE IF NOT EXISTS countries (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
       name_fr TEXT
     )
-  `)
-  
-  await db.run(`
+  `).run()
+
+  sqlite.prepare(`
     CREATE TABLE IF NOT EXISTS distillers (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       country_id TEXT
     )
-  `)
-  
-  await db.run(`
+  `).run()
+
+  sqlite.prepare(`
     CREATE TABLE IF NOT EXISTS bottlers (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL
     )
-  `)
-  
-  console.log('✅ Base de données initialisée avec code-barre et photos')
+  `).run()
+
+  sqliteInitialized = true
 }
 
-// 4. FONCTION UTILITAIRE POUR GÉNÉRER LES IDs
+function getDb() {
+  if (dbInstance) return dbInstance
+
+  if (useMysql) {
+    const { drizzle } = require('drizzle-orm/mysql2')
+    const mysql = require('mysql2/promise')
+    const pool = mysql.createPool(getDatabaseUrlForMysql())
+    dbInstance = drizzle(pool, { schema })
+    return dbInstance
+  }
+
+  const { drizzle } = require('drizzle-orm/better-sqlite3')
+  const Database = require('better-sqlite3')
+  const sqlite = new Database(getSqliteFilePath())
+  initSqlite(sqlite)
+  dbInstance = drizzle(sqlite, { schema })
+  return dbInstance
+}
+
+export const db = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      const real = getDb()
+      const value = real[prop as keyof typeof real]
+      return typeof value === 'function' ? value.bind(real) : value
+    },
+  }
+) as any
+
 export function generateId() {
   return crypto.randomUUID()
 }
-
-// 5. EXÉCUTER L'INITIALISATION
-initDB().catch(console.error)
