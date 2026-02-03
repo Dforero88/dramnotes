@@ -41,6 +41,7 @@ export default function AddWhiskyPage({
   const [ocrError, setOcrError] = useState('')
   const [whiskyData, setWhiskyData] = useState<any>({})
   const [createError, setCreateError] = useState('')
+  const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null }>>([])
 
   const typeOptions = [
     'American whiskey',
@@ -65,6 +66,12 @@ export default function AddWhiskyPage({
     return typeOptions.find((opt) => normalizeType(opt) === needle) || ''
   }
 
+  const mapCountryToId = (value: string) => {
+    const needle = value.trim().toLowerCase()
+    const match = countries.find((c) => c.name?.toLowerCase() === needle)
+    return match?.id || ''
+  }
+
   // Charge Quagga au montage
   useEffect(() => {
     // Vérifier si déjà chargé
@@ -86,6 +93,19 @@ export default function AddWhiskyPage({
     }
     
     document.head.appendChild(script)
+  }, [])
+
+  useEffect(() => {
+    const loadCountries = async () => {
+      try {
+        const res = await fetch('/api/countries')
+        const json = await res.json()
+        setCountries(json?.countries || [])
+      } catch (e) {
+        console.error('❌ Erreur load countries', e)
+      }
+    }
+    loadCountries()
   }, [])
 
   const handleImageCaptured = (imageData: string) => {
@@ -179,6 +199,15 @@ export default function AddWhiskyPage({
       if (parsed?.type && typeof parsed.type === 'string') {
         parsed.type = mapTypeToOption(parsed.type)
       }
+      if (!parsed?.bottling_type && typeof parsed?.bottler === 'string') {
+        const bottlerLower = parsed.bottler.toLowerCase()
+        if (bottlerLower.includes('distillery bottling')) {
+          parsed.bottling_type = 'DB'
+        }
+      }
+      if (parsed?.country && typeof parsed.country === 'string') {
+        parsed.country_id = mapCountryToId(parsed.country)
+      }
       setWhiskyData(parsed)
       setStep('edit')
     } catch (err: any) {
@@ -210,6 +239,10 @@ export default function AddWhiskyPage({
     }
     if (!payload.type || String(payload.type).trim() === '') {
       setCreateError('Le type est obligatoire')
+      return
+    }
+    if (!payload.country_id || String(payload.country_id).trim() === '') {
+      setCreateError('Le pays est obligatoire')
       return
     }
     if (payload.bottling_type === 'DB' && (!payload.distiller || String(payload.distiller).trim() === '')) {
@@ -454,7 +487,12 @@ export default function AddWhiskyPage({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Country</label>
-                      <input name="country" defaultValue={whiskyData.country || ''} className="w-full border rounded px-3 py-2" />
+                      <select name="country_id" defaultValue={whiskyData.country_id || ''} className="w-full border rounded px-3 py-2">
+                        <option value="">--</option>
+                        {countries.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Barcode (EAN13)</label>

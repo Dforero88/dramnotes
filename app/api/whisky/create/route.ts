@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, whiskies } from '@/lib/db'
+import { db, whiskies, distillers, bottlers } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { generateId } from '@/lib/db'
 import path from 'path'
@@ -26,6 +26,9 @@ export async function POST(request: NextRequest) {
     const name = String(data?.name || '').trim()
     if (!name) {
       return NextResponse.json({ error: 'Nom requis' }, { status: 400 })
+    }
+    if (!data?.country_id || String(data.country_id).trim() === '') {
+      return NextResponse.json({ error: 'Pays requis' }, { status: 400 })
     }
 
     const distilledYear = normalizeYear(data?.distilled_year)
@@ -60,12 +63,44 @@ export async function POST(request: NextRequest) {
     const now = new Date()
     const id = generateId()
 
+    let distillerId: string | null = null
+    if (data?.distiller && String(data.distiller).trim()) {
+      const distillerName = String(data.distiller).trim()
+      const existing = await db
+        .select({ id: distillers.id })
+        .from(distillers)
+        .where(sql`lower(${distillers.name}) = ${distillerName.toLowerCase()}`)
+        .limit(1)
+      if (existing.length > 0) {
+        distillerId = existing[0].id
+      } else {
+        distillerId = generateId()
+        await db.insert(distillers).values({ id: distillerId, name: distillerName, countryId: data?.country_id || null })
+      }
+    }
+
+    let bottlerId: string | null = null
+    if (data?.bottler && String(data.bottler).trim()) {
+      const bottlerName = String(data.bottler).trim()
+      const existing = await db
+        .select({ id: bottlers.id })
+        .from(bottlers)
+        .where(sql`lower(${bottlers.name}) = ${bottlerName.toLowerCase()}`)
+        .limit(1)
+      if (existing.length > 0) {
+        bottlerId = existing[0].id
+      } else {
+        bottlerId = generateId()
+        await db.insert(bottlers).values({ id: bottlerId, name: bottlerName })
+      }
+    }
+
     await db.insert(whiskies).values({
       id,
       name,
-      distillerId: null,
-      bottlerId: null,
-      countryId: null,
+      distillerId,
+      bottlerId,
+      countryId: data?.country_id || null,
       addedById: data?.added_by || null,
       barcode: data?.ean13 || null,
       barcodeType: data?.ean13 ? 'EAN-13' : null,
@@ -78,7 +113,7 @@ export async function POST(request: NextRequest) {
       alcoholVolume: data?.alcohol_volume ? Number(data.alcohol_volume) : null,
       bottledFor: data?.bottled_for || null,
       region: data?.region || null,
-      type: data?.category || null,
+      type: data?.type || null,
       description: null,
       imageUrl: bottleImageUrl,
       bottleImageUrl,
