@@ -316,7 +316,7 @@ function getDb() {
     const { drizzle } = require('drizzle-orm/mysql2')
     const mysql = require('mysql2/promise')
     const pool = mysql.createPool(getDatabaseUrlForMysql())
-    dbInstance = drizzle(pool, { schema })
+    dbInstance = drizzle(pool, { schema, mode: 'default' })
     return dbInstance
   }
 
