@@ -52,9 +52,13 @@ export async function POST(request: NextRequest) {
     if (bottleImage) {
       const ext = bottleImage.type === 'image/png' ? 'png' : 'jpg'
       const filename = `${generateId()}.${ext}`
-      const uploadDir =
-        process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads', 'bottles')
+      const uploadsRoot = process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads')
       const publicBase = process.env.UPLOADS_PUBLIC_URL || '/uploads/bottles'
+      const publicPath = publicBase.replace(/^\/+/, '')
+      const relativePath = publicPath.startsWith('uploads/')
+        ? publicPath.slice('uploads/'.length)
+        : publicPath
+      const uploadDir = path.join(uploadsRoot, relativePath)
       await fs.mkdir(uploadDir, { recursive: true })
       const filePath = path.join(uploadDir, filename)
       const buffer = Buffer.from(await bottleImage.arrayBuffer())
