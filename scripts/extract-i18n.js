@@ -67,8 +67,9 @@ function extractKeysFromFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8')
     
-    // Cherche {t('ma.clé')} ou {t("ma.clé")}
-    const regex = /\{t\(['"]([^'"]+)['"]\)\}/g
+    // Cherche t('ma.clé') avec ou sans accolades
+    // - évite d'accrocher des "Default(...)" ou autres appels non t(...)
+    const regex = /\bt\(['"]([^'"]+)['"]\)/g
     let match
     
     while ((match = regex.exec(content)) !== null) {

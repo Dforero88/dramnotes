@@ -3,54 +3,32 @@
 // Les traductions brutes
 export const translations = {
   fr: {
-    account: {
-      'title': 'Title'
-    },
-    aromatic: {
-      'title': 'Title'
-    },
     auth: {
       'accountActivated': 'Account Activated',
       'alreadyHaveAccount': 'Already Have Account',
       'backToLogin': 'Back To Login',
       'browseCatalogue': 'Browse Catalogue',
-      'changePassword': 'Change Password',
       'checkEmail': 'Check Email',
       'checkingLink': 'Checking Link',
-      'communityCta': 'Community Cta',
       'confirmationSuccess': 'Confirmation Success',
       'confirmPassword': 'Confirm Password',
-      'createAccount': 'Create Account',
       'forgotPassword': 'Forgot Password',
-      'forgotPasswordButton': 'Forgot Password Button',
-      'forgotPasswordSending': 'Forgot Password Sending',
       'forgotPasswordSubtitle': 'Forgot Password Subtitle',
       'forgotPasswordTitle': 'Forgot Password Title',
       'goToLogin': 'Go To Login',
-      'invalidCredentials': 'Invalid Credentials',
       'invalidLink': 'Invalid Link',
-      'linkExpiredOrInvalid': 'Link Expired Or Invalid',
-      'loginButton': 'Login Button',
-      'loginLoading': 'Login Loading',
       'loginTitle': 'Login Title',
       'newPassword': 'New Password',
       'newPasswordSubtitle': 'New Password Subtitle',
       'newPasswordTitle': 'New Password Title',
       'noAccountCta': 'No Account Cta',
-      'passwordMin': 'Password Min',
-      'passwordsDoNotMatch': 'Passwords Do Not Match',
       'redirectLogin': 'Redirect Login',
       'register': 'Register',
       'registerSuccess': 'Register Success',
       'requestNewLink': 'Request New Link',
-      'restrictedMessage': 'Restricted Message',
-      'restrictedTitle': 'Restricted Title',
-      'saving': 'Saving',
       'signInHere': 'Sign In Here',
-      'signUp': 'Sign Up',
       'termsAgreement': 'Terms Agreement',
-      'thanksForConfirming': 'Thanks For Confirming',
-      'tokenCheckError': 'Token Check Error'
+      'thanksForConfirming': 'Thanks For Confirming'
     },
     catalogue: {
       'addWhiskyButton': 'Add Whisky Button',
@@ -62,16 +40,10 @@ export const translations = {
     common: {
       'backEdit': 'Back Edit',
       'backToScan': 'Back To Scan',
-      'cancel': 'Cancel',
       'continue': 'Continue',
-      'error': 'Error',
-      'errorOccurred': 'Error Occurred',
       'or': 'Or',
       'retry': 'Retry',
       'selectEmpty': 'Select Empty'
-    },
-    explorer: {
-      'title': 'Title'
     },
     form: {
       'email': 'Email',
@@ -79,8 +51,7 @@ export const translations = {
       'password': 'Password',
       'passwordPlaceholder': 'Password Placeholder',
       'pseudo': 'Pseudo',
-      'pseudoPlaceholder': 'Pseudo Placeholder',
-      'submitting': 'Submitting'
+      'pseudoPlaceholder': 'Pseudo Placeholder'
     },
     home: {
       'ctaExplore': 'Cta Explore',
@@ -94,9 +65,6 @@ export const translations = {
       'footer': 'Footer',
       'heroSubtitle': 'Hero Subtitle',
       'heroTitle': 'Hero Title'
-    },
-    map: {
-      'title': 'Title'
     },
     navigation: {
       'aromaticWheel': 'Roue aromatique',
@@ -122,17 +90,8 @@ export const translations = {
       'bottlingDB': 'Bottling D B',
       'bottlingIB': 'Bottling I B',
       'canContinueManual': 'Can Continue Manual',
-      'continueWithBarcode': 'Continue With Barcode',
-      'continueWithoutBarcode': 'Continue Without Barcode',
       'createSuccess': 'Create Success',
       'createWhisky': 'Create Whisky',
-      'cropAndScan': 'Crop And Scan',
-      'cropperLoading': 'Cropper Loading',
-      'cropPreparing': 'Crop Preparing',
-      'cropSubtitle': 'Crop Subtitle',
-      'cropTipBody': 'Crop Tip Body',
-      'cropTipTitle': 'Crop Tip Title',
-      'cropTitle': 'Crop Title',
       'duplicateFound': 'Duplicate Found',
       'fieldAge': 'Field Age',
       'fieldAlcoholVolume': 'Field Alcohol Volume',
@@ -150,23 +109,14 @@ export const translations = {
       'fieldName': 'Field Name',
       'fieldRegion': 'Field Region',
       'fieldType': 'Field Type',
-      'labelPhotoRequired': 'Label Photo Required',
       'loadingScanner': 'Loading Scanner',
       'manualBarcodeHint': 'Manual Barcode Hint',
       'manualBarcodePlaceholder': 'Manual Barcode Placeholder',
       'manualBarcodeTitle': 'Manual Barcode Title',
       'noBarcode': 'No Barcode',
-      'noBarcodeDetected': 'No Barcode Detected',
       'noBarcodeFound': 'No Barcode Found',
-      'ocrAnalyze': 'Ocr Analyze',
-      'ocrLoading': 'Ocr Loading',
-      'openCamera': 'Open Camera',
-      'reset': 'Reset',
-      'rotateLeft': 'Rotate Left',
-      'rotateRight': 'Rotate Right',
       'scanning': 'Scanning',
       'scanResultTitle': 'Scan Result Title',
-      'scanUnavailable': 'Scan Unavailable',
       'step1Title': 'Step1 Title',
       'step2Subtitle': 'Step2 Subtitle',
       'step2Title': 'Step2 Title',
@@ -175,60 +125,36 @@ export const translations = {
       'stepPhoto': 'Step Photo',
       'stepResult': 'Step Result',
       'takeBottlePhoto': 'Take Bottle Photo',
-      'takeLabelPhoto': 'Take Label Photo',
-      'zoomIn': 'Zoom In',
-      'zoomOut': 'Zoom Out'
+      'takeLabelPhoto': 'Take Label Photo'
     }
   },
   en: {
-    account: {
-      'title': 'Title'
-    },
-    aromatic: {
-      'title': 'Title'
-    },
     auth: {
       'accountActivated': 'Account Activated',
       'alreadyHaveAccount': 'Already Have Account',
       'backToLogin': 'Back To Login',
       'browseCatalogue': 'Browse Catalogue',
-      'changePassword': 'Change Password',
       'checkEmail': 'Check Email',
       'checkingLink': 'Checking Link',
-      'communityCta': 'Community Cta',
       'confirmationSuccess': 'Confirmation Success',
       'confirmPassword': 'Confirm Password',
-      'createAccount': 'Create Account',
       'forgotPassword': 'Forgot Password',
-      'forgotPasswordButton': 'Forgot Password Button',
-      'forgotPasswordSending': 'Forgot Password Sending',
       'forgotPasswordSubtitle': 'Forgot Password Subtitle',
       'forgotPasswordTitle': 'Forgot Password Title',
       'goToLogin': 'Go To Login',
-      'invalidCredentials': 'Invalid Credentials',
       'invalidLink': 'Invalid Link',
-      'linkExpiredOrInvalid': 'Link Expired Or Invalid',
-      'loginButton': 'Login Button',
-      'loginLoading': 'Login Loading',
       'loginTitle': 'Login Title',
       'newPassword': 'New Password',
       'newPasswordSubtitle': 'New Password Subtitle',
       'newPasswordTitle': 'New Password Title',
       'noAccountCta': 'No Account Cta',
-      'passwordMin': 'Password Min',
-      'passwordsDoNotMatch': 'Passwords Do Not Match',
       'redirectLogin': 'Redirect Login',
       'register': 'Register',
       'registerSuccess': 'Register Success',
       'requestNewLink': 'Request New Link',
-      'restrictedMessage': 'Restricted Message',
-      'restrictedTitle': 'Restricted Title',
-      'saving': 'Saving',
       'signInHere': 'Sign In Here',
-      'signUp': 'Sign Up',
       'termsAgreement': 'Terms Agreement',
-      'thanksForConfirming': 'Thanks For Confirming',
-      'tokenCheckError': 'Token Check Error'
+      'thanksForConfirming': 'Thanks For Confirming'
     },
     catalogue: {
       'addWhiskyButton': 'Add Whisky Button',
@@ -240,16 +166,10 @@ export const translations = {
     common: {
       'backEdit': 'Back Edit',
       'backToScan': 'Back To Scan',
-      'cancel': 'Cancel',
       'continue': 'Continue',
-      'error': 'Error',
-      'errorOccurred': 'Error Occurred',
       'or': 'Or',
       'retry': 'Retry',
       'selectEmpty': 'Select Empty'
-    },
-    explorer: {
-      'title': 'Title'
     },
     form: {
       'email': 'Email',
@@ -257,8 +177,7 @@ export const translations = {
       'password': 'Password',
       'passwordPlaceholder': 'Password Placeholder',
       'pseudo': 'Pseudo',
-      'pseudoPlaceholder': 'Pseudo Placeholder',
-      'submitting': 'Submitting'
+      'pseudoPlaceholder': 'Pseudo Placeholder'
     },
     home: {
       'ctaExplore': 'Cta Explore',
@@ -272,9 +191,6 @@ export const translations = {
       'footer': 'Footer',
       'heroSubtitle': 'Hero Subtitle',
       'heroTitle': 'Hero Title'
-    },
-    map: {
-      'title': 'Title'
     },
     navigation: {
       'aromaticWheel': 'my Aromatic Wheel',
@@ -300,17 +216,8 @@ export const translations = {
       'bottlingDB': 'Bottling D B',
       'bottlingIB': 'Bottling I B',
       'canContinueManual': 'Can Continue Manual',
-      'continueWithBarcode': 'Continue With Barcode',
-      'continueWithoutBarcode': 'Continue Without Barcode',
       'createSuccess': 'Create Success',
       'createWhisky': 'Create Whisky',
-      'cropAndScan': 'Crop And Scan',
-      'cropperLoading': 'Cropper Loading',
-      'cropPreparing': 'Crop Preparing',
-      'cropSubtitle': 'Crop Subtitle',
-      'cropTipBody': 'Crop Tip Body',
-      'cropTipTitle': 'Crop Tip Title',
-      'cropTitle': 'Crop Title',
       'duplicateFound': 'Duplicate Found',
       'fieldAge': 'Field Age',
       'fieldAlcoholVolume': 'Field Alcohol Volume',
@@ -328,23 +235,14 @@ export const translations = {
       'fieldName': 'Field Name',
       'fieldRegion': 'Field Region',
       'fieldType': 'Field Type',
-      'labelPhotoRequired': 'Label Photo Required',
       'loadingScanner': 'Loading Scanner',
       'manualBarcodeHint': 'Manual Barcode Hint',
       'manualBarcodePlaceholder': 'Manual Barcode Placeholder',
       'manualBarcodeTitle': 'Manual Barcode Title',
       'noBarcode': 'No Barcode',
-      'noBarcodeDetected': 'No Barcode Detected',
       'noBarcodeFound': 'No Barcode Found',
-      'ocrAnalyze': 'Ocr Analyze',
-      'ocrLoading': 'Ocr Loading',
-      'openCamera': 'Open Camera',
-      'reset': 'Reset',
-      'rotateLeft': 'Rotate Left',
-      'rotateRight': 'Rotate Right',
       'scanning': 'Scanning',
       'scanResultTitle': 'Scan Result Title',
-      'scanUnavailable': 'Scan Unavailable',
       'step1Title': 'Step1 Title',
       'step2Subtitle': 'Step2 Subtitle',
       'step2Title': 'Step2 Title',
@@ -353,9 +251,7 @@ export const translations = {
       'stepPhoto': 'Step Photo',
       'stepResult': 'Step Result',
       'takeBottlePhoto': 'Take Bottle Photo',
-      'takeLabelPhoto': 'Take Label Photo',
-      'zoomIn': 'Zoom In',
-      'zoomOut': 'Zoom Out'
+      'takeLabelPhoto': 'Take Label Photo'
     }
   },
 }
