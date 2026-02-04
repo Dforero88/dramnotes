@@ -135,9 +135,9 @@ export const translations = {
       'myAccount': 'My Account',
       'notebook': 'Notebook',
       'signIn': 'Sign In',
-      'signOut': 'Se déconnecter',
+      'signOut': 'Sign Out',
       'signUp': 'Sign Up',
-      'welcome': 'Bienvenue'
+      'welcome': 'Welcome'
     },
     validation: {
       'passwordRules': 'Password Rules'
@@ -162,7 +162,6 @@ export const translations = {
       'cropTipBody': 'Faite une photo nette avec une bonne luminosité',
       'cropTipTitle': 'Aide pour rogner',
       'cropTitle': 'Rogner',
-      'detailsTitle': 'Details Title',
       'duplicateFound': 'Duplicate Found',
       'fieldAge': 'Age',
       'fieldAlcoholVolume': 'Taux d\'alcool',
@@ -189,7 +188,6 @@ export const translations = {
       'noBarcodeDetected': 'No Barcode Detected',
       'noBarcodeFound': 'No Barcode Found',
       'noBarcodeLabel': 'Pas de code-barres ?',
-      'notFound': 'Not Found',
       'ocrAnalyze': 'Analyser l\'étiquette',
       'ocrLoading': 'Analyse en cours',
       'openCamera': 'Prendre une photo',
@@ -376,7 +374,6 @@ export const translations = {
       'cropTipBody': 'Crop Tip Body',
       'cropTipTitle': 'Crop Tip Title',
       'cropTitle': 'Crop Title',
-      'detailsTitle': 'Details Title',
       'duplicateFound': 'Duplicate Found',
       'fieldAge': 'Field Age',
       'fieldAlcoholVolume': 'Field Alcohol Volume',
@@ -403,7 +400,6 @@ export const translations = {
       'noBarcodeDetected': 'No Barcode Detected',
       'noBarcodeFound': 'No Barcode Found',
       'noBarcodeLabel': 'No Barcode Label',
-      'notFound': 'Not Found',
       'ocrAnalyze': 'Ocr Analyze',
       'ocrLoading': 'Ocr Loading',
       'openCamera': 'Open Camera',

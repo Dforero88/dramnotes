@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { getTranslations, type Locale } from '@/lib/i18n'
+import Link from 'next/link'
 
 type WhiskyCard = {
   id: string
@@ -276,9 +277,10 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
                   : ''
 
               return (
-                <div
+                <Link
                   key={item.id}
-                  className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                  href={`/${locale}/whisky/${item.id}`}
+                  className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow block"
                 >
                   <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
                     {imageSrc ? (
@@ -304,7 +306,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
                         .join(' • ')}
                     </div>
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>

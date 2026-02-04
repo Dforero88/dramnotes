@@ -47,17 +47,28 @@ export default function Navigation() {
     <header>
       {/* Barre supérieure */}
       <div className="bg-white border-b">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <button
-            className="md:hidden p-2 rounded border"
-            style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Menu"
-          >
-            ☰
-          </button>
+        <div className="container mx-auto px-6 py-4 grid grid-cols-[1fr_auto_1fr] items-center">
+          <div className="flex items-center gap-4">
+            <button
+              className="md:hidden p-2 rounded border"
+              style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-label="Menu"
+            >
+              ☰
+            </button>
 
-          <div className="flex-1 flex justify-center">
+            <select 
+              value={locale}
+              onChange={(e) => changeLocale(e.target.value as Locale)}
+              className="hidden md:block border rounded px-2 py-1 text-sm"
+            >
+              <option value="fr">🇫🇷 Français</option>
+              <option value="en">🇬🇧 English</option>
+            </select>
+          </div>
+
+          <div className="justify-self-center">
             <Link href={`/${locale}`}>
               <Image 
                 src="/logo.webp" 
@@ -69,19 +80,11 @@ export default function Navigation() {
             </Link>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <div className="hidden md:flex items-center space-x-4">
-              <select 
-                value={locale}
-                onChange={(e) => changeLocale(e.target.value as Locale)}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value="fr">🇫🇷 Français</option>
-                <option value="en">🇬🇧 English</option>
-              </select>
+          <div className="flex items-center justify-end gap-4">
+            <div className="hidden md:flex items-center gap-4">
               {session ? (
                 <>
-                  <span className="text-gray-600 hidden md:inline">
+                  <span className="text-gray-600 hidden lg:inline">
                     {t('navigation.welcome')}, {session.user?.name || session.user?.email}
                   </span>
                   <button 
