@@ -266,38 +266,47 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
               {t('catalogue.noResults')}
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-              >
-                <div className="w-full aspect-[3/4] bg-gray-100">
-                  {item.bottleImageUrl ? (
-                    <img
-                      src={item.bottleImageUrl}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      {t('catalogue.noImage')}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {items.map((item) => {
+              const imageSrc =
+                typeof item.bottleImageUrl === 'string' && item.bottleImageUrl.trim() !== ''
+                  ? item.bottleImageUrl.startsWith('http') || item.bottleImageUrl.startsWith('/')
+                    ? item.bottleImageUrl
+                    : `/${item.bottleImageUrl}`
+                  : ''
+
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+                    {imageSrc ? (
+                      <img
+                        src={imageSrc}
+                        alt={item.name}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        {t('catalogue.noImage')}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 space-y-1">
+                    <h3 className="text-base font-semibold line-clamp-2">{item.name}</h3>
+                    <div className="text-sm text-gray-600 line-clamp-1">
+                      {item.distillerName || item.bottlerName || item.region || item.type || ''}
                     </div>
-                  )}
-                </div>
-                <div className="p-4 space-y-1">
-                  <h3 className="text-lg font-semibold">{item.name}</h3>
-                  <div className="text-sm text-gray-600">
-                    {item.distillerName || item.bottlerName || item.region || item.type || ''}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {[item.countryName, item.age ? `${item.age}y` : null, item.alcoholVolume ? `${item.alcoholVolume}%` : null]
-                      .filter(Boolean)
-                      .join(' • ')}
+                    <div className="text-xs text-gray-500">
+                      {[item.countryName, item.age ? `${item.age}y` : null, item.alcoholVolume ? `${item.alcoholVolume}%` : null]
+                        .filter(Boolean)
+                        .join(' • ')}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {totalPages > 1 && (

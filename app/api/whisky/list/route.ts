@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       .select({
         id: whiskies.id,
         name: whiskies.name,
-        bottleImageUrl: whiskies.bottleImageUrl,
+        bottleImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
         distillerName: distillers.name,
         bottlerName: bottlers.name,
         countryName: countries.name,
