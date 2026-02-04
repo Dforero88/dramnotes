@@ -2,7 +2,8 @@
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth' // <-- Importe authOptions
+import { authOptions } from '@/lib/auth'
+import CatalogueBrowser from '@/components/CatalogueBrowser'
 
 export default async function CataloguePage({
   params
@@ -15,18 +16,7 @@ export default async function CataloguePage({
   
   return (
     <div>
-      <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">Catalogue des Whiskies</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="border p-4 rounded-lg">
-              <div className="h-48 bg-gray-200 rounded mb-4"></div>
-              <h3 className="text-xl font-bold">Whisky {i}</h3>
-              <p className="text-gray-600">Région, âge, prix...</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      <CatalogueBrowser locale={locale} />
       
       <div className="mt-12 pt-8 border-t">
         <div className="max-w-4xl mx-auto">
