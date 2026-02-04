@@ -1,6 +1,8 @@
 'use client'
 
 import { useRef, useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { getTranslations, type Locale } from '@/lib/i18n'
 
 interface BarcodeCropperProps {
   image: string
@@ -15,6 +17,9 @@ declare global {
 }
 
 export default function BarcodeCropper({ image, onCropComplete, onCancel }: BarcodeCropperProps) {
+  const pathname = usePathname()
+  const locale: Locale = pathname.startsWith('/en') ? 'en' : 'fr'
+  const t = getTranslations(locale)
   const imageRef = useRef<HTMLImageElement>(null)
   const cropperRef = useRef<any>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -137,7 +142,7 @@ export default function BarcodeCropper({ image, onCropComplete, onCancel }: Barc
     return (
       <div className="text-center p-8">
         <div className="animate-spin inline-block w-8 h-8 border-2 border-blue-600 rounded-full border-t-transparent"></div>
-        <p className="mt-2">Chargement Cropper.js...</p>
+        <p className="mt-2">{t('whisky.cropperLoading')}</p>
       </div>
     )
   }
@@ -146,9 +151,9 @@ export default function BarcodeCropper({ image, onCropComplete, onCancel }: Barc
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold">Crop le code-barre</h3>
+          <h3 className="text-lg font-semibold">{t('whisky.cropTitle')}</h3>
           <p className="text-sm text-gray-600">
-            Même système que le module PrestaShop
+            {t('whisky.cropSubtitle')}
           </p>
         </div>
         
@@ -156,35 +161,35 @@ export default function BarcodeCropper({ image, onCropComplete, onCancel }: Barc
           <button
             onClick={handleZoomOut}
             className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
-            title="Zoom Out"
+            title={t('whisky.zoomOut')}
           >
             −
           </button>
           <button
             onClick={handleZoomIn}
             className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
-            title="Zoom In"
+            title={t('whisky.zoomIn')}
           >
             +
           </button>
           <button
             onClick={handleRotateLeft}
             className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
-            title="Rotate Left"
+            title={t('whisky.rotateLeft')}
           >
             ↶
           </button>
           <button
             onClick={handleRotateRight}
             className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
-            title="Rotate Right"
+            title={t('whisky.rotateRight')}
           >
             ↷
           </button>
           <button
             onClick={handleReset}
             className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
-            title="Reset"
+            title={t('whisky.reset')}
           >
             ⟲
           </button>
@@ -202,17 +207,16 @@ export default function BarcodeCropper({ image, onCropComplete, onCancel }: Barc
       </div>
 
       <div className="text-sm p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <p className="font-medium text-yellow-800">💡 Utilisez votre téléphone pour une meilleure qualité !</p>
+        <p className="font-medium text-yellow-800">{t('whisky.cropTipTitle')}</p>
         <p className="text-yellow-700 mt-1">
-          La webcam d'ordinateur a souvent une qualité médiocre. 
-          Pour de meilleurs résultats, prenez la photo avec votre téléphone et transférez-la.
+          {t('whisky.cropTipBody')}
         </p>
       </div>
 
       {isProcessing && (
         <div className="text-center p-4 bg-blue-50 rounded-lg">
           <div className="animate-spin inline-block w-6 h-6 border-2 border-blue-600 rounded-full border-t-transparent"></div>
-          <p className="mt-2 text-blue-700">Préparation...</p>
+          <p className="mt-2 text-blue-700">{t('whisky.cropPreparing')}</p>
         </div>
       )}
 
@@ -222,14 +226,14 @@ export default function BarcodeCropper({ image, onCropComplete, onCancel }: Barc
           className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 flex-1"
           disabled={isProcessing}
         >
-          Annuler
+          {t('common.cancel')}
         </button>
         <button
           onClick={handleCrop}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-1 font-medium"
           disabled={isProcessing}
         >
-          Crop & Scanner
+          {t('whisky.cropAndScan')}
         </button>
       </div>
     </div>
