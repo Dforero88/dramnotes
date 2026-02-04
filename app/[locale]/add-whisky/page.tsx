@@ -160,6 +160,9 @@ export default function AddWhiskyPage({
     const exists = await checkBarcodeExistence(value)
     if (exists) {
       setBarcodeExists(true)
+      setManualEntry(false)
+      setImage('')
+      stopScanning()
       setStep('scan')
     } else {
       setBarcodeExists(false)
