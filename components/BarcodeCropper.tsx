@@ -230,7 +230,7 @@ export default function BarcodeCropper({ image, onCropComplete, onCancel }: Barc
         </button>
         <button
           onClick={handleCrop}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-1 font-medium"
+          className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark-light flex-1 font-medium"
           disabled={isProcessing}
         >
           {t('whisky.cropAndScan')}

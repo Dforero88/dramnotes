@@ -706,7 +706,7 @@ export default function AddWhiskyPage({
             color: #6b7280;
           }
           .step.active .step-number {
-            background: #3b82f6;
+            background: var(--color-primary);
             color: white;
           }
           .step-label {
@@ -715,7 +715,7 @@ export default function AddWhiskyPage({
             color: #6b7280;
           }
           .step.active .step-label {
-            color: #3b82f6;
+            color: var(--color-primary);
             font-weight: 500;
           }
           .step-line {
