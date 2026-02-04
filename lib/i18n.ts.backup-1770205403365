@@ -119,7 +119,6 @@ export const translations = {
       'barcodeDetected': 'Code-barres détécté',
       'barcodeExists': 'Ce code-barres existe déjà',
       'barcodeFormat': 'Format du code-barres',
-      'barcodeUnreadable': 'Barcode Unreadable',
       'bottlingDB': 'Embouteillé par la distillerie',
       'bottlingIB': 'Embouteillage indépendant',
       'canContinueManual': 'Can Continue Manual',
@@ -156,10 +155,9 @@ export const translations = {
       'manualBarcodeHint': 'Manual Barcode Hint',
       'manualBarcodePlaceholder': 'Manual Barcode Placeholder',
       'manualBarcodeTitle': 'Manual Barcode Title',
-      'noBarcode': 'Passer à la suite',
+      'noBarcode': 'Pas de code-barres?',
       'noBarcodeDetected': 'No Barcode Detected',
       'noBarcodeFound': 'No Barcode Found',
-      'noBarcodeLabel': 'Pas de code-barres ?',
       'ocrAnalyze': 'Analyser l\'étiquette',
       'ocrLoading': 'Analyse en cours',
       'openCamera': 'Prendre une photo',
@@ -181,7 +179,6 @@ export const translations = {
       'stepResult': 'Step Result',
       'takeBottlePhoto': 'Prendre la bouteille',
       'takeLabelPhoto': 'Prendre l\'étiquette',
-      'verifyBarcode': 'Vérifier le code-barres',
       'zoomIn': 'Zoom In',
       'zoomOut': 'Zoom Out'
     }
@@ -303,7 +300,6 @@ export const translations = {
       'barcodeDetected': 'Barcode Detected',
       'barcodeExists': 'Barcode Exists',
       'barcodeFormat': 'Barcode Format',
-      'barcodeUnreadable': 'Barcode Unreadable',
       'bottlingDB': 'Bottling D B',
       'bottlingIB': 'Bottling I B',
       'canContinueManual': 'Can Continue Manual',
@@ -343,7 +339,6 @@ export const translations = {
       'noBarcode': 'No Barcode',
       'noBarcodeDetected': 'No Barcode Detected',
       'noBarcodeFound': 'No Barcode Found',
-      'noBarcodeLabel': 'No Barcode Label',
       'ocrAnalyze': 'Ocr Analyze',
       'ocrLoading': 'Ocr Loading',
       'openCamera': 'Open Camera',
@@ -365,7 +360,6 @@ export const translations = {
       'stepResult': 'Step Result',
       'takeBottlePhoto': 'Take Bottle Photo',
       'takeLabelPhoto': 'Take Label Photo',
-      'verifyBarcode': 'Verify Barcode',
       'zoomIn': 'Zoom In',
       'zoomOut': 'Zoom Out'
     }

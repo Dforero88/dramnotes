@@ -125,19 +125,6 @@ export const useBarcodeScanner = () => {
       setError('');
       return true;
     } else {
-      // Demander manuellement comme fallback
-      const manualBarcode = prompt(
-        "Le scan automatique a échoué.\n\n" +
-        "Entrez le code-barre manuellement :\n" +
-        "(Laissez vide pour ignorer)"
-      );
-      
-      if (manualBarcode !== null && manualBarcode.trim()) {
-        setBarcode(manualBarcode.trim());
-        setError('');
-        return true;
-      }
-      
       setError('Aucun code-barre détecté. Essayez manuellement.');
       return false;
     }

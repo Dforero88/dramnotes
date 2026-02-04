@@ -31,8 +31,7 @@ export default function AddWhiskyPage({
     scanImage,
   } = useBarcodeScanner()
 
-  const [step, setStep] = useState<'scan' | 'crop' | 'result' | 'label' | 'edit' | 'exists'>('scan')
-  const [manualEntry, setManualEntry] = useState(false)
+  const [step, setStep] = useState<'scan' | 'label' | 'edit' | 'exists'>('scan')
   const [scanError, setScanError] = useState('')
   const [quaggaLoaded, setQuaggaLoaded] = useState(false)
   const [labelImage, setLabelImage] = useState<string>('')
@@ -114,8 +113,8 @@ export default function AddWhiskyPage({
 
   const handleImageCaptured = (imageData: string) => {
     captureImage(imageData)
-    setStep('crop')
     setScanError('')
+    stopScanning()
   }
 
   const handleCropComplete = async (croppedImage: string) => {
@@ -134,9 +133,11 @@ export default function AddWhiskyPage({
     const success = await scanImage(croppedImage)
     
     if (success) {
-      setStep('result')
+      setScanError('')
+      // On a un code-barres -> on peut masquer l'image
+      setImage('')
     } else {
-      setScanError(error || t('whisky.noBarcodeDetected'))
+      setScanError(t('whisky.barcodeUnreadable'))
     }
   }
 
@@ -160,7 +161,6 @@ export default function AddWhiskyPage({
     const exists = await checkBarcodeExistence(value)
     if (exists) {
       setBarcodeExists(true)
-      setManualEntry(false)
       setImage('')
       stopScanning()
       setStep('scan')
@@ -339,7 +339,7 @@ export default function AddWhiskyPage({
         {/* Étapes visuelles */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-8">
-            <div className={`step ${['scan', 'crop', 'result'].includes(step) ? 'active' : ''}`}>
+            <div className={`step ${step === 'scan' ? 'active' : ''}`}>
               <div className="step-number">1</div>
               <div className="step-label">{t('whisky.stepBarcode')}</div>
             </div>
@@ -358,30 +358,99 @@ export default function AddWhiskyPage({
 
         {/* Contenu principal */}
         <div className="bg-white rounded-xl shadow-lg p-8">
-          {!manualEntry ? (
-            <>
-              {/* Étape 1: Photo */}
-              {step === 'scan' && !isScanning && !image && (
-                <div className="text-center p-8">
-                  <h2 className="text-2xl font-bold mb-6">{t('whisky.step1Title')}</h2>
-                  {barcodeExists && (
-                    <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
-                      {t('whisky.barcodeExists')}
+          <>
+              {/* Étape 1: Code-barres */}
+              {step === 'scan' && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-4">{t('whisky.step1Title')}</h2>
+                    {barcodeExists && (
+                      <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
+                        {t('whisky.barcodeExists')}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        setImage('')
+                        setScanError('')
+                        startScanning()
+                      }}
+                      className="px-8 py-4 text-white rounded-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: 'var(--color-primary)' }}
+                      disabled={!quaggaLoaded}
+                    >
+                      {quaggaLoaded ? t('whisky.openCamera') : t('whisky.loadingScanner')}
+                    </button>
+                  </div>
+
+                  {isScanning && (
+                    <Camera 
+                      onCapture={handleImageCaptured}
+                      isActive={isScanning}
+                      autoOpen
+                      showButton={false}
+                    />
+                  )}
+
+                  {image && (
+                    <div className="space-y-6">
+                      <BarcodeCropper
+                        image={image}
+                        onCropComplete={handleCropComplete}
+                        onCancel={() => {
+                          setImage('')
+                          setScanError('')
+                        }}
+                      />
+
+                      {isDetecting && (
+                        <div className="text-center p-4 bg-blue-50 rounded-lg">
+                          <div className="animate-spin inline-block w-6 h-6 border-2 border-blue-600 rounded-full border-t-transparent"></div>
+                          <p className="mt-2 text-blue-700">{t('whisky.scanning')}</p>
+                        </div>
+                      )}
+                      {scanError && !isDetecting && (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-yellow-700 whitespace-pre-line">{scanError}</p>
+                        </div>
+                      )}
                     </div>
                   )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('whisky.fieldBarcode')}
+                    </label>
+                    <input
+                      type="text"
+                      value={barcode}
+                      onChange={(e) => {
+                        setBarcode(e.target.value)
+                        setBarcodeExists(false)
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                      placeholder={t('whisky.manualBarcodePlaceholder')}
+                    />
+                  </div>
                   <button
-                    onClick={startScanning}
-                    className="px-8 py-4 text-white rounded-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={proceedToNextStep}
+                    disabled={!barcode?.trim()}
+                    className="px-6 py-3 text-white rounded-lg disabled:opacity-50"
                     style={{ backgroundColor: 'var(--color-primary)' }}
-                    disabled={!quaggaLoaded}
                   >
-                    {quaggaLoaded ? t('whisky.openCamera') : t('whisky.loadingScanner')}
+                    {t('whisky.verifyBarcode')}
                   </button>
-                  <div className="mt-8 text-gray-600">
-                    <p>{t('common.or')}</p>
+
+                  <hr className="my-6 border-gray-200" />
+                  <div className="text-gray-600">
+                    <p>{t('whisky.noBarcodeLabel')}</p>
                     <button
-                      onClick={() => setManualEntry(true)}
-                      className="mt-4 px-6 py-3 border rounded-lg"
+                      onClick={() => {
+                        setBarcode('')
+                        setBarcodeExists(false)
+                        setStep('label')
+                      }}
+                      className="mt-3 px-6 py-3 border rounded-lg"
                       style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                     >
                       {t('whisky.noBarcode')}
@@ -390,85 +459,8 @@ export default function AddWhiskyPage({
                 </div>
               )}
 
-              {/* Caméra */}
-              {step === 'scan' && isScanning && (
-                <Camera 
-                  onCapture={handleImageCaptured}
-                  isActive={isScanning}
-                  autoOpen
-                  showButton={false}
-                />
-              )}
-
-              {/* Crop */}
-              {step === 'crop' && image && (
-                <div className="space-y-6">
-                  <BarcodeCropper
-                    image={image}
-                    onCropComplete={handleCropComplete}
-                    onCancel={() => {
-                      setStep('scan')
-                      setImage('')
-                      setScanError('')
-                    }}
-                  />
-                  
-                  {isDetecting && (
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="animate-spin inline-block w-6 h-6 border-2 border-blue-600 rounded-full border-t-transparent"></div>
-                      <p className="mt-2 text-blue-700">{t('whisky.scanning')}</p>
-                    </div>
-                  )}
-                  
-                  {scanError && !isDetecting && (
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-yellow-700 whitespace-pre-line">{scanError}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Résultat */}
-              {step === 'result' && (
-                <div className="space-y-6">
-                  <h2 className="text-2xl font-bold">{t('whisky.scanResultTitle')}</h2>
-                  
-                  <div className="bg-gray-50 p-6 rounded-lg">
-                    {barcode ? (
-                      <div>
-                        <p className="text-green-600 font-semibold">{t('whisky.barcodeDetected')}</p>
-                        <div className="mt-4 p-4 bg-white border border-green-200 rounded-lg">
-                          <p className="font-mono text-2xl">{barcode}</p>
-                          <p className="text-sm text-gray-500 mt-2">{t('whisky.barcodeFormat')}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-yellow-600">{t('whisky.noBarcodeFound')}</p>
-                        <p className="text-sm text-gray-600 mt-2">
-                          {t('whisky.canContinueManual')}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="mt-8 flex gap-4">
-                      <button
-                        onClick={() => setStep('crop')}
-                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
-                      >
-                        {t('common.retry')}
-                      </button>
-                      <button
-                        onClick={proceedToNextStep}
-                        className="px-6 py-2 text-white rounded-lg"
-                        style={{ backgroundColor: 'var(--color-primary)' }}
-                      >
-                        {barcode ? t('whisky.continueWithBarcode') : t('whisky.continueWithoutBarcode')}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+              
+              
               
               {step === 'label' && (
                 <div className="space-y-6">
@@ -651,40 +643,7 @@ export default function AddWhiskyPage({
                   )}
                 </div>
               )}
-            </>
-          ) : (
-            /* Entrée manuelle */
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">{t('whisky.manualBarcodeTitle')}</h2>
-              
-              <div>
-                <input
-                  type="text"
-                  value={barcode}
-                  onChange={(e) => setBarcode(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                  placeholder={t('whisky.manualBarcodePlaceholder')}
-                />
-                <p className="text-sm text-gray-500 mt-2">{t('whisky.manualBarcodeHint')}</p>
-              </div>
-
-              <div className="flex gap-4">
-                <button
-                  onClick={() => setManualEntry(false)}
-                  className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  {t('common.backToScan')}
-                </button>
-                <button
-                  onClick={proceedToNextStep}
-                  className="px-6 py-3 text-white rounded-lg"
-                  style={{ backgroundColor: 'var(--color-primary)' }}
-                >
-                  {t('common.continue')}
-                </button>
-              </div>
-            </div>
-          )}
+          </>
         </div>
 
         {/* Styles inline pour les étapes */}
