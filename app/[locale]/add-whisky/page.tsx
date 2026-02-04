@@ -122,7 +122,7 @@ export default function AddWhiskyPage({
     setImage(croppedImage)
     
     if (!quaggaLoaded) {
-      setScanError('Scanner non disponible. Rechargez la page.');
+      setScanError(t('whisky.scanUnavailable'))
       return;
     }
     
@@ -136,7 +136,7 @@ export default function AddWhiskyPage({
     if (success) {
       setStep('result')
     } else {
-      setScanError(error || 'Pas de code-barre détecté. Crop plus serré ?')
+      setScanError(error || t('whisky.noBarcodeDetected'))
     }
   }
 
@@ -320,7 +320,7 @@ export default function AddWhiskyPage({
             className="hover:underline"
             style={{ color: 'var(--color-primary)' }}
           >
-            ← Retour au catalogue
+            {t('whisky.backToCatalogue')}
           </Link>
         </div>
 
@@ -328,7 +328,7 @@ export default function AddWhiskyPage({
         {!quaggaLoaded && step === 'scan' && (
           <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-yellow-700">
-              <span className="inline-block animate-pulse">⏳</span> Chargement du scanner...
+              <span className="inline-block animate-pulse">⏳</span> {t('whisky.loadingScanner')}
             </p>
           </div>
         )}
@@ -338,17 +338,17 @@ export default function AddWhiskyPage({
           <div className="flex items-center justify-between mb-8">
             <div className={`step ${step === 'scan' || step === 'crop' ? 'active' : ''}`}>
               <div className="step-number">1</div>
-              <div className="step-label">Photo</div>
+              <div className="step-label">{t('whisky.stepPhoto')}</div>
             </div>
             <div className="step-line"></div>
             <div className={`step ${step === 'crop' ? 'active' : ''}`}>
               <div className="step-number">2</div>
-              <div className="step-label">Crop</div>
+              <div className="step-label">{t('whisky.stepCrop')}</div>
             </div>
             <div className="step-line"></div>
             <div className={`step ${step === 'result' ? 'active' : ''}`}>
               <div className="step-number">3</div>
-              <div className="step-label">Résultat</div>
+              <div className="step-label">{t('whisky.stepResult')}</div>
             </div>
           </div>
         </div>
@@ -360,10 +360,10 @@ export default function AddWhiskyPage({
               {/* Étape 1: Photo */}
               {step === 'scan' && !isScanning && !image && (
                 <div className="text-center p-8">
-                  <h2 className="text-2xl font-bold mb-6">📸 Prendre une photo du code-barre</h2>
+                  <h2 className="text-2xl font-bold mb-6">{t('whisky.step1Title')}</h2>
                   {barcodeExists && (
                     <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
-                      Ce code-barres existe déjà dans le catalogue.
+                      {t('whisky.barcodeExists')}
                     </div>
                   )}
                   <button
@@ -372,16 +372,16 @@ export default function AddWhiskyPage({
                     style={{ backgroundColor: 'var(--color-primary)' }}
                     disabled={!quaggaLoaded}
                   >
-                    {quaggaLoaded ? 'Ouvrir la caméra' : 'Chargement scanner...'}
+                    {quaggaLoaded ? t('whisky.openCamera') : t('whisky.loadingScanner')}
                   </button>
                   <div className="mt-8 text-gray-600">
-                    <p>Ou</p>
+                    <p>{t('common.or')}</p>
                     <button
                       onClick={() => setManualEntry(true)}
                       className="mt-4 px-6 py-3 border rounded-lg"
                       style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                     >
-                      Pas de code-barre
+                      {t('whisky.noBarcode')}
                     </button>
                   </div>
                 </div>
@@ -413,7 +413,7 @@ export default function AddWhiskyPage({
                   {isDetecting && (
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <div className="animate-spin inline-block w-6 h-6 border-2 border-blue-600 rounded-full border-t-transparent"></div>
-                      <p className="mt-2 text-blue-700">Scan en cours avec Quagga...</p>
+                      <p className="mt-2 text-blue-700">{t('whisky.scanning')}</p>
                     </div>
                   )}
                   
@@ -428,22 +428,22 @@ export default function AddWhiskyPage({
               {/* Résultat */}
               {step === 'result' && (
                 <div className="space-y-6">
-                  <h2 className="text-2xl font-bold">Résultat du scan</h2>
+                  <h2 className="text-2xl font-bold">{t('whisky.scanResultTitle')}</h2>
                   
                   <div className="bg-gray-50 p-6 rounded-lg">
                     {barcode ? (
                       <div>
-                        <p className="text-green-600 font-semibold">✅ Code-barre détecté !</p>
+                        <p className="text-green-600 font-semibold">{t('whisky.barcodeDetected')}</p>
                         <div className="mt-4 p-4 bg-white border border-green-200 rounded-lg">
                           <p className="font-mono text-2xl">{barcode}</p>
-                          <p className="text-sm text-gray-500 mt-2">Format EAN-13</p>
+                          <p className="text-sm text-gray-500 mt-2">{t('whisky.barcodeFormat')}</p>
                         </div>
                       </div>
                     ) : (
                       <div>
-                        <p className="text-yellow-600">⚠️ Pas de code-barre détecté</p>
+                        <p className="text-yellow-600">{t('whisky.noBarcodeFound')}</p>
                         <p className="text-sm text-gray-600 mt-2">
-                          Vous pouvez continuer et entrer les détails manuellement
+                          {t('whisky.canContinueManual')}
                         </p>
                       </div>
                     )}
@@ -453,14 +453,14 @@ export default function AddWhiskyPage({
                         onClick={() => setStep('crop')}
                         className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
                       >
-                        ← Réessayer
+                        {t('common.retry')}
                       </button>
                       <button
                         onClick={proceedToNextStep}
                         className="px-6 py-2 text-white rounded-lg"
                         style={{ backgroundColor: 'var(--color-primary)' }}
                       >
-                        {barcode ? 'Continuer avec code-barre →' : 'Continuer sans code-barre →'}
+                        {barcode ? t('whisky.continueWithBarcode') : t('whisky.continueWithoutBarcode')}
                       </button>
                     </div>
                   </div>
@@ -469,8 +469,8 @@ export default function AddWhiskyPage({
               
               {step === 'label' && (
                 <div className="space-y-6">
-                  <h2 className="text-2xl font-bold">Étape 2: Scanner l'étiquette</h2>
-                  <p className="text-gray-600">Prenez une photo nette de l'étiquette.</p>
+                  <h2 className="text-2xl font-bold">{t('whisky.step2Title')}</h2>
+                  <p className="text-gray-600">{t('whisky.step2Subtitle')}</p>
                   <div>
                     <button
                       type="button"
@@ -478,7 +478,7 @@ export default function AddWhiskyPage({
                       className="px-6 py-3 text-white rounded-lg"
                       style={{ backgroundColor: 'var(--color-primary)' }}
                     >
-                      📸 Prendre une photo de l’étiquette
+                      {t('whisky.takeLabelPhoto')}
                     </button>
                     <input
                       type="file"
@@ -499,108 +499,108 @@ export default function AddWhiskyPage({
                   <button
                     onClick={() => {
                       if (!labelFile) {
-                        setOcrError('Veuillez choisir une photo de l’étiquette.')
-                        return
-                      }
-                      handleLabelProcess()
-                    }}
+                      setOcrError(t('whisky.labelPhotoRequired'))
+                      return
+                    }
+                    handleLabelProcess()
+                  }}
                     disabled={ocrLoading}
                     className="px-6 py-2 text-white rounded-lg"
                     style={{ backgroundColor: 'var(--color-primary)' }}
                   >
-                    {ocrLoading ? 'Analyse en cours...' : 'Analyser l’étiquette'}
+                    {ocrLoading ? t('whisky.ocrLoading') : t('whisky.ocrAnalyze')}
                   </button>
                 </div>
               )}
 
               {step === 'edit' && (
                 <form className="space-y-4" onSubmit={handleCreateWhisky}>
-                  <h2 className="text-2xl font-bold">Étape 3: Vérifier & valider</h2>
+                  <h2 className="text-2xl font-bold">{t('whisky.step3Title')}</h2>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Nom</label>
+                    <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldName')}</label>
                     <input name="name" defaultValue={whiskyData.name || ''} className="w-full border rounded px-3 py-2" />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Distiller</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldDistiller')}</label>
                       <input name="distiller" defaultValue={whiskyData.distiller || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Bottler</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottler')}</label>
                       <input name="bottler" defaultValue={whiskyData.bottler || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Country</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldCountry')}</label>
                       <select name="country_id" defaultValue={whiskyData.country_id || ''} className="w-full border rounded px-3 py-2">
-                        <option value="">--</option>
+                        <option value="">{t('common.selectEmpty')}</option>
                         {countries.map((c) => (
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Barcode (EAN13)</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBarcode')}</label>
                       <input name="ean13" value={barcode || ''} readOnly disabled className="w-full border rounded px-3 py-2 bg-gray-50" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Bottling type</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottlingType')}</label>
                       <select name="bottling_type" defaultValue={whiskyData.bottling_type || ''} className="w-full border rounded px-3 py-2">
-                        <option value="">--</option>
-                        <option value="DB">Distiller Bottling (DB)</option>
-                        <option value="IB">Independent Bottling (IB)</option>
+                        <option value="">{t('common.selectEmpty')}</option>
+                        <option value="DB">{t('whisky.bottlingDB')}</option>
+                        <option value="IB">{t('whisky.bottlingIB')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Type</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldType')}</label>
                       <select name="type" defaultValue={whiskyData.type || ''} className="w-full border rounded px-3 py-2">
-                        <option value="">--</option>
+                        <option value="">{t('common.selectEmpty')}</option>
                         {typeOptions.map((opt) => (
                           <option key={opt} value={opt}>{opt}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Distilled year</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldDistilledYear')}</label>
                       <input name="distilled_year" defaultValue={whiskyData.distilled_year || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Bottled year</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottledYear')}</label>
                       <input name="bottled_year" defaultValue={whiskyData.bottled_year || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Age</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldAge')}</label>
                       <input name="age" defaultValue={whiskyData.age || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Cask type</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldCaskType')}</label>
                       <input name="cask_type" defaultValue={whiskyData.cask_type || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Batch ID</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBatchId')}</label>
                       <input name="batch_id" defaultValue={whiskyData.batch_id || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Alcohol volume</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldAlcoholVolume')}</label>
                       <input name="alcohol_volume" defaultValue={whiskyData.alcohol_volume || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Bottled for</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottledFor')}</label>
                       <input name="bottled_for" defaultValue={whiskyData.bottled_for || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Region</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldRegion')}</label>
                       <input name="region" defaultValue={whiskyData.region || ''} className="w-full border rounded px-3 py-2" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Photo bouteille</label>
+                    <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottlePhoto')}</label>
                     <button
                       type="button"
                       onClick={() => document.getElementById('bottle-image')?.click()}
                       className="px-6 py-3 text-white rounded-lg"
                       style={{ backgroundColor: 'var(--color-primary)' }}
                     >
-                      📸 Prendre une photo de la bouteille
+                      {t('whisky.takeBottlePhoto')}
                     </button>
                     <input
                       id="bottle-image"
@@ -621,7 +621,7 @@ export default function AddWhiskyPage({
                     style={{ backgroundColor: 'var(--color-primary)' }}
                     disabled={status !== 'authenticated'}
                   >
-                    Créer le whisky
+                    {t('whisky.createWhisky')}
                   </button>
                 </form>
               )}
@@ -629,11 +629,11 @@ export default function AddWhiskyPage({
               {step === 'exists' && (
                 <div className="p-6 border rounded-lg" style={{ borderColor: 'var(--color-primary)' }}>
                   {createStatus === 'success' && (
-                    <p className="text-green-700">✅ Whisky créé avec succès.</p>
+                    <p className="text-green-700">{t('whisky.createSuccess')}</p>
                   )}
                   {createStatus === 'duplicate' && (
                     <div className="space-y-4">
-                      <p className="text-yellow-700">⚠️ Un whisky identique existe déjà (nom + années).</p>
+                      <p className="text-yellow-700">{t('whisky.duplicateFound')}</p>
                       <button
                         onClick={() => {
                           setStep('edit')
@@ -642,7 +642,7 @@ export default function AddWhiskyPage({
                         className="px-6 py-2 rounded-lg border"
                         style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                       >
-                        ← Retour modifier
+                        {t('common.backEdit')}
                       </button>
                     </div>
                   )}
@@ -652,7 +652,7 @@ export default function AddWhiskyPage({
           ) : (
             /* Entrée manuelle */
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Entrer le code-barre manuellement</h2>
+              <h2 className="text-2xl font-bold">{t('whisky.manualBarcodeTitle')}</h2>
               
               <div>
                 <input
@@ -660,9 +660,9 @@ export default function AddWhiskyPage({
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                  placeholder="Code-barre EAN-13 (optionnel)"
+                  placeholder={t('whisky.manualBarcodePlaceholder')}
                 />
-                <p className="text-sm text-gray-500 mt-2">Laissez vide si pas de code-barre</p>
+                <p className="text-sm text-gray-500 mt-2">{t('whisky.manualBarcodeHint')}</p>
               </div>
 
               <div className="flex gap-4">
@@ -670,14 +670,14 @@ export default function AddWhiskyPage({
                   onClick={() => setManualEntry(false)}
                   className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
-                  ← Retour au scan
+                  {t('common.backToScan')}
                 </button>
                 <button
                   onClick={proceedToNextStep}
                   className="px-6 py-3 text-white rounded-lg"
                   style={{ backgroundColor: 'var(--color-primary)' }}
                 >
-                  Continuer →
+                  {t('common.continue')}
                 </button>
               </div>
             </div>

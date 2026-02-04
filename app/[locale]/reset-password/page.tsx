@@ -4,11 +4,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { getTranslations, type Locale } from '@/lib/i18n'
 
 export default function ResetPasswordPage() {
   const params = useParams()
   const searchParams = useSearchParams()
-  const locale = params.locale as string
+  const locale = params.locale as Locale
+  const t = getTranslations(locale)
   const token = searchParams.get('token')
   
   const [newPassword, setNewPassword] = useState('')
@@ -22,7 +24,7 @@ export default function ResetPasswordPage() {
   // Vérifier si le token est valide au chargement
   useEffect(() => {
     if (!token) {
-      setError('Lien invalide')
+      setError(t('auth.invalidLink'))
       setCheckingToken(false)
       return
     }
@@ -35,10 +37,10 @@ export default function ResetPasswordPage() {
         if (response.ok) {
           setTokenValid(true)
         } else {
-          setError(result.error || 'Lien expiré ou invalide')
+          setError(result.error || t('auth.linkExpiredOrInvalid'))
         }
       } catch (err) {
-        setError('Erreur de vérification')
+        setError(t('auth.tokenCheckError'))
       } finally {
         setCheckingToken(false)
       }
@@ -51,13 +53,13 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     
     if (newPassword !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas')
+      setError(t('auth.passwordsDoNotMatch'))
       return
     }
     
     // Validation simple du mot de passe
     if (newPassword.length < 8) {
-      setError('Le mot de passe doit faire au moins 8 caractères')
+      setError(t('auth.passwordMin'))
       return
     }
 
@@ -79,10 +81,10 @@ export default function ResetPasswordPage() {
         setNewPassword('')
         setConfirmPassword('')
       } else {
-        setError(result.error || 'Erreur')
+        setError(result.error || t('common.error'))
       }
     } catch (err) {
-      setError('Une erreur est survenue')
+      setError(t('common.errorOccurred'))
     } finally {
       setLoading(false)
     }
@@ -93,7 +95,7 @@ export default function ResetPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Vérification du lien...</p>
+          <p className="mt-4 text-gray-600">{t('auth.checkingLink')}</p>
         </div>
       </div>
     )
@@ -104,13 +106,13 @@ export default function ResetPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg text-center">
           <div className="text-red-600 text-5xl mb-6">⚠️</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Lien invalide</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">{t('auth.invalidLink')}</h1>
           <p className="text-gray-600 mb-6">{error}</p>
           <Link 
             href={`/${locale}/forgot-password`}
             className="inline-block py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark-light"
           >
-            Demander un nouveau lien
+            {t('auth.requestNewLink')}
           </Link>
         </div>
       </div>
@@ -121,11 +123,11 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
         <h1 className="text-3xl font-bold text-center text-primary mb-4">
-          Nouveau mot de passe
+          {t('auth.newPasswordTitle')}
         </h1>
         
         <p className="text-gray-600 text-center mb-8">
-          Choisissez un nouveau mot de passe
+          {t('auth.newPasswordSubtitle')}
         </p>
         
         {message && (
@@ -136,7 +138,7 @@ export default function ResetPasswordPage() {
                 href={`/${locale}/login`}
                 className="underline font-medium"
               >
-                Se connecter
+                {t('auth.goToLogin')}
               </Link>
             </div>
           </div>
@@ -151,7 +153,7 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nouveau mot de passe
+              {t('auth.newPassword')}
             </label>
             <input
               type="password"
@@ -167,7 +169,7 @@ export default function ResetPasswordPage() {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Confirmer le mot de passe
+              {t('auth.confirmPassword')}
             </label>
             <input
               type="password"
@@ -185,7 +187,7 @@ export default function ResetPasswordPage() {
             disabled={loading || !!message}
             className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark-light disabled:opacity-50"
           >
-            {loading ? 'Enregistrement...' : 'Changer le mot de passe'}
+            {loading ? t('auth.saving') : t('auth.changePassword')}
           </button>
         </form>
         
@@ -194,7 +196,7 @@ export default function ResetPasswordPage() {
             href={`/${locale}/login`} 
             className="text-primary hover:underline"
           >
-            ← Retour à la connexion
+            {t('auth.backToLogin')}
           </Link>
         </div>
       </div>

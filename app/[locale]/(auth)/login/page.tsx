@@ -6,10 +6,12 @@ import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { getTranslations, type Locale } from '@/lib/i18n'
 
 export default function LoginPage() {
   const params = useParams()
-  const locale = params.locale as string
+  const locale = params.locale as Locale
+  const t = getTranslations(locale)
   
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -31,7 +33,7 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError('Email ou mot de passe incorrect')
+        setError(t('auth.invalidCredentials'))
       } else {
         const redirectUrl = result?.url?.includes('callbackUrl=') 
           ? result.url 
@@ -41,7 +43,7 @@ export default function LoginPage() {
         router.refresh()
       }
     } catch (err) {
-      setError('Une erreur est survenue')
+      setError(t('common.errorOccurred'))
     } finally {
       setLoading(false)
     }
@@ -51,7 +53,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
         <h1 className="text-3xl font-bold text-center text-primary mb-8">
-          Connexion
+          {t('auth.loginTitle')}
         </h1>
         
         {error && (
@@ -63,7 +65,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
+              {t('form.email')}
             </label>
             <input
               type="email"
@@ -77,7 +79,7 @@ export default function LoginPage() {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mot de passe
+              {t('form.password')}
             </label>
             <input
               type="password"
@@ -94,13 +96,13 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark-light disabled:opacity-50"
           >
-            {loading ? 'Connexion...' : 'Se connecter'}
+            {loading ? t('auth.loginLoading') : t('auth.loginButton')}
           </button>
         </form>
         
         <div className="mt-6 text-center">
           <Link href={`/${locale}/register`} className="text-primary hover:underline">
-            Pas encore de compte ? S'inscrire
+            {t('auth.noAccountCta')}
           </Link>
         </div>
         
@@ -109,7 +111,7 @@ export default function LoginPage() {
             href={`/${locale}/forgot-password`} 
             className="text-sm text-primary hover:underline"
           >
-            Mot de passe oublié ?
+            {t('auth.forgotPassword')}
           </Link>
         </div>
       </div>

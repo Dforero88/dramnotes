@@ -4,10 +4,12 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { getTranslations, type Locale } from '@/lib/i18n'
 
 export default function ForgotPasswordPage() {
   const params = useParams()
-  const locale = params.locale as string
+  const locale = params.locale as Locale
+  const t = getTranslations(locale)
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -32,10 +34,10 @@ export default function ForgotPasswordPage() {
         setMessage(result.message)
         setEmail('')
       } else {
-        setError(result.error || 'Erreur')
+        setError(result.error || t('common.error'))
       }
     } catch (err) {
-      setError('Une erreur est survenue')
+      setError(t('common.errorOccurred'))
     } finally {
       setLoading(false)
     }
@@ -45,11 +47,11 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
         <h1 className="text-3xl font-bold text-center text-primary mb-4">
-          Mot de passe oublié
+          {t('auth.forgotPasswordTitle')}
         </h1>
         
         <p className="text-gray-600 text-center mb-8">
-          Entrez votre email pour recevoir un lien de réinitialisation
+          {t('auth.forgotPasswordSubtitle')}
         </p>
         
         {message && (
@@ -67,7 +69,7 @@ export default function ForgotPasswordPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
+              {t('form.email')}
             </label>
             <input
               type="email"
@@ -84,7 +86,7 @@ export default function ForgotPasswordPage() {
             disabled={loading}
             className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark-light disabled:opacity-50"
           >
-            {loading ? 'Envoi en cours...' : 'Envoyer le lien'}
+            {loading ? t('auth.forgotPasswordSending') : t('auth.forgotPasswordButton')}
           </button>
         </form>
         
@@ -93,14 +95,14 @@ export default function ForgotPasswordPage() {
             href={`/${locale}/login`} 
             className="block text-primary hover:underline"
           >
-            ← Retour à la connexion
+            {t('auth.backToLogin')}
           </Link>
           
           <Link 
             href={`/${locale}/register`} 
             className="block text-primary hover:underline"
           >
-            Pas encore de compte ? S'inscrire
+            {t('auth.noAccountCta')}
           </Link>
         </div>
       </div>
