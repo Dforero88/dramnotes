@@ -339,19 +339,19 @@ export default function AddWhiskyPage({
         {/* Étapes visuelles */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-8">
-            <div className={`step ${step === 'scan' || step === 'crop' ? 'active' : ''}`}>
+            <div className={`step ${['scan', 'crop', 'result'].includes(step) ? 'active' : ''}`}>
               <div className="step-number">1</div>
-              <div className="step-label">{t('whisky.stepPhoto')}</div>
+              <div className="step-label">{t('whisky.stepBarcode')}</div>
             </div>
             <div className="step-line"></div>
-            <div className={`step ${step === 'crop' ? 'active' : ''}`}>
+            <div className={`step ${step === 'label' ? 'active' : ''}`}>
               <div className="step-number">2</div>
-              <div className="step-label">{t('whisky.stepCrop')}</div>
+              <div className="step-label">{t('whisky.stepLabel')}</div>
             </div>
             <div className="step-line"></div>
-            <div className={`step ${step === 'result' ? 'active' : ''}`}>
+            <div className={`step ${['edit', 'exists'].includes(step) ? 'active' : ''}`}>
               <div className="step-number">3</div>
-              <div className="step-label">{t('whisky.stepResult')}</div>
+              <div className="step-label">{t('whisky.stepOcrResult')}</div>
             </div>
           </div>
         </div>
