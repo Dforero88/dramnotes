@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
     .where(eq(tastingNoteTags.noteId, noteId))
 
   type TagRow = { type: string; tagId: string; name: string | null }
-  const grouped = { nose: [], palate: [], finish: [] } as Record<string, TagRow[]>
+  type TagOut = { id: string; name: string | null }
+  const grouped = { nose: [], palate: [], finish: [] } as Record<string, TagOut[]>
   tags.forEach((t: TagRow) => {
     if (!grouped[t.type]) grouped[t.type] = []
     grouped[t.type].push({ id: t.tagId, name: t.name })
