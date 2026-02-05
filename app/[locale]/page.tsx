@@ -53,7 +53,7 @@ export default async function HomePage({
       notesCount: sql<number>`count(${tastingNotes.id})`,
     })
     .from(users)
-    .leftJoin(tastingNotes, eq(tastingNotes.userId, users.id))
+    .leftJoin(tastingNotes, sql`binary ${tastingNotes.userId} = binary ${users.id}`)
     .where(eq(users.visibility, 'public'))
     .groupBy(users.id)
     .orderBy(sql`count(${tastingNotes.id}) desc`)
@@ -107,7 +107,7 @@ export default async function HomePage({
           pseudo: users.pseudo,
         })
         .from(tastingNotes)
-        .leftJoin(users, eq(users.id, tastingNotes.userId))
+        .leftJoin(users, sql`binary ${users.id} = binary ${tastingNotes.userId}`)
         .leftJoin(whiskies, eq(whiskies.id, tastingNotes.whiskyId))
         .where(eq(users.visibility, 'public'))
         .orderBy(sql`${tastingNotes.createdAt} desc`)

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   const countRes = await db
     .select({ count: sql<number>`count(*)` })
     .from(tastingNotes)
-    .leftJoin(users, eq(users.id, tastingNotes.userId))
+    .leftJoin(users, sql`binary ${users.id} = binary ${tastingNotes.userId}`)
     .where(and(...filters))
 
   const total = Number(countRes?.[0]?.count || 0)
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       pseudo: users.pseudo,
     })
     .from(tastingNotes)
-    .leftJoin(users, eq(users.id, tastingNotes.userId))
+    .leftJoin(users, sql`binary ${users.id} = binary ${tastingNotes.userId}`)
     .where(and(...filters))
     .orderBy(sql`${tastingNotes.tastingDate} desc`)
     .limit(pageSize)

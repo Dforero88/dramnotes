@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       notesCount: sql<number>`count(${tastingNotes.id})`,
     })
     .from(users)
-    .leftJoin(tastingNotes, eq(tastingNotes.userId, users.id))
+    .leftJoin(tastingNotes, sql`binary ${tastingNotes.userId} = binary ${users.id}`)
     .where(and(...filters))
     .groupBy(users.id)
     .orderBy(isEmptyQuery ? sql`count(${tastingNotes.id}) desc` : sql`lower(${users.pseudo}) asc`)
