@@ -4,25 +4,7 @@
 export const translations = {
   fr: {
     account: {
-      'addressHelp': 'Définir votre adresse pour les statistiques, ...',
-      'addressPlaceholder': 'Address Placeholder',
-      'addressSaved': 'Adresse sauvée',
-      'addressTitle': 'Adresse',
-      'currentPseudo': 'Pseudo actuel',
-      'pseudoHelp': 'Définir sur quel pseudo les autres utilisateurs vous voient',
-      'pseudoPlaceholder': 'Votre nouveau pseudo',
-      'pseudoSaved': 'Pseudo sauvé',
-      'pseudoTitle': 'Pseudo',
-      'save': 'Sauver',
-      'subtitle': 'Gérer vos informations',
-      'title': 'Mon compte',
-      'townPlaceholder': 'Votre ville',
-      'visibilityHelp': 'Définir si les autres utilisateurs peuvent voir votre profil, vos notes, ...',
-      'visibilityPrivate': 'Visibilité privée',
-      'visibilityPublic': 'Visibilité publique',
-      'visibilitySaved': 'Visibilité sauvée',
-      'visibilityTitle': 'Visibilité',
-      'zipPlaceholder': 'Votre zip'
+      'title': 'Title'
     },
     aromatic: {
       'title': 'Title'
@@ -83,8 +65,6 @@ export const translations = {
       'filterBottledYear': 'Années d\'embouteillage',
       'filterBottler': 'Embouteilleur',
       'filterBottlerPlaceholder': 'Filter Bottler Placeholder',
-      'filterBottlingType': 'Filter Bottling Type',
-      'filterCountry': 'Filter Country',
       'filterDistilledYear': 'Année de distillation',
       'filterDistiller': 'Distilleur',
       'filterDistillerPlaceholder': 'Filter Distiller Placeholder',
@@ -114,10 +94,8 @@ export const translations = {
       'continue': 'Continuer',
       'error': 'Erreur',
       'errorOccurred': 'Error Occurred',
-      'loading': 'Loading',
       'or': 'ou',
       'retry': 'Réessayer',
-      'saving': 'Saving',
       'selectEmpty': 'Vide'
     },
     explorer: {
@@ -240,25 +218,7 @@ export const translations = {
   },
   en: {
     account: {
-      'addressHelp': 'Address Help',
-      'addressPlaceholder': 'Address Placeholder',
-      'addressSaved': 'Address Saved',
-      'addressTitle': 'Address Title',
-      'currentPseudo': 'Current Pseudo',
-      'pseudoHelp': 'Pseudo Help',
-      'pseudoPlaceholder': 'Pseudo Placeholder',
-      'pseudoSaved': 'Pseudo Saved',
-      'pseudoTitle': 'Pseudo Title',
-      'save': 'Save',
-      'subtitle': 'Subtitle',
-      'title': 'Title',
-      'townPlaceholder': 'Town Placeholder',
-      'visibilityHelp': 'Visibility Help',
-      'visibilityPrivate': 'Visibility Private',
-      'visibilityPublic': 'Visibility Public',
-      'visibilitySaved': 'Visibility Saved',
-      'visibilityTitle': 'Visibility Title',
-      'zipPlaceholder': 'Zip Placeholder'
+      'title': 'Title'
     },
     aromatic: {
       'title': 'Title'
@@ -319,8 +279,6 @@ export const translations = {
       'filterBottledYear': 'Filter Bottled Year',
       'filterBottler': 'Filter Bottler',
       'filterBottlerPlaceholder': 'Filter Bottler Placeholder',
-      'filterBottlingType': 'Filter Bottling Type',
-      'filterCountry': 'Filter Country',
       'filterDistilledYear': 'Filter Distilled Year',
       'filterDistiller': 'Filter Distiller',
       'filterDistillerPlaceholder': 'Filter Distiller Placeholder',
@@ -350,10 +308,8 @@ export const translations = {
       'continue': 'Continue',
       'error': 'Error',
       'errorOccurred': 'Error Occurred',
-      'loading': 'Loading',
       'or': 'Or',
       'retry': 'Retry',
-      'saving': 'Saving',
       'selectEmpty': 'Select Empty'
     },
     explorer: {
