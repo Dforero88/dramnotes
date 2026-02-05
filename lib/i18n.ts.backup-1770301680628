@@ -124,13 +124,9 @@ export const translations = {
       'loginSubtitle': 'Login Subtitle',
       'loginTitle': 'Login Title',
       'noResults': 'Pas de résultat',
-      'notesCount': 'Notes Count',
-      'searchButton': 'Rechercher',
       'searchPlaceholder': 'Taper un pseudo',
       'subtitle': 'Trouver les personnes que vous voulez suivre',
-      'title': 'Rechercher des utilisateurs',
-      'topSubtitle': 'Les utilisateurs avec le plus de notes',
-      'topTitle': 'Les utilisateurs les plus connectés'
+      'title': 'Rechercher des utilisateurs'
     },
     form: {
       'email': 'Email',
@@ -393,13 +389,9 @@ export const translations = {
       'loginSubtitle': 'Login Subtitle',
       'loginTitle': 'Login Title',
       'noResults': 'No Results',
-      'notesCount': 'Notes Count',
-      'searchButton': 'Search Button',
       'searchPlaceholder': 'Search Placeholder',
       'subtitle': 'Subtitle',
-      'title': 'Title',
-      'topSubtitle': 'Top Subtitle',
-      'topTitle': 'Top Title'
+      'title': 'Title'
     },
     form: {
       'email': 'Email',

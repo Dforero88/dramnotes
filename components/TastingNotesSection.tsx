@@ -34,8 +34,12 @@ function buildAvatar(pseudo: string) {
     '#3498db', '#2ecc71', '#e74c3c', '#f39c12',
     '#9b59b6', '#1abc9c', '#d35400', '#c0392b',
   ]
-  const code = pseudo.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  const color = colors[code % colors.length]
+  let hash = 0
+  for (let i = 0; i < pseudo.length; i += 1) {
+    hash = ((hash << 5) - hash) + pseudo.charCodeAt(i)
+    hash |= 0
+  }
+  const color = colors[Math.abs(hash) % colors.length]
   const initial = pseudo.charAt(0).toUpperCase()
   return { color, initial }
 }
