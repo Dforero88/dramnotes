@@ -154,8 +154,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <input
             value={draftFilters.name}
             onChange={(e) => setDraftFilters({ ...draftFilters, name: e.target.value })}
-            className="w-full border rounded-xl px-3 py-2 bg-white"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
             placeholder={t('catalogue.filterNamePlaceholder')}
+            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
           />
         </div>
         <div>
@@ -163,7 +164,8 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <select
             value={draftFilters.type}
             onChange={(e) => setDraftFilters({ ...draftFilters, type: e.target.value })}
-            className="w-full border rounded-xl px-3 py-2 bg-white"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
           >
             <option value="">{t('common.selectEmpty')}</option>
             {typeOptions.map((opt) => (
@@ -176,7 +178,8 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <select
             value={draftFilters.bottlingType}
             onChange={(e) => setDraftFilters({ ...draftFilters, bottlingType: e.target.value })}
-            className="w-full border rounded-xl px-3 py-2 bg-white"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
           >
             <option value="">{t('common.selectEmpty')}</option>
             <option value="DB">{t('whisky.bottlingDB')}</option>
@@ -188,8 +191,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <input
             value={draftFilters.distiller}
             onChange={(e) => setDraftFilters({ ...draftFilters, distiller: e.target.value })}
-            className="w-full border rounded-xl px-3 py-2 bg-white"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
             placeholder={t('catalogue.filterDistillerPlaceholder')}
+            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
           />
         </div>
         <div>
@@ -197,8 +201,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <input
             value={draftFilters.bottler}
             onChange={(e) => setDraftFilters({ ...draftFilters, bottler: e.target.value })}
-            className="w-full border rounded-xl px-3 py-2 bg-white"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
             placeholder={t('catalogue.filterBottlerPlaceholder')}
+            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
           />
         </div>
         <div>
@@ -206,8 +211,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <input
             value={draftFilters.barcode}
             onChange={(e) => setDraftFilters({ ...draftFilters, barcode: e.target.value })}
-            className="w-full border rounded-xl px-3 py-2 bg-white"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
             placeholder={t('catalogue.filterBarcodePlaceholder')}
+            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -216,8 +222,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <input
               value={draftFilters.distilledYear}
               onChange={(e) => setDraftFilters({ ...draftFilters, distilledYear: e.target.value })}
-              className="w-full border rounded-xl px-3 py-2 bg-white"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
               placeholder="YYYY"
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             />
           </div>
           <div>
@@ -225,8 +232,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <input
               value={draftFilters.bottledYear}
               onChange={(e) => setDraftFilters({ ...draftFilters, bottledYear: e.target.value })}
-              className="w-full border rounded-xl px-3 py-2 bg-white"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
               placeholder="YYYY"
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             />
           </div>
         </div>
@@ -236,8 +244,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <input
               value={draftFilters.age}
               onChange={(e) => setDraftFilters({ ...draftFilters, age: e.target.value })}
-              className="w-full border rounded-xl px-3 py-2 bg-white"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
               placeholder={t('catalogue.filterAgePlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             />
           </div>
           <div>
@@ -245,8 +254,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <input
               value={draftFilters.alcoholVolume}
               onChange={(e) => setDraftFilters({ ...draftFilters, alcoholVolume: e.target.value })}
-              className="w-full border rounded-xl px-3 py-2 bg-white"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
               placeholder={t('catalogue.filterAlcoholPlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             />
           </div>
         </div>
@@ -255,7 +265,8 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <select
             value={draftFilters.countryId}
             onChange={(e) => setDraftFilters({ ...draftFilters, countryId: e.target.value })}
-            className="w-full border rounded-xl px-3 py-2 bg-white"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
           >
             <option value="">{t('common.selectEmpty')}</option>
             {countries.map((c) => (
@@ -268,8 +279,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <input
             value={draftFilters.region}
             onChange={(e) => setDraftFilters({ ...draftFilters, region: e.target.value })}
-            className="w-full border rounded-xl px-3 py-2 bg-white"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
             placeholder={t('catalogue.filterRegionPlaceholder')}
+            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
           />
         </div>
       </div>

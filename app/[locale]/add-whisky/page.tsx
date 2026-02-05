@@ -314,18 +314,21 @@ export default function AddWhiskyPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Navigation */}
-        <div className="mb-8">
-          <Link 
-            href={`/${locale}/catalogue`}
-            className="hover:underline"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            {t('whisky.backToCatalogue')}
+    <div className="min-h-screen bg-gray-50">
+      <div
+        className="px-4 md:px-8 py-4"
+        style={{ backgroundColor: 'var(--color-primary-light)' }}
+      >
+        <div className="max-w-6xl mx-auto text-sm text-gray-600 text-center">
+          <Link href={`/${locale}/catalogue`} className="hover:underline">
+            {t('catalogue.title')}
           </Link>
+          <span className="mx-2">›</span>
+          <span className="text-gray-800">{t('whisky.addWhiskyTitle')}</span>
         </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 py-12">
 
         {/* État de Quagga */}
         {!quaggaLoaded && step === 'scan' && (

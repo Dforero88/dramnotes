@@ -174,8 +174,9 @@ export default function AccountPage() {
               <input
                 value={newPseudo}
                 onChange={(e) => setNewPseudo(e.target.value)}
-                className="flex-1 border rounded-xl px-4 py-2"
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2"
                 placeholder={t('account.pseudoPlaceholder')}
+                style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
               />
               <button
                 onClick={savePseudo}
@@ -233,25 +234,29 @@ export default function AccountPage() {
             <input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              className="border rounded-xl px-4 py-2 md:col-span-2"
+              className="border border-gray-200 rounded-xl px-4 py-2 md:col-span-2 focus:outline-none focus:ring-2"
               placeholder={t('account.addressPlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             />
             <input
               value={zipCode}
               onChange={(e) => setZipCode(e.target.value)}
-              className="border rounded-xl px-4 py-2"
+              className="border border-gray-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2"
               placeholder={t('account.zipPlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             />
             <input
               value={town}
               onChange={(e) => setTown(e.target.value)}
-              className="border rounded-xl px-4 py-2"
+              className="border border-gray-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2"
               placeholder={t('account.townPlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             />
             <select
               value={countryId}
               onChange={(e) => setCountryId(e.target.value)}
-              className="border rounded-xl px-4 py-2"
+              className="border border-gray-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             >
               <option value="">{t('common.selectEmpty')}</option>
               {countries.map((c) => (

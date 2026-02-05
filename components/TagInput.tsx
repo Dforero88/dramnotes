@@ -76,7 +76,7 @@ export default function TagInput({
   return (
     <div ref={containerRef} className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <div className="border rounded-xl px-3 py-2 bg-white">
+      <div className="border border-gray-200 rounded-xl px-3 py-2 bg-white focus-within:ring-2" style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}>
         <div className="flex flex-wrap gap-2 mb-2">
           {value.map((tag) => (
             <span key={tag.id} className="px-2 py-1 text-xs rounded-full bg-gray-100">

@@ -142,8 +142,6 @@ export const translations = {
       'submitting': 'Submitting'
     },
     home: {
-      'addedRecently': 'Added Recently',
-      'ctaAddWhisky': 'Cta Add Whisky',
       'ctaExplore': 'Cta Explore',
       'ctaRegister': 'Cta Register',
       'featureAnalyticsDesc': 'Feature Analytics Desc',
@@ -154,19 +152,7 @@ export const translations = {
       'featureScanTitle': 'Feature Scan Title',
       'footer': 'Footer',
       'heroSubtitle': 'Hero Subtitle',
-      'heroTitle': 'Hero Title',
-      'latestWhiskiesSubtitle': 'Noté les !',
-      'latestWhiskiesTitle': 'Derniers whiskies ajoutés',
-      'notesCount': 'Notes Count',
-      'recentNotesSubtitle': 'Consulté les!',
-      'recentNotesTitle': 'Les dernières notes de dégustations',
-      'statsContributors': 'Nombre de contributeurs',
-      'statsNotes': 'Nombre de notes de dégustation',
-      'statsWhiskies': 'Nombre de whiskies',
-      'subtitle': 'Subtitle',
-      'title': 'Title',
-      'topUsersSubtitle': 'Suivé les !',
-      'topUsersTitle': 'Les utilisateurs les plus actifs'
+      'heroTitle': 'Hero Title'
     },
     map: {
       'title': 'Title'
@@ -185,13 +171,13 @@ export const translations = {
       'welcome': 'Bienvenue'
     },
     tasting: {
-      'clearFilter': 'Supprimer',
+      'clearFilter': 'Clear Filter',
       'confirmDelete': 'Confirm Delete',
       'createTag': 'Create Tag',
       'date': 'Date',
       'delete': 'Supprimer',
       'edit': 'Editer',
-      'filteredBy': 'Filtré sur',
+      'filteredBy': 'Filtered By',
       'finish': 'Finale',
       'location': 'Location',
       'locationPlaceholder': 'Location Placeholder',
@@ -425,8 +411,6 @@ export const translations = {
       'submitting': 'Submitting'
     },
     home: {
-      'addedRecently': 'Added Recently',
-      'ctaAddWhisky': 'Cta Add Whisky',
       'ctaExplore': 'Cta Explore',
       'ctaRegister': 'Cta Register',
       'featureAnalyticsDesc': 'Feature Analytics Desc',
@@ -437,19 +421,7 @@ export const translations = {
       'featureScanTitle': 'Feature Scan Title',
       'footer': 'Footer',
       'heroSubtitle': 'Hero Subtitle',
-      'heroTitle': 'Hero Title',
-      'latestWhiskiesSubtitle': 'Latest Whiskies Subtitle',
-      'latestWhiskiesTitle': 'Latest Whiskies Title',
-      'notesCount': 'Notes Count',
-      'recentNotesSubtitle': 'Recent Notes Subtitle',
-      'recentNotesTitle': 'Recent Notes Title',
-      'statsContributors': 'Stats Contributors',
-      'statsNotes': 'Stats Notes',
-      'statsWhiskies': 'Stats Whiskies',
-      'subtitle': 'Subtitle',
-      'title': 'Title',
-      'topUsersSubtitle': 'Top Users Subtitle',
-      'topUsersTitle': 'Top Users Title'
+      'heroTitle': 'Hero Title'
     },
     map: {
       'title': 'Title'

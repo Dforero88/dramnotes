@@ -330,6 +330,7 @@ export default function TastingNotesSection({
                 {stars.map((s) => (
                   <span key={s}>{s <= (myNote.rating || 0) ? '★' : '☆'}</span>
                 ))}
+                <span className="text-xs text-gray-500 ml-2">({myNote.rating || 0}/10)</span>
               </div>
               <div className="space-y-2 text-sm">
                 <div>
@@ -363,7 +364,8 @@ export default function TastingNotesSection({
                     type="date"
                     value={tastingDate}
                     onChange={(e) => setTastingDate(e.target.value)}
-                    className="w-full border rounded-xl px-3 py-2"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+                    style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
                   />
                 </div>
                 <div>
@@ -372,9 +374,10 @@ export default function TastingNotesSection({
                     ref={locationRef}
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="w-full border rounded-xl px-3 py-2"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
                     placeholder={t('tasting.locationPlaceholder')}
                     autoComplete="off"
+                    style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
                   />
                 </div>
               </div>
@@ -410,7 +413,8 @@ export default function TastingNotesSection({
                   value={overall}
                   onChange={(e) => setOverall(e.target.value)}
                   rows={3}
-                  className="w-full border rounded-xl px-3 py-2"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+                  style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
                 />
               </div>
               <div>
@@ -426,6 +430,7 @@ export default function TastingNotesSection({
                       {s <= rating ? '★' : '☆'}
                     </button>
                   ))}
+                  <span className="text-xs text-gray-500 ml-2">({rating}/10)</span>
                 </div>
               </div>
               <div className="flex gap-3">
@@ -467,7 +472,7 @@ export default function TastingNotesSection({
               const pseudo = note.pseudo || 'User'
               const avatar = buildAvatar(pseudo)
               return (
-                <div key={note.id} className="border rounded-xl p-4">
+                <div key={note.id} className="rounded-xl p-4 bg-gray-50 border border-gray-100">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: avatar.color }}>
                       {avatar.initial}
@@ -479,6 +484,7 @@ export default function TastingNotesSection({
                     {stars.map((s) => (
                       <span key={s}>{s <= (note.rating || 0) ? '★' : '☆'}</span>
                     ))}
+                    <span className="text-xs text-gray-500 ml-2">({note.rating || 0}/10)</span>
                   </div>
                   <div className="text-sm text-gray-600 mt-2">
                     {note.location || ''}
