@@ -54,7 +54,7 @@ export default async function HomePage({
     })
     .from(users)
     .leftJoin(tastingNotes, sql`binary ${tastingNotes.userId} = binary ${users.id}`)
-    .where(eq(users.visibility, 'public'))
+    .where(sql`binary ${users.visibility} = 'public'`)
     .groupBy(users.id)
     .orderBy(sql`count(${tastingNotes.id}) desc`)
     .limit(3)) as TopUser[]
@@ -94,7 +94,7 @@ export default async function HomePage({
       totalPublicUsers: sql<number>`count(${users.id})`,
     })
     .from(users)
-    .where(eq(users.visibility, 'public'))
+    .where(sql`binary ${users.visibility} = 'public'`)
 
   const recentNotes = (isLoggedIn
     ? await db
@@ -109,7 +109,7 @@ export default async function HomePage({
         .from(tastingNotes)
         .leftJoin(users, sql`binary ${users.id} = binary ${tastingNotes.userId}`)
         .leftJoin(whiskies, eq(whiskies.id, tastingNotes.whiskyId))
-        .where(eq(users.visibility, 'public'))
+        .where(sql`binary ${users.visibility} = 'public'`)
         .orderBy(sql`${tastingNotes.createdAt} desc`)
         .limit(5)
     : []) as RecentNote[]

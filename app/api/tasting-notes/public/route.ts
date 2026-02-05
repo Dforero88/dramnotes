@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   const filters: any[] = [
     eq(tastingNotes.whiskyId, whiskyId),
-    eq(users.visibility, 'public'),
+    sql`binary ${users.visibility} = 'public'`,
     sql`${users.id} <> ${userId}`,
   ]
 

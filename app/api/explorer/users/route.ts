@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const pageSize = isEmptyQuery ? 3 : requestedPageSize
   const offset = (page - 1) * pageSize
 
-  const filters: any[] = [eq(users.visibility, 'public')]
+  const filters: any[] = [sql`binary ${users.visibility} = 'public'`]
   if (q) {
     filters.push(sql`lower(${users.pseudo}) like ${`%${q}%`}`)
   }
