@@ -4,7 +4,25 @@
 export const translations = {
   fr: {
     account: {
-      'title': 'Title'
+      'addressHelp': 'Définir votre adresse pour les statistiques, ...',
+      'addressPlaceholder': 'Address Placeholder',
+      'addressSaved': 'Adresse sauvée',
+      'addressTitle': 'Adresse',
+      'currentPseudo': 'Pseudo actuel',
+      'pseudoHelp': 'Définir sur quel pseudo les autres utilisateurs vous voient',
+      'pseudoPlaceholder': 'Votre nouveau pseudo',
+      'pseudoSaved': 'Pseudo sauvé',
+      'pseudoTitle': 'Pseudo',
+      'save': 'Sauver',
+      'subtitle': 'Gérer vos informations',
+      'title': 'Mon compte',
+      'townPlaceholder': 'Votre ville',
+      'visibilityHelp': 'Définir si les autres utilisateurs peuvent voir votre profil, vos notes, ...',
+      'visibilityPrivate': 'Visibilité privée',
+      'visibilityPublic': 'Visibilité publique',
+      'visibilitySaved': 'Visibilité sauvée',
+      'visibilityTitle': 'Visibilité',
+      'zipPlaceholder': 'Votre zip'
     },
     aromatic: {
       'title': 'Title'
@@ -55,9 +73,39 @@ export const translations = {
     catalogue: {
       'addWhiskyButton': 'Ajouter un whisky',
       'addWhiskyDescription': 'Vous pouvez en ajouter vous-même ci-dessous',
+      'applyFilters': 'Appliquer',
+      'filterAge': 'Age',
+      'filterAgePlaceholder': 'Filter Age Placeholder',
+      'filterAlcohol': 'Taux d\'Alcohol',
+      'filterAlcoholPlaceholder': 'Filter Alcohol Placeholder',
+      'filterBarcode': 'Code-barres',
+      'filterBarcodePlaceholder': 'Filter Barcode Placeholder',
+      'filterBottledYear': 'Années d\'embouteillage',
+      'filterBottler': 'Embouteilleur',
+      'filterBottlerPlaceholder': 'Filter Bottler Placeholder',
+      'filterBottlingType': 'Filter Bottling Type',
+      'filterCountry': 'Filter Country',
+      'filterDistilledYear': 'Année de distillation',
+      'filterDistiller': 'Distilleur',
+      'filterDistillerPlaceholder': 'Filter Distiller Placeholder',
+      'filterName': 'Nom',
+      'filterNamePlaceholder': 'Filter Name Placeholder',
+      'filterRegion': 'Région',
+      'filterRegionPlaceholder': 'Filter Region Placeholder',
+      'filtersTitle': 'Filtrer',
+      'filterType': 'Type',
+      'loading': 'Loading',
       'loginRequired': 'Login Required',
       'loginToAdd': 'Login To Add',
-      'missingWhisky': 'Il manque un whisky ?'
+      'missingWhisky': 'Il manque un whisky ?',
+      'next': 'Next',
+      'noImage': 'No Image',
+      'noResults': 'Pas de résultat',
+      'openFilters': 'Open Filters',
+      'page': 'Page',
+      'prev': 'Prev',
+      'resetFilters': 'Reset',
+      'title': 'Catalogue des whiskies'
     },
     common: {
       'backEdit': 'Back Edit',
@@ -66,8 +114,10 @@ export const translations = {
       'continue': 'Continuer',
       'error': 'Erreur',
       'errorOccurred': 'Error Occurred',
+      'loading': 'Loading',
       'or': 'ou',
       'retry': 'Réessayer',
+      'saving': 'Saving',
       'selectEmpty': 'Vide'
     },
     explorer: {
@@ -107,9 +157,9 @@ export const translations = {
       'myAccount': 'My Account',
       'notebook': 'Notebook',
       'signIn': 'Sign In',
-      'signOut': 'Sign Out',
+      'signOut': 'Se déconnecter',
       'signUp': 'Sign Up',
-      'welcome': 'Welcome'
+      'welcome': 'Bienvenue'
     },
     validation: {
       'passwordRules': 'Password Rules'
@@ -119,6 +169,7 @@ export const translations = {
       'barcodeDetected': 'Code-barres détécté',
       'barcodeExists': 'Ce code-barres existe déjà',
       'barcodeFormat': 'Format du code-barres',
+      'barcodeUnreadable': 'Barcode Unreadable',
       'bottlingDB': 'Embouteillé par la distillerie',
       'bottlingIB': 'Embouteillage indépendant',
       'canContinueManual': 'Can Continue Manual',
@@ -133,6 +184,7 @@ export const translations = {
       'cropTipBody': 'Faite une photo nette avec une bonne luminosité',
       'cropTipTitle': 'Aide pour rogner',
       'cropTitle': 'Rogner',
+      'detailsTitle': 'Details Title',
       'duplicateFound': 'Duplicate Found',
       'fieldAge': 'Age',
       'fieldAlcoholVolume': 'Taux d\'alcool',
@@ -155,9 +207,11 @@ export const translations = {
       'manualBarcodeHint': 'Manual Barcode Hint',
       'manualBarcodePlaceholder': 'Manual Barcode Placeholder',
       'manualBarcodeTitle': 'Manual Barcode Title',
-      'noBarcode': 'Pas de code-barres?',
+      'noBarcode': 'Passer à la suite',
       'noBarcodeDetected': 'No Barcode Detected',
       'noBarcodeFound': 'No Barcode Found',
+      'noBarcodeLabel': 'Pas de code-barres ?',
+      'notFound': 'Not Found',
       'ocrAnalyze': 'Analyser l\'étiquette',
       'ocrLoading': 'Analyse en cours',
       'openCamera': 'Prendre une photo',
@@ -179,13 +233,32 @@ export const translations = {
       'stepResult': 'Step Result',
       'takeBottlePhoto': 'Prendre la bouteille',
       'takeLabelPhoto': 'Prendre l\'étiquette',
+      'verifyBarcode': 'Vérifier le code-barres',
       'zoomIn': 'Zoom In',
       'zoomOut': 'Zoom Out'
     }
   },
   en: {
     account: {
-      'title': 'Title'
+      'addressHelp': 'Address Help',
+      'addressPlaceholder': 'Address Placeholder',
+      'addressSaved': 'Address Saved',
+      'addressTitle': 'Address Title',
+      'currentPseudo': 'Current Pseudo',
+      'pseudoHelp': 'Pseudo Help',
+      'pseudoPlaceholder': 'Pseudo Placeholder',
+      'pseudoSaved': 'Pseudo Saved',
+      'pseudoTitle': 'Pseudo Title',
+      'save': 'Save',
+      'subtitle': 'Subtitle',
+      'title': 'Title',
+      'townPlaceholder': 'Town Placeholder',
+      'visibilityHelp': 'Visibility Help',
+      'visibilityPrivate': 'Visibility Private',
+      'visibilityPublic': 'Visibility Public',
+      'visibilitySaved': 'Visibility Saved',
+      'visibilityTitle': 'Visibility Title',
+      'zipPlaceholder': 'Zip Placeholder'
     },
     aromatic: {
       'title': 'Title'
@@ -236,9 +309,39 @@ export const translations = {
     catalogue: {
       'addWhiskyButton': 'Add Whisky Button',
       'addWhiskyDescription': 'Add Whisky Description',
+      'applyFilters': 'Apply Filters',
+      'filterAge': 'Filter Age',
+      'filterAgePlaceholder': 'Filter Age Placeholder',
+      'filterAlcohol': 'Filter Alcohol',
+      'filterAlcoholPlaceholder': 'Filter Alcohol Placeholder',
+      'filterBarcode': 'Filter Barcode',
+      'filterBarcodePlaceholder': 'Filter Barcode Placeholder',
+      'filterBottledYear': 'Filter Bottled Year',
+      'filterBottler': 'Filter Bottler',
+      'filterBottlerPlaceholder': 'Filter Bottler Placeholder',
+      'filterBottlingType': 'Filter Bottling Type',
+      'filterCountry': 'Filter Country',
+      'filterDistilledYear': 'Filter Distilled Year',
+      'filterDistiller': 'Filter Distiller',
+      'filterDistillerPlaceholder': 'Filter Distiller Placeholder',
+      'filterName': 'Filter Name',
+      'filterNamePlaceholder': 'Filter Name Placeholder',
+      'filterRegion': 'Filter Region',
+      'filterRegionPlaceholder': 'Filter Region Placeholder',
+      'filtersTitle': 'Filters Title',
+      'filterType': 'Filter Type',
+      'loading': 'Loading',
       'loginRequired': 'Login Required',
       'loginToAdd': 'Login To Add',
-      'missingWhisky': 'Missing Whisky'
+      'missingWhisky': 'Missing Whisky',
+      'next': 'Next',
+      'noImage': 'No Image',
+      'noResults': 'No Results',
+      'openFilters': 'Open Filters',
+      'page': 'Page',
+      'prev': 'Prev',
+      'resetFilters': 'Reset Filters',
+      'title': 'Title'
     },
     common: {
       'backEdit': 'Back Edit',
@@ -247,8 +350,10 @@ export const translations = {
       'continue': 'Continue',
       'error': 'Error',
       'errorOccurred': 'Error Occurred',
+      'loading': 'Loading',
       'or': 'Or',
       'retry': 'Retry',
+      'saving': 'Saving',
       'selectEmpty': 'Select Empty'
     },
     explorer: {
@@ -300,6 +405,7 @@ export const translations = {
       'barcodeDetected': 'Barcode Detected',
       'barcodeExists': 'Barcode Exists',
       'barcodeFormat': 'Barcode Format',
+      'barcodeUnreadable': 'Barcode Unreadable',
       'bottlingDB': 'Bottling D B',
       'bottlingIB': 'Bottling I B',
       'canContinueManual': 'Can Continue Manual',
@@ -314,6 +420,7 @@ export const translations = {
       'cropTipBody': 'Crop Tip Body',
       'cropTipTitle': 'Crop Tip Title',
       'cropTitle': 'Crop Title',
+      'detailsTitle': 'Details Title',
       'duplicateFound': 'Duplicate Found',
       'fieldAge': 'Field Age',
       'fieldAlcoholVolume': 'Field Alcohol Volume',
@@ -339,6 +446,8 @@ export const translations = {
       'noBarcode': 'No Barcode',
       'noBarcodeDetected': 'No Barcode Detected',
       'noBarcodeFound': 'No Barcode Found',
+      'noBarcodeLabel': 'No Barcode Label',
+      'notFound': 'Not Found',
       'ocrAnalyze': 'Ocr Analyze',
       'ocrLoading': 'Ocr Loading',
       'openCamera': 'Open Camera',
@@ -360,6 +469,7 @@ export const translations = {
       'stepResult': 'Step Result',
       'takeBottlePhoto': 'Take Bottle Photo',
       'takeLabelPhoto': 'Take Label Photo',
+      'verifyBarcode': 'Verify Barcode',
       'zoomIn': 'Zoom In',
       'zoomOut': 'Zoom Out'
     }

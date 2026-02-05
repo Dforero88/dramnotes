@@ -2,6 +2,7 @@ import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import { db, whiskies, distillers, bottlers, countries } from '@/lib/db'
 import { eq, sql } from 'drizzle-orm'
+import TastingNotesSection from '@/components/TastingNotesSection'
 
 function normalizeImage(url?: string | null) {
   if (!url) return ''
@@ -16,11 +17,14 @@ function formatYear(value: number | null) {
 
 export default async function WhiskyDetailPage({
   params,
+  searchParams,
 }: {
   params: { locale: Locale; id: string }
+  searchParams: { user?: string }
 }) {
   const { locale, id } = params
   const t = getTranslations(locale)
+  const filterPseudo = searchParams?.user || null
 
   const result = await db
     .select({
@@ -161,6 +165,13 @@ export default async function WhiskyDetailPage({
             </div>
           </div>
         </div>
+
+        <TastingNotesSection
+          whiskyId={id}
+          locale={locale}
+          googleMapsApiKey={process.env.GOOGLE_MAPS_API_KEY || null}
+          filterPseudo={filterPseudo}
+        />
       </div>
     </div>
   )

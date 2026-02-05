@@ -6,6 +6,10 @@ type DbSchema = {
   distillers: any
   bottlers: any
   whiskies: any
+  tastingNotes: any
+  tags: any
+  tagLang: any
+  tastingNoteTags: any
 }
 
 const databaseUrl = process.env.DATABASE_URL || ''
@@ -85,7 +89,40 @@ function createSqliteSchema(): DbSchema {
     updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(() => new Date()),
   })
 
-  return { countries, users, distillers, bottlers, whiskies }
+  const tastingNotes = sqliteTable('tasting_notes', {
+    id: text('id').primaryKey(),
+    whiskyId: text('whisky_id').notNull(),
+    userId: text('user_id').notNull(),
+    tastingDate: text('tasting_date').notNull(),
+    location: text('location'),
+    latitude: real('latitude'),
+    longitude: real('longitude'),
+    country: text('country'),
+    city: text('city'),
+    overall: text('overall'),
+    rating: integer('rating'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(() => new Date()),
+  })
+
+  const tags = sqliteTable('tags', {
+    id: text('id').primaryKey(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+  })
+
+  const tagLang = sqliteTable('tag_lang', {
+    tagId: text('tag_id').notNull(),
+    lang: text('lang').notNull(),
+    name: text('name').notNull(),
+  })
+
+  const tastingNoteTags = sqliteTable('tasting_note_tags', {
+    noteId: text('note_id').notNull(),
+    tagId: text('tag_id').notNull(),
+    type: text('type').notNull(),
+  })
+
+  return { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags }
 }
 
 function createMysqlSchema(): DbSchema {
@@ -156,11 +193,44 @@ function createMysqlSchema(): DbSchema {
     updatedAt: datetime('updated_at', { mode: 'date' }).$onUpdate(() => new Date()),
   })
 
-  return { countries, users, distillers, bottlers, whiskies }
+  const tastingNotes = mysqlTable('tasting_notes', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    whiskyId: varchar('whisky_id', { length: 36 }).notNull(),
+    userId: varchar('user_id', { length: 36 }).notNull(),
+    tastingDate: varchar('tasting_date', { length: 10 }).notNull(),
+    location: varchar('location', { length: 255 }),
+    latitude: double('latitude'),
+    longitude: double('longitude'),
+    country: varchar('country', { length: 100 }),
+    city: varchar('city', { length: 100 }),
+    overall: text('overall'),
+    rating: int('rating'),
+    createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: datetime('updated_at', { mode: 'date' }).$onUpdate(() => new Date()),
+  })
+
+  const tags = mysqlTable('tags', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+  })
+
+  const tagLang = mysqlTable('tag_lang', {
+    tagId: varchar('tag_id', { length: 36 }).notNull(),
+    lang: varchar('lang', { length: 5 }).notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+  })
+
+  const tastingNoteTags = mysqlTable('tasting_note_tags', {
+    noteId: varchar('note_id', { length: 36 }).notNull(),
+    tagId: varchar('tag_id', { length: 36 }).notNull(),
+    type: varchar('type', { length: 20 }).notNull(),
+  })
+
+  return { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags }
 }
 
 const schema: DbSchema = useMysql ? createMysqlSchema() : createSqliteSchema()
-export const { countries, users, distillers, bottlers, whiskies } = schema
+export const { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags } = schema
 
 let dbInstance: any
 let sqliteInitialized = false
@@ -303,6 +373,47 @@ function initSqlite(sqlite: any) {
     CREATE TABLE IF NOT EXISTS bottlers (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL
+    )
+  `).run()
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS tasting_notes (
+      id TEXT PRIMARY KEY,
+      whisky_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      tasting_date TEXT NOT NULL,
+      location TEXT,
+      latitude REAL,
+      longitude REAL,
+      country TEXT,
+      city TEXT,
+      overall TEXT,
+      rating INTEGER,
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+  `).run()
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS tags (
+      id TEXT PRIMARY KEY,
+      created_at INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+  `).run()
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS tag_lang (
+      tag_id TEXT NOT NULL,
+      lang TEXT NOT NULL,
+      name TEXT NOT NULL
+    )
+  `).run()
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS tasting_note_tags (
+      note_id TEXT NOT NULL,
+      tag_id TEXT NOT NULL,
+      type TEXT NOT NULL
     )
   `).run()
 
