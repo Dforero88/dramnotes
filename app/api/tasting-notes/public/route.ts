@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
     pseudo: string | null
   }
   const noteIds = (notes as NoteRow[]).map((n) => n.id)
-  type TagRow = { noteId: string; type: string; tagId: string; name: string | null }
+  type TagType = 'nose' | 'palate' | 'finish'
+  type TagRow = { noteId: string; type: TagType; tagId: string; name: string | null }
   let tags: TagRow[] = []
   if (noteIds.length > 0) {
     tags = await db
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest) {
   const tagsByNote: Record<string, { nose: TagOut[]; palate: TagOut[]; finish: TagOut[] }> = {}
   tags.forEach((t: TagRow) => {
     if (!tagsByNote[t.noteId]) tagsByNote[t.noteId] = { nose: [], palate: [], finish: [] }
-    tagsByNote[t.noteId][t.type]?.push({ id: t.tagId, name: t.name })
+    tagsByNote[t.noteId][t.type].push({ id: t.tagId, name: t.name })
   })
 
   const items = notes.map((note) => ({
