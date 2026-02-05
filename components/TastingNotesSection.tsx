@@ -25,6 +25,8 @@ type Note = {
   }
 }
 
+type Tag = { id: string; name: string }
+
 const emptyTags = { nose: [], palate: [], finish: [] }
 
 function buildAvatar(pseudo: string) {
