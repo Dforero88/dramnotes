@@ -21,6 +21,7 @@ if (isProduction && !isMysqlUrl) {
 }
 
 const useMysql = isMysqlUrl || isProduction
+export const isMysql = useMysql
 
 function createSqliteSchema(): DbSchema {
   const { sqliteTable, text, integer, real } = require('drizzle-orm/sqlite-core')

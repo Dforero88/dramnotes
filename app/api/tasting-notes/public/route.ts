@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, tastingNotes, tastingNoteTags, tagLang, users } from '@/lib/db'
+import { db, tastingNotes, tastingNoteTags, tagLang, users, isMysql } from '@/lib/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   const filters: any[] = [
     eq(tastingNotes.whiskyId, whiskyId),
-    sql`binary ${users.visibility} = 'public'`,
+    isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'),
     sql`${users.id} <> ${userId}`,
   ]
 
@@ -36,7 +36,10 @@ export async function GET(request: NextRequest) {
   const countRes = await db
     .select({ count: sql<number>`count(*)` })
     .from(tastingNotes)
-    .leftJoin(users, sql`binary ${users.id} = binary ${tastingNotes.userId}`)
+    .leftJoin(
+      users,
+      isMysql ? sql`binary ${users.id} = binary ${tastingNotes.userId}` : eq(users.id, tastingNotes.userId)
+    )
     .where(and(...filters))
 
   const total = Number(countRes?.[0]?.count || 0)
@@ -53,7 +56,10 @@ export async function GET(request: NextRequest) {
       pseudo: users.pseudo,
     })
     .from(tastingNotes)
-    .leftJoin(users, sql`binary ${users.id} = binary ${tastingNotes.userId}`)
+    .leftJoin(
+      users,
+      isMysql ? sql`binary ${users.id} = binary ${tastingNotes.userId}` : eq(users.id, tastingNotes.userId)
+    )
     .where(and(...filters))
     .orderBy(sql`${tastingNotes.tastingDate} desc`)
     .limit(pageSize)

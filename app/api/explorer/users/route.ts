@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, tastingNotes, users } from '@/lib/db'
+import { db, tastingNotes, users, isMysql } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
   const pageSize = isEmptyQuery ? 3 : requestedPageSize
   const offset = (page - 1) * pageSize
 
-  const filters: any[] = [sql`binary ${users.visibility} = 'public'`]
+  const filters: any[] = [
+    isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public')
+  ]
   if (q) {
     filters.push(sql`lower(${users.pseudo}) like ${`%${q}%`}`)
   }
@@ -42,7 +44,10 @@ export async function GET(request: NextRequest) {
       notesCount: sql<number>`count(${tastingNotes.id})`,
     })
     .from(users)
-    .leftJoin(tastingNotes, sql`binary ${tastingNotes.userId} = binary ${users.id}`)
+    .leftJoin(
+      tastingNotes,
+      isMysql ? sql`binary ${tastingNotes.userId} = binary ${users.id}` : eq(tastingNotes.userId, users.id)
+    )
     .where(and(...filters))
     .groupBy(users.id)
     .orderBy(isEmptyQuery ? sql`count(${tastingNotes.id}) desc` : sql`lower(${users.pseudo}) asc`)

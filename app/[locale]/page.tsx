@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getTranslations, type Locale } from '@/lib/i18n'
-import { db, tastingNotes, users, whiskies } from '@/lib/db'
+import { db, tastingNotes, users, whiskies, isMysql } from '@/lib/db'
 import { eq, sql } from 'drizzle-orm'
 
 type TopUser = {
@@ -53,8 +53,11 @@ export default async function HomePage({
       notesCount: sql<number>`count(${tastingNotes.id})`,
     })
     .from(users)
-    .leftJoin(tastingNotes, sql`binary ${tastingNotes.userId} = binary ${users.id}`)
-    .where(sql`binary ${users.visibility} = 'public'`)
+    .leftJoin(
+      tastingNotes,
+      isMysql ? sql`binary ${tastingNotes.userId} = binary ${users.id}` : eq(tastingNotes.userId, users.id)
+    )
+    .where(isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'))
     .groupBy(users.id)
     .orderBy(sql`count(${tastingNotes.id}) desc`)
     .limit(3)) as TopUser[]
@@ -94,7 +97,7 @@ export default async function HomePage({
       totalPublicUsers: sql<number>`count(${users.id})`,
     })
     .from(users)
-    .where(sql`binary ${users.visibility} = 'public'`)
+    .where(isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'))
 
   const recentNotes = (isLoggedIn
     ? await db
@@ -107,9 +110,15 @@ export default async function HomePage({
           pseudo: users.pseudo,
         })
         .from(tastingNotes)
-        .leftJoin(users, sql`binary ${users.id} = binary ${tastingNotes.userId}`)
-        .leftJoin(whiskies, eq(whiskies.id, tastingNotes.whiskyId))
-        .where(sql`binary ${users.visibility} = 'public'`)
+        .leftJoin(
+          users,
+          isMysql ? sql`binary ${users.id} = binary ${tastingNotes.userId}` : eq(users.id, tastingNotes.userId)
+        )
+        .leftJoin(
+          whiskies,
+          isMysql ? sql`binary ${whiskies.id} = binary ${tastingNotes.whiskyId}` : eq(whiskies.id, tastingNotes.whiskyId)
+        )
+        .where(isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'))
         .orderBy(sql`${tastingNotes.createdAt} desc`)
         .limit(5)
     : []) as RecentNote[]
