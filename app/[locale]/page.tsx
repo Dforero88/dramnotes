@@ -59,7 +59,14 @@ export default async function HomePage({
     .orderBy(sql`count(${tastingNotes.id}) desc`)
     .limit(3)) as TopUser[]
 
-  const latestWhiskies = await db
+  type LatestWhisky = {
+    id: string
+    name: string
+    bottleImageUrl: string | null
+    createdAt: Date | null
+  }
+
+  const latestWhiskies = (await db
     .select({
       id: whiskies.id,
       name: whiskies.name,
@@ -68,7 +75,7 @@ export default async function HomePage({
     })
     .from(whiskies)
     .orderBy(sql`${whiskies.createdAt} desc`)
-    .limit(5)
+    .limit(5)) as LatestWhisky[]
 
   const stats = await db
     .select({
@@ -177,7 +184,7 @@ export default async function HomePage({
               <span className="text-sm text-gray-500">{t('home.latestWhiskiesSubtitle')}</span>
             </div>
             <div className="space-y-4">
-              {latestWhiskies.map((whisky) => {
+              {latestWhiskies.map((whisky: LatestWhisky) => {
                 const imageSrc =
                   typeof whisky.bottleImageUrl === 'string' && whisky.bottleImageUrl.trim() !== ''
                     ? whisky.bottleImageUrl.startsWith('http') || whisky.bottleImageUrl.startsWith('/')
