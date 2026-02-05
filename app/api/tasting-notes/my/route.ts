@@ -40,8 +40,9 @@ export async function GET(request: NextRequest) {
     .leftJoin(tagLang, and(eq(tagLang.tagId, tastingNoteTags.tagId), eq(tagLang.lang, lang)))
     .where(eq(tastingNoteTags.noteId, noteId))
 
-  const grouped = { nose: [], palate: [], finish: [] } as Record<string, any[]>
-  tags.forEach((t) => {
+  type TagRow = { type: string; tagId: string; name: string | null }
+  const grouped = { nose: [], palate: [], finish: [] } as Record<string, TagRow[]>
+  tags.forEach((t: TagRow) => {
     if (!grouped[t.type]) grouped[t.type] = []
     grouped[t.type].push({ id: t.tagId, name: t.name })
   })
