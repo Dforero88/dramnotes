@@ -59,8 +59,18 @@ export async function GET(request: NextRequest) {
     .limit(pageSize)
     .offset(offset)
 
-  const noteIds = notes.map((n) => n.id)
-  let tags: any[] = []
+  type NoteRow = {
+    id: string
+    tastingDate: string
+    location: string | null
+    overall: string | null
+    rating: number | null
+    userId: string
+    pseudo: string | null
+  }
+  const noteIds = (notes as NoteRow[]).map((n) => n.id)
+  type TagRow = { noteId: string; type: string; tagId: string; name: string | null }
+  let tags: TagRow[] = []
   if (noteIds.length > 0) {
     tags = await db
       .select({
@@ -74,8 +84,9 @@ export async function GET(request: NextRequest) {
       .where(inArray(tastingNoteTags.noteId, noteIds))
   }
 
-  const tagsByNote: Record<string, { nose: any[]; palate: any[]; finish: any[] }> = {}
-  tags.forEach((t) => {
+  type TagOut = { id: string; name: string | null }
+  const tagsByNote: Record<string, { nose: TagOut[]; palate: TagOut[]; finish: TagOut[] }> = {}
+  tags.forEach((t: TagRow) => {
     if (!tagsByNote[t.noteId]) tagsByNote[t.noteId] = { nose: [], palate: [], finish: [] }
     tagsByNote[t.noteId][t.type]?.push({ id: t.tagId, name: t.name })
   })
