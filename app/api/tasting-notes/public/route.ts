@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     userId: string
     pseudo: string | null
   }
-  const noteIds = (notes as NoteRow[]).map((n) => n.id)
+  const noteIds = (notes as NoteRow[]).map((n: NoteRow) => n.id)
   type TagType = 'nose' | 'palate' | 'finish'
   type TagRow = { noteId: string; type: TagType; tagId: string; name: string | null }
   let tags: TagRow[] = []
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     tagsByNote[t.noteId][t.type].push({ id: t.tagId, name: t.name })
   })
 
-  const items = notes.map((note) => ({
+  const items = (notes as NoteRow[]).map((note: NoteRow) => ({
     ...note,
     tags: tagsByNote[note.id] || { nose: [], palate: [], finish: [] },
   }))
