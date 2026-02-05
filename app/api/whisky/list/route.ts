@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
     const alcoholVolume = searchParams.get('alcoholVolume')?.trim() || ''
     const region = searchParams.get('region')?.trim() || ''
     const type = searchParams.get('type')?.trim() || ''
+    const countryId = searchParams.get('countryId')?.trim() || ''
+    const bottlingType = searchParams.get('bottlingType')?.trim() || ''
 
     const filters: any[] = []
 
@@ -39,6 +41,12 @@ export async function GET(request: NextRequest) {
     }
     if (type) {
       filters.push(eq(whiskies.type, type))
+    }
+    if (countryId) {
+      filters.push(eq(whiskies.countryId, countryId))
+    }
+    if (bottlingType) {
+      filters.push(eq(whiskies.bottlingType, bottlingType))
     }
     if (distilledYear) {
       filters.push(eq(whiskies.distilledYear, Number(distilledYear)))

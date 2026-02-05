@@ -19,6 +19,7 @@ type WhiskyCard = {
 
 type Filters = {
   name: string
+  countryId: string
   distiller: string
   bottler: string
   barcode: string
@@ -28,6 +29,7 @@ type Filters = {
   alcoholVolume: string
   region: string
   type: string
+  bottlingType: string
 }
 
 const typeOptions = [
@@ -49,6 +51,7 @@ const typeOptions = [
 
 const emptyFilters: Filters = {
   name: '',
+  countryId: '',
   distiller: '',
   bottler: '',
   barcode: '',
@@ -58,6 +61,7 @@ const emptyFilters: Filters = {
   alcoholVolume: '',
   region: '',
   type: '',
+  bottlingType: '',
 }
 
 export default function CatalogueBrowser({ locale }: { locale: Locale }) {
@@ -69,6 +73,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null }>>([])
 
   const pageSize = 12
 
@@ -103,6 +108,19 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
     fetchData()
   }, [queryString])
 
+  useEffect(() => {
+    const loadCountries = async () => {
+      try {
+        const res = await fetch('/api/countries')
+        const json = await res.json()
+        setCountries(json?.countries || [])
+      } catch (e) {
+        console.error('Erreur load countries', e)
+      }
+    }
+    loadCountries()
+  }, [])
+
   const applyFilters = () => {
     setAppliedFilters({ ...draftFilters })
     setPage(1)
@@ -117,24 +135,60 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   }
 
   const renderFilters = (isMobile = false) => (
-    <div className={isMobile ? 'space-y-4' : 'space-y-4'}>
-      <h2 className="text-lg font-semibold">{t('catalogue.filtersTitle')}</h2>
+    <div className={isMobile ? 'space-y-4' : 'space-y-5'}>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">{t('catalogue.filtersTitle')}</h2>
+        {!isMobile && (
+          <button
+            onClick={resetFilters}
+            className="text-sm"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            {t('catalogue.resetFilters')}
+          </button>
+        )}
+      </div>
       <div className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterName')}</label>
           <input
             value={draftFilters.name}
             onChange={(e) => setDraftFilters({ ...draftFilters, name: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-xl px-3 py-2 bg-white"
             placeholder={t('catalogue.filterNamePlaceholder')}
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterType')}</label>
+          <select
+            value={draftFilters.type}
+            onChange={(e) => setDraftFilters({ ...draftFilters, type: e.target.value })}
+            className="w-full border rounded-xl px-3 py-2 bg-white"
+          >
+            <option value="">{t('common.selectEmpty')}</option>
+            {typeOptions.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBottlingType')}</label>
+          <select
+            value={draftFilters.bottlingType}
+            onChange={(e) => setDraftFilters({ ...draftFilters, bottlingType: e.target.value })}
+            className="w-full border rounded-xl px-3 py-2 bg-white"
+          >
+            <option value="">{t('common.selectEmpty')}</option>
+            <option value="DB">{t('whisky.bottlingDB')}</option>
+            <option value="IB">{t('whisky.bottlingIB')}</option>
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterDistiller')}</label>
           <input
             value={draftFilters.distiller}
             onChange={(e) => setDraftFilters({ ...draftFilters, distiller: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-xl px-3 py-2 bg-white"
             placeholder={t('catalogue.filterDistillerPlaceholder')}
           />
         </div>
@@ -143,7 +197,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <input
             value={draftFilters.bottler}
             onChange={(e) => setDraftFilters({ ...draftFilters, bottler: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-xl px-3 py-2 bg-white"
             placeholder={t('catalogue.filterBottlerPlaceholder')}
           />
         </div>
@@ -152,7 +206,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <input
             value={draftFilters.barcode}
             onChange={(e) => setDraftFilters({ ...draftFilters, barcode: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-xl px-3 py-2 bg-white"
             placeholder={t('catalogue.filterBarcodePlaceholder')}
           />
         </div>
@@ -162,7 +216,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <input
               value={draftFilters.distilledYear}
               onChange={(e) => setDraftFilters({ ...draftFilters, distilledYear: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border rounded-xl px-3 py-2 bg-white"
               placeholder="YYYY"
             />
           </div>
@@ -171,7 +225,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <input
               value={draftFilters.bottledYear}
               onChange={(e) => setDraftFilters({ ...draftFilters, bottledYear: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border rounded-xl px-3 py-2 bg-white"
               placeholder="YYYY"
             />
           </div>
@@ -182,7 +236,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <input
               value={draftFilters.age}
               onChange={(e) => setDraftFilters({ ...draftFilters, age: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border rounded-xl px-3 py-2 bg-white"
               placeholder={t('catalogue.filterAgePlaceholder')}
             />
           </div>
@@ -191,32 +245,32 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <input
               value={draftFilters.alcoholVolume}
               onChange={(e) => setDraftFilters({ ...draftFilters, alcoholVolume: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border rounded-xl px-3 py-2 bg-white"
               placeholder={t('catalogue.filterAlcoholPlaceholder')}
             />
           </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterCountry')}</label>
+          <select
+            value={draftFilters.countryId}
+            onChange={(e) => setDraftFilters({ ...draftFilters, countryId: e.target.value })}
+            className="w-full border rounded-xl px-3 py-2 bg-white"
+          >
+            <option value="">{t('common.selectEmpty')}</option>
+            {countries.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterRegion')}</label>
           <input
             value={draftFilters.region}
             onChange={(e) => setDraftFilters({ ...draftFilters, region: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-xl px-3 py-2 bg-white"
             placeholder={t('catalogue.filterRegionPlaceholder')}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterType')}</label>
-          <select
-            value={draftFilters.type}
-            onChange={(e) => setDraftFilters({ ...draftFilters, type: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
-          >
-            <option value="">{t('common.selectEmpty')}</option>
-            {typeOptions.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
         </div>
       </div>
       <div className="flex gap-3">
@@ -227,32 +281,26 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
         >
           {t('catalogue.applyFilters')}
         </button>
-        <button
-          onClick={resetFilters}
-          className="px-4 py-2 rounded-lg border flex-1"
-          style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-        >
-          {t('catalogue.resetFilters')}
-        </button>
       </div>
     </div>
   )
 
   return (
     <div className="px-4 md:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">{t('catalogue.title')}</h1>
         <button
           onClick={() => setFiltersOpen(true)}
-          className="md:hidden px-4 py-2 border rounded-lg"
+          className="lg:hidden px-4 py-2 border rounded-lg"
           style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
         >
           {t('catalogue.openFilters')}
         </button>
-      </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-8">
-        <aside className="hidden md:block bg-white rounded-xl border border-gray-200 p-5 h-fit">
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+        <aside className="hidden lg:block bg-white rounded-2xl border border-gray-200 p-6 h-fit shadow-sm">
           {renderFilters()}
         </aside>
 
@@ -267,7 +315,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
               {t('catalogue.noResults')}
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
             {items.map((item) => {
               const imageSrc =
                 typeof item.bottleImageUrl === 'string' && item.bottleImageUrl.trim() !== ''
@@ -301,9 +349,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
                       {item.distillerName || item.bottlerName || item.region || item.type || ''}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {[item.countryName, item.age ? `${item.age}y` : null, item.alcoholVolume ? `${item.alcoholVolume}%` : null]
-                        .filter(Boolean)
-                        .join(' • ')}
+                      {[item.type, item.countryName].filter(Boolean).join(' • ')}
                     </div>
                   </div>
                 </Link>
@@ -338,7 +384,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
       </div>
 
       {filtersOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end md:hidden">
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end lg:hidden">
           <div className="bg-white w-full rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">{t('catalogue.filtersTitle')}</h2>
@@ -350,6 +396,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
