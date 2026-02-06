@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getTranslations, type Locale } from '@/lib/i18n'
-import { db, tastingNotes, users, whiskies, isMysql } from '@/lib/db'
-import { eq, sql } from 'drizzle-orm'
+import { db, tastingNotes, users, whiskies, follows, activities, isMysql } from '@/lib/db'
+import { eq, inArray, sql } from 'drizzle-orm'
 
 type TopUser = {
   id: string
@@ -11,13 +11,16 @@ type TopUser = {
   notesCount: number
 }
 
-type RecentNote = {
+type ActivityItem = {
   id: string
-  tastingDate: string
-  rating: number | null
-  whiskyId: string
+  type: string
+  createdAt: Date | null
+  actorId: string
+  actorPseudo: string | null
+  targetId: string
   whiskyName: string | null
-  pseudo: string | null
+  rating: number | null
+  targetPseudo: string | null
 }
 
 function buildAvatar(pseudo: string) {
@@ -45,6 +48,7 @@ export default async function HomePage({
   const t = getTranslations(locale)
   const session = await getServerSession(authOptions)
   const isLoggedIn = Boolean(session?.user?.id)
+  const currentUserId = session?.user?.id || null
 
   const topUsers = (await db
     .select({
@@ -99,29 +103,65 @@ export default async function HomePage({
     .from(users)
     .where(isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'))
 
-  const recentNotes = (isLoggedIn
+  const followedRows = isLoggedIn
+    ? await db
+        .select({ followedId: follows.followedId })
+        .from(follows)
+        .where(eq(follows.followerId, session?.user?.id || ''))
+    : []
+  const followedIds = followedRows.map((row) => row.followedId)
+
+  const recentActivities = (isLoggedIn && followedIds.length > 0
     ? await db
         .select({
-          id: tastingNotes.id,
-          tastingDate: tastingNotes.tastingDate,
-          rating: tastingNotes.rating,
-          whiskyId: tastingNotes.whiskyId,
+          id: activities.id,
+          type: activities.type,
+          createdAt: activities.createdAt,
+          actorId: activities.userId,
+          actorPseudo: users.pseudo,
+          targetId: activities.targetId,
           whiskyName: whiskies.name,
-          pseudo: users.pseudo,
+          rating: tastingNotes.rating,
         })
-        .from(tastingNotes)
+        .from(activities)
         .leftJoin(
           users,
-          isMysql ? sql`binary ${users.id} = binary ${tastingNotes.userId}` : eq(users.id, tastingNotes.userId)
+          isMysql ? sql`binary ${users.id} = binary ${activities.userId}` : eq(users.id, activities.userId)
         )
         .leftJoin(
           whiskies,
-          isMysql ? sql`binary ${whiskies.id} = binary ${tastingNotes.whiskyId}` : eq(whiskies.id, tastingNotes.whiskyId)
+          isMysql ? sql`binary ${whiskies.id} = binary ${activities.targetId}` : eq(whiskies.id, activities.targetId)
         )
-        .where(isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'))
-        .orderBy(sql`${tastingNotes.createdAt} desc`)
+        .leftJoin(
+          tastingNotes,
+          isMysql
+            ? sql`binary ${tastingNotes.userId} = binary ${activities.userId} and binary ${tastingNotes.whiskyId} = binary ${activities.targetId}`
+            : sql`${tastingNotes.userId} = ${activities.userId} and ${tastingNotes.whiskyId} = ${activities.targetId}`
+        )
+        .where(inArray(activities.userId, followedIds))
+        .orderBy(sql`${activities.createdAt} desc`)
         .limit(5)
-    : []) as RecentNote[]
+    : []) as ActivityItem[]
+
+  const activityUserIds = recentActivities.flatMap((row) => [row.actorId, row.targetId])
+  const activityUsers = activityUserIds.length
+    ? await db
+        .select({ id: users.id, pseudo: users.pseudo, visibility: users.visibility })
+        .from(users)
+        .where(inArray(users.id, activityUserIds))
+    : []
+  const activityUsersMap = activityUsers.reduce((acc, row) => {
+    acc[row.id] = row
+    return acc
+  }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null }>)
+
+  const activitiesVisible = recentActivities
+    .filter((row) => activityUsersMap[row.actorId]?.visibility === 'public')
+    .filter((row) => row.type !== 'new_follow' || activityUsersMap[row.targetId]?.visibility === 'public')
+    .map((row) => ({
+      ...row,
+      targetPseudo: activityUsersMap[row.targetId]?.pseudo || null,
+    }))
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -170,8 +210,9 @@ export default async function HomePage({
             <div className="space-y-4">
               {topUsers.map((user) => {
                 const avatar = buildAvatar(user.pseudo)
-                return (
-                  <div key={user.id} className="flex items-center gap-4">
+                const isSelf = currentUserId && user.id === currentUserId
+                const content = (
+                  <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold" style={{ backgroundColor: avatar.color }}>
                       {avatar.initial}
                     </div>
@@ -181,6 +222,20 @@ export default async function HomePage({
                         {Number(user.notesCount || 0)} {t('home.notesCount')}
                       </div>
                     </div>
+                  </div>
+                )
+                return (
+                  <div key={user.id}>
+                    {isSelf ? (
+                      <div>{content}</div>
+                    ) : (
+                      <Link
+                        href={`/${locale}/user/${encodeURIComponent(user.pseudo)}`}
+                        className="block"
+                      >
+                        {content}
+                      </Link>
+                    )}
                   </div>
                 )
               })}
@@ -245,17 +300,25 @@ export default async function HomePage({
         {isLoggedIn && (
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">{t('home.recentNotesTitle')}</h2>
-              <span className="text-sm text-gray-500">{t('home.recentNotesSubtitle')}</span>
+              <h2 className="text-xl font-semibold">{t('home.activityTitle')}</h2>
+              <span className="text-sm text-gray-500">{t('home.activitySubtitle')}</span>
             </div>
             <div className="space-y-4">
-              {recentNotes.map((note) => {
-                const pseudo = note.pseudo || 'User'
+              {activitiesVisible.map((activity) => {
+                const pseudo = activity.actorPseudo || 'User'
                 const avatar = buildAvatar(pseudo)
+                const isFollow = activity.type === 'new_follow'
+                const title = isFollow
+                  ? `${t('home.activityFollow')} ${activity.targetPseudo || '—'}`
+                  : `${t('home.activityNote')} ${activity.whiskyName || '—'}`
                 return (
                   <Link
-                    key={note.id}
-                    href={`/${locale}/whisky/${note.whiskyId}?user=${encodeURIComponent(pseudo)}`}
+                    key={activity.id}
+                    href={
+                      isFollow
+                        ? `/${locale}/user/${encodeURIComponent(activity.targetPseudo || '')}`
+                        : `/${locale}/whisky/${activity.targetId}?user=${encodeURIComponent(pseudo)}`
+                    }
                     className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -267,15 +330,18 @@ export default async function HomePage({
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm text-gray-500">{pseudo}</div>
-                        <div className="text-base font-semibold text-gray-900 truncate">{note.whiskyName}</div>
+                        <div className="text-base font-semibold text-gray-900 truncate">{title}</div>
                       </div>
                     </div>
                     <div className="text-sm text-gray-500 whitespace-nowrap">
-                      {note.rating || 0}/10
+                      {!isFollow && activity.rating ? `${activity.rating}/10` : ''}
                     </div>
                   </Link>
                 )
               })}
+              {activitiesVisible.length === 0 && (
+                <div className="text-sm text-gray-500">{t('home.noActivity')}</div>
+              )}
             </div>
           </div>
         )}

@@ -33,7 +33,7 @@ export default function ExplorerPage() {
   const params = useParams()
   const locale = params.locale as Locale
   const t = getTranslations(locale)
-  const { isLoggedIn, isLoading } = useAuth()
+  const { isLoggedIn, isLoading, user: viewer } = useAuth()
 
   const [query, setQuery] = useState('')
   const [appliedQuery, setAppliedQuery] = useState('')
@@ -134,11 +134,9 @@ export default function ExplorerPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {users.map((user) => {
           const avatar = buildAvatar(user.pseudo)
-          return (
-            <div
-              key={user.id}
-              className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition"
-            >
+          const isSelf = viewer?.id === user.id
+          const content = (
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
               <div className="flex items-center gap-4">
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
@@ -149,11 +147,18 @@ export default function ExplorerPage() {
                 <div>
                   <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
                   <div className="text-sm text-gray-500">
-                    {t('explorer.notesCount')} {user.notesCount}
+                    {user.notesCount} {t('explorer.notesCount')}
                   </div>
                 </div>
               </div>
             </div>
+          )
+          return isSelf ? (
+            <div key={user.id}>{content}</div>
+          ) : (
+            <Link key={user.id} href={`/${locale}/user/${encodeURIComponent(user.pseudo)}`}>
+              {content}
+            </Link>
           )
         })}
       </div>

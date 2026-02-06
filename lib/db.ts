@@ -10,6 +10,8 @@ type DbSchema = {
   tags: any
   tagLang: any
   tastingNoteTags: any
+  follows: any
+  activities: any
 }
 
 const databaseUrl = process.env.DATABASE_URL || ''
@@ -123,7 +125,21 @@ function createSqliteSchema(): DbSchema {
     type: text('type').notNull(),
   })
 
-  return { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags }
+  const follows = sqliteTable('follows', {
+    followerId: text('follower_id').notNull(),
+    followedId: text('followed_id').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+  })
+
+  const activities = sqliteTable('activities', {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    type: text('type').notNull(),
+    targetId: text('target_id').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+  })
+
+  return { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags, follows, activities }
 }
 
 function createMysqlSchema(): DbSchema {
@@ -227,11 +243,25 @@ function createMysqlSchema(): DbSchema {
     type: varchar('type', { length: 20 }).notNull(),
   })
 
-  return { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags }
+  const follows = mysqlTable('follows', {
+    followerId: varchar('follower_id', { length: 36 }).notNull(),
+    followedId: varchar('followed_id', { length: 36 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+  })
+
+  const activities = mysqlTable('activities', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    userId: varchar('user_id', { length: 36 }).notNull(),
+    type: varchar('type', { length: 20 }).notNull(),
+    targetId: varchar('target_id', { length: 36 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+  })
+
+  return { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags, follows, activities }
 }
 
 const schema: DbSchema = useMysql ? createMysqlSchema() : createSqliteSchema()
-export const { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags } = schema
+export const { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags, follows, activities } = schema
 
 let dbInstance: any
 let sqliteInitialized = false

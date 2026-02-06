@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, tastingNotes, tastingNoteTags } from '@/lib/db'
+import { db, tastingNotes, tastingNoteTags, activities } from '@/lib/db'
 import { and, eq } from 'drizzle-orm'
 import { generateId } from '@/lib/db'
 
@@ -85,6 +85,14 @@ export async function POST(request: NextRequest) {
   if (relations.length > 0) {
     await db.insert(tastingNoteTags).values(relations)
   }
+
+  await db.insert(activities).values({
+    id: generateId(),
+    userId,
+    type: 'new_note',
+    targetId: whiskyId,
+    createdAt: now,
+  } as any)
 
   return NextResponse.json({ success: true, id })
 }

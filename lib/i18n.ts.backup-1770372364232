@@ -142,11 +142,11 @@ export const translations = {
       'submitting': 'Submitting'
     },
     home: {
+      'addedRecently': 'Ajouté le',
       'activityFollow': 'a suivi',
       'activityNote': 'a noté',
       'activitySubtitle': 'Activité récente',
       'activityTitle': 'Activités',
-      'addedRecently': 'Ajouté le',
       'ctaAddWhisky': 'Cta Add Whisky',
       'ctaExplore': 'Cta Explore',
       'ctaRegister': 'Cta Register',
@@ -450,11 +450,11 @@ export const translations = {
       'submitting': 'Submitting'
     },
     home: {
+      'addedRecently': 'Added Recently',
       'activityFollow': 'followed',
       'activityNote': 'rated',
       'activitySubtitle': 'Recent activity',
       'activityTitle': 'Activity',
-      'addedRecently': 'Added Recently',
       'ctaAddWhisky': 'Cta Add Whisky',
       'ctaExplore': 'Cta Explore',
       'ctaRegister': 'Cta Register',
