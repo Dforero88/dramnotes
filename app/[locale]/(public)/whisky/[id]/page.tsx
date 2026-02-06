@@ -4,6 +4,9 @@ import { db, whiskies, distillers, bottlers, countries } from '@/lib/db'
 import { eq, sql } from 'drizzle-orm'
 import TastingNotesSection from '@/components/TastingNotesSection'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 function normalizeImage(url?: string | null) {
   if (!url) return ''
   if (url.startsWith('http') || url.startsWith('/')) return url
