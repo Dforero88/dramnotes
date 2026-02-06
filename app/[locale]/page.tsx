@@ -49,6 +49,22 @@ export default async function HomePage({
 }) {
   const { locale } = params
   const t = getTranslations(locale)
+  if (process.env.DRAMNOTES_BUILD === '1') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+            <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">
+              {t('home.title')}
+            </h1>
+            <p className="text-gray-600 mt-3 max-w-2xl">
+              {t('home.subtitle')}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
   const session = await getServerSession(authOptions)
   const isLoggedIn = Boolean(session?.user?.id)
   const currentUserId = session?.user?.id || null

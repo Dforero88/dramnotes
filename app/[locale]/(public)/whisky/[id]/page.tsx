@@ -27,6 +27,29 @@ export default async function WhiskyDetailPage({
 }) {
   const { locale, id } = params
   const t = getTranslations(locale)
+  if (process.env.DRAMNOTES_BUILD === '1') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div
+          className="px-4 md:px-8 py-4"
+          style={{ backgroundColor: 'var(--color-primary-light)' }}
+        >
+          <div className="max-w-6xl mx-auto text-sm text-gray-600 text-center">
+            <Link href={`/${locale}/catalogue`} className="hover:underline">
+              {t('catalogue.title')}
+            </Link>
+            <span className="mx-2">›</span>
+            <span className="text-gray-800">{t('whisky.title')}</span>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto px-4 md:px-8 py-10">
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <div className="text-gray-600">{t('common.loading')}</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
   const filterPseudo = searchParams?.user || null
 
   const result = await db

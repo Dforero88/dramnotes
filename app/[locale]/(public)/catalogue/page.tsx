@@ -15,6 +15,18 @@ export default async function CataloguePage({
 }) {
   const { locale } = await params
   const t = getTranslations(locale)
+  if (process.env.DRAMNOTES_BUILD === '1') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <h1 className="text-3xl font-semibold text-gray-900">{t('catalogue.title')}</h1>
+            <p className="text-gray-600 mt-2">{t('catalogue.subtitle')}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
   const session = await getServerSession(authOptions) // <-- Passe authOptions
   
   return (
