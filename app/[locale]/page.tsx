@@ -5,6 +5,9 @@ import { getTranslations, type Locale } from '@/lib/i18n'
 import { db, tastingNotes, users, whiskies, follows, activities, isMysql } from '@/lib/db'
 import { eq, inArray, sql } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type TopUser = {
   id: string
   pseudo: string
