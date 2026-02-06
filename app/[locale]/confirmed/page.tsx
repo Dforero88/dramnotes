@@ -2,6 +2,9 @@
 import Link from 'next/link'
 import { getTranslations, type Locale } from '@/lib/i18n'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ConfirmedPage({
   params
 }: {
@@ -48,3 +51,7 @@ export default async function ConfirmedPage({
     </div>
   )
 }
+'use client'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
