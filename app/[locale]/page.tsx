@@ -178,7 +178,7 @@ export default async function HomePage({
                     <div>
                       <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
                       <div className="text-sm text-gray-500">
-                        {t('home.notesCount')} {Number(user.notesCount || 0)}
+                        {Number(user.notesCount || 0)} {t('home.notesCount')}
                       </div>
                     </div>
                   </div>
@@ -215,7 +215,10 @@ export default async function HomePage({
                     </div>
                     <div>
                       <div className="text-base font-semibold text-gray-900">{whisky.name}</div>
-                      <div className="text-sm text-gray-500">{t('home.addedRecently')}</div>
+                      <div className="text-sm text-gray-500">
+                        {t('home.addedRecently')}
+                        {whisky.createdAt ? ` · ${new Date(whisky.createdAt).toLocaleDateString(locale)}` : ''}
+                      </div>
                     </div>
                   </Link>
                 )
@@ -226,16 +229,16 @@ export default async function HomePage({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <div className="text-sm text-gray-500">{t('home.statsWhiskies')}</div>
             <div className="text-2xl font-semibold text-gray-900">{Number(stats?.[0]?.totalWhiskies || 0)}</div>
+            <div className="text-sm text-gray-500 mt-1">{t('home.statsWhiskies')}</div>
           </div>
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <div className="text-sm text-gray-500">{t('home.statsNotes')}</div>
             <div className="text-2xl font-semibold text-gray-900">{Number(noteStats?.[0]?.totalNotes || 0)}</div>
+            <div className="text-sm text-gray-500 mt-1">{t('home.statsNotes')}</div>
           </div>
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <div className="text-sm text-gray-500">{t('home.statsContributors')}</div>
             <div className="text-2xl font-semibold text-gray-900">{Number(publicUsers?.[0]?.totalPublicUsers || 0)}</div>
+            <div className="text-sm text-gray-500 mt-1">{t('home.statsContributors')}</div>
           </div>
         </div>
 

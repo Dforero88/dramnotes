@@ -46,26 +46,29 @@ export default function Navigation() {
   return (
     <header>
       {/* Barre supérieure */}
-      <div className="bg-white border-b">
+      <div className="bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
         <div className="container mx-auto px-6 py-4 grid grid-cols-[1fr_auto_1fr] items-center">
           <div className="flex items-center gap-4">
             <button
-              className="md:hidden p-2 rounded border"
-              style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+              className="md:hidden p-2.5 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition"
+              style={{ color: 'var(--color-primary)' }}
               onClick={() => setMobileOpen((v) => !v)}
               aria-label="Menu"
             >
               ☰
             </button>
 
-            <select 
-              value={locale}
-              onChange={(e) => changeLocale(e.target.value as Locale)}
-              className="hidden md:block border rounded px-2 py-1 text-sm"
-            >
-              <option value="fr">🇫🇷 Français</option>
-              <option value="en">🇬🇧 English</option>
-            </select>
+            <div className="hidden md:block">
+              <select 
+                value={locale}
+                onChange={(e) => changeLocale(e.target.value as Locale)}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white"
+              >
+                <option value="fr">🇫🇷 Français</option>
+                <option value="en">🇬🇧 English</option>
+              </select>
+            </div>
+
           </div>
 
           <div className="justify-self-center">
@@ -115,19 +118,30 @@ export default function Navigation() {
             {session ? (
               <button
                 onClick={() => signOut()}
-                className="md:hidden p-2 rounded border"
-                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                className="md:hidden p-2.5 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition"
+                style={{ color: 'var(--color-primary)' }}
                 aria-label="Logout"
+                title={t('navigation.signOut')}
               >
-                ⎋
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <path d="M10 17l5-5-5-5" />
+                  <path d="M15 12H3" />
+                </svg>
               </button>
             ) : (
               <Link
                 href={`/${locale}/login`}
-                className="md:hidden px-3 py-2 rounded border"
-                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                className="md:hidden p-2.5 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition"
+                style={{ color: 'var(--color-primary)' }}
+                aria-label="Login"
+                title={t('navigation.signIn')}
               >
-                {t('navigation.signIn')}
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
+                  <path d="M14 7l5 5-5 5" />
+                  <path d="M19 12H9" />
+                </svg>
               </Link>
             )}
           </div>
@@ -190,37 +204,40 @@ export default function Navigation() {
       </nav>
 
       {mobileOpen && (
-        <div className="md:hidden bg-white border-b">
+        <div className="md:hidden bg-white border-b border-gray-100 shadow-sm">
           <div className="px-6 py-4 space-y-3">
             <select 
               value={locale}
-              onChange={(e) => changeLocale(e.target.value as Locale)}
-              className="border rounded px-2 py-1 text-sm w-full"
+              onChange={(e) => {
+                changeLocale(e.target.value as Locale)
+                setMobileOpen(false)
+              }}
+              className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm w-full"
             >
               <option value="fr">🇫🇷 Français</option>
               <option value="en">🇬🇧 English</option>
             </select>
-            <Link href={`/${locale}`} className="block text-primary">
+            <Link href={`/${locale}`} className="block text-primary" onClick={() => setMobileOpen(false)}>
               {t('navigation.home')}
             </Link>
-            <Link href={`/${locale}/catalogue`} className="block text-primary">
+            <Link href={`/${locale}/catalogue`} className="block text-primary" onClick={() => setMobileOpen(false)}>
               {t('navigation.catalogue')}
             </Link>
             {session && (
               <>
-                <Link href={`/${locale}/notebook`} className="block text-primary">
+                <Link href={`/${locale}/notebook`} className="block text-primary" onClick={() => setMobileOpen(false)}>
                   {t('navigation.notebook')}
                 </Link>
-                <Link href={`/${locale}/explorer`} className="block text-primary">
+                <Link href={`/${locale}/explorer`} className="block text-primary" onClick={() => setMobileOpen(false)}>
                   {t('navigation.explorer')}
                 </Link>
-                <Link href={`/${locale}/map`} className="block text-primary">
+                <Link href={`/${locale}/map`} className="block text-primary" onClick={() => setMobileOpen(false)}>
                   {t('navigation.map')}
                 </Link>
-                <Link href={`/${locale}/aromatic`} className="block text-primary">
+                <Link href={`/${locale}/aromatic`} className="block text-primary" onClick={() => setMobileOpen(false)}>
                   {t('navigation.aromaticWheel')}
                 </Link>
-                <Link href={`/${locale}/account`} className="block text-primary">
+                <Link href={`/${locale}/account`} className="block text-primary" onClick={() => setMobileOpen(false)}>
                   {t('navigation.myAccount')}
                 </Link>
               </>

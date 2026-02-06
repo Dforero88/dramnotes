@@ -212,7 +212,6 @@ export const translations = {
       'passwordRules': 'Password Rules'
     },
     whisky: {
-      'addWhiskyTitle': 'Ajouter un whisky',
       'backToCatalogue': 'Retour au catalogue',
       'barcodeDetected': 'Code-barres détécté',
       'barcodeExists': 'Ce code-barres existe déjà',
@@ -223,9 +222,7 @@ export const translations = {
       'canContinueManual': 'Can Continue Manual',
       'continueWithBarcode': 'Continuer avec ce code-barre',
       'continueWithoutBarcode': 'Continue Without Barcode',
-      'createdCardLabel': 'Aller lui donner une note de dégustation',
-      'createSuccess': 'Whisky créé',
-      'createSuccessSubtitle': 'Merci pour votre contribution',
+      'createSuccess': 'Create Success',
       'createWhisky': 'Créer le Whisky',
       'cropAndScan': 'Scanner',
       'cropperLoading': 'Cropper Loading',
@@ -284,7 +281,6 @@ export const translations = {
       'takeBottlePhoto': 'Prendre la bouteille',
       'takeLabelPhoto': 'Prendre l\'étiquette',
       'verifyBarcode': 'Vérifier le code-barres',
-      'viewWhisky': 'Voir le whisky',
       'zoomIn': 'Zoom In',
       'zoomOut': 'Zoom Out'
     }
@@ -499,7 +495,6 @@ export const translations = {
       'passwordRules': 'Password Rules'
     },
     whisky: {
-      'addWhiskyTitle': 'Add Whisky Title',
       'backToCatalogue': 'Back To Catalogue',
       'barcodeDetected': 'Barcode Detected',
       'barcodeExists': 'Barcode Exists',
@@ -510,9 +505,7 @@ export const translations = {
       'canContinueManual': 'Can Continue Manual',
       'continueWithBarcode': 'Continue With Barcode',
       'continueWithoutBarcode': 'Continue Without Barcode',
-      'createdCardLabel': 'Created Card Label',
       'createSuccess': 'Create Success',
-      'createSuccessSubtitle': 'Create Success Subtitle',
       'createWhisky': 'Create Whisky',
       'cropAndScan': 'Crop And Scan',
       'cropperLoading': 'Cropper Loading',
@@ -571,7 +564,6 @@ export const translations = {
       'takeBottlePhoto': 'Take Bottle Photo',
       'takeLabelPhoto': 'Take Label Photo',
       'verifyBarcode': 'Verify Barcode',
-      'viewWhisky': 'View Whisky',
       'zoomIn': 'Zoom In',
       'zoomOut': 'Zoom Out'
     }

@@ -43,6 +43,7 @@ export default function AddWhiskyPage({
   const [whiskyData, setWhiskyData] = useState<any>({})
   const [createError, setCreateError] = useState('')
   const [createStatus, setCreateStatus] = useState<'success' | 'duplicate' | null>(null)
+  const [createdWhisky, setCreatedWhisky] = useState<{ id: string; name: string; imageUrl?: string | null } | null>(null)
   const [barcodeExists, setBarcodeExists] = useState(false)
   const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null }>>([])
 
@@ -288,6 +289,11 @@ export default function AddWhiskyPage({
     }
 
     setCreateStatus('success')
+    setCreatedWhisky({
+      id: json?.id,
+      name: payload.name,
+      imageUrl: json?.bottleImageUrl || bottlePreview || null,
+    })
     setStep('exists')
   }
 
@@ -625,9 +631,32 @@ export default function AddWhiskyPage({
               )}
 
               {step === 'exists' && (
-                <div className="p-6 border rounded-lg" style={{ borderColor: 'var(--color-primary)' }}>
+                <div className="p-6 bg-white rounded-2xl">
                   {createStatus === 'success' && (
-                    <p className="text-green-700">{t('whisky.createSuccess')}</p>
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-900">{t('whisky.createSuccess')}</h3>
+                        <p className="text-sm text-gray-600 mt-1">{t('whisky.createSuccessSubtitle')}</p>
+                      </div>
+                      {createdWhisky && createdWhisky.id && (
+                        <Link
+                          href={`/${locale}/whisky/${createdWhisky.id}`}
+                          className="flex items-center gap-5 rounded-2xl border border-gray-100 bg-gray-50 p-5"
+                        >
+                          <div className="w-24 h-24 rounded-xl bg-white border border-gray-200 overflow-hidden flex items-center justify-center">
+                            {createdWhisky.imageUrl ? (
+                              <img src={createdWhisky.imageUrl} alt={createdWhisky.name} className="w-full h-full object-contain" />
+                            ) : (
+                              <span className="text-xs text-gray-400">{t('catalogue.noImage')}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-lg font-semibold text-gray-900 truncate">{createdWhisky.name}</div>
+                            <div className="text-sm text-gray-500">{t('whisky.createdCardLabel')}</div>
+                          </div>
+                        </Link>
+                      )}
+                    </div>
                   )}
                   {createStatus === 'duplicate' && (
                     <div className="space-y-4">
