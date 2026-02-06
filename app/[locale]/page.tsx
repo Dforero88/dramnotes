@@ -103,13 +103,14 @@ export default async function HomePage({
     .from(users)
     .where(isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'))
 
-  const followedRows = isLoggedIn
+  type FollowedRow = { followedId: string }
+  const followedRows = (isLoggedIn
     ? await db
         .select({ followedId: follows.followedId })
         .from(follows)
         .where(eq(follows.followerId, session?.user?.id || ''))
-    : []
-  const followedIds = followedRows.map((row) => row.followedId)
+    : []) as FollowedRow[]
+  const followedIds = followedRows.map((row: FollowedRow) => row.followedId)
 
   const recentActivities = (isLoggedIn && followedIds.length > 0
     ? await db
@@ -143,14 +144,15 @@ export default async function HomePage({
         .limit(5)
     : []) as ActivityItem[]
 
-  const activityUserIds = recentActivities.flatMap((row) => [row.actorId, row.targetId])
+  const activityUserIds = recentActivities.flatMap((row: ActivityItem) => [row.actorId, row.targetId])
+  type ActivityUserRow = { id: string; pseudo: string | null; visibility: string | null }
   const activityUsers = activityUserIds.length
     ? await db
         .select({ id: users.id, pseudo: users.pseudo, visibility: users.visibility })
         .from(users)
         .where(inArray(users.id, activityUserIds))
-    : []
-  const activityUsersMap = activityUsers.reduce((acc, row) => {
+    : [] as ActivityUserRow[]
+  const activityUsersMap = (activityUsers as ActivityUserRow[]).reduce((acc, row: ActivityUserRow) => {
     acc[row.id] = row
     return acc
   }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null }>)
