@@ -36,13 +36,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload .next to Infomaniak
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.INFOMANIAK_HOST }}
-          username: ${{ secrets.INFOMANIAK_USER }}
-          password: ${{ secrets.INFOMANIAK_PASSWORD }}
-          port: ${{ secrets.INFOMANIAK_PORT }}
-          source: ".next"
-          target: "/srv/customer/sites/app.dramnotes.com"
-          overwrite: true
+      - name: Install rsync + sshpass
+        run: sudo apt-get update && sudo apt-get install -y rsync sshpass
+
+      - name: Upload .next to Infomaniak (rsync)
+        run: |
+          sshpass -p "${{ secrets.INFOMANIAK_PASSWORD }}" rsync -az --delete --partial --inplace \
+            -e "ssh -p ${{ secrets.INFOMANIAK_PORT }} -o StrictHostKeyChecking=no" \
+            .next/ ${{ secrets.INFOMANIAK_USER }}@${{ secrets.INFOMANIAK_HOST }}:/srv/customer/sites/app.dramnotes.com/.next/
