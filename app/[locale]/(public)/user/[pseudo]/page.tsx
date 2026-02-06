@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 export default function UserNotebookPage() {
   return (
     <div className="p-8">

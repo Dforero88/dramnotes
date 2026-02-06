@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useAuth } from '@/hooks/useAuth'
 import AuthBlock from '@/components/AuthBlock'
 import { useParams } from 'next/navigation'
