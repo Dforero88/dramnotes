@@ -13,12 +13,13 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const limit = Math.max(1, Math.min(20, Number(searchParams.get('limit') || '5')))
 
+  type FollowRow = { followedId: string }
   const followRows = await db
     .select({ followedId: follows.followedId })
     .from(follows)
     .where(eq(follows.followerId, session.user.id))
 
-  const followedIds = followRows.map((row) => row.followedId)
+  const followedIds = (followRows as FollowRow[]).map((row: FollowRow) => row.followedId)
   if (followedIds.length === 0) {
     return NextResponse.json({ items: [] })
   }
@@ -43,27 +44,38 @@ export async function GET(request: NextRequest) {
     .orderBy(sql`${activities.createdAt} desc`)
     .limit(limit)
 
-  const userIds = rows.map((row) => row.userId)
-  const targetUserIds = rows.filter((row) => row.type === 'new_follow').map((row) => row.targetId)
+  type ActivityRow = {
+    id: string
+    userId: string
+    type: string
+    targetId: string
+    createdAt: Date | null
+    pseudo: string | null
+    whiskyName: string | null
+  }
+  const typedRows = rows as ActivityRow[]
+  const userIds = typedRows.map((row: ActivityRow) => row.userId)
+  const targetUserIds = typedRows.filter((row: ActivityRow) => row.type === 'new_follow').map((row: ActivityRow) => row.targetId)
   const idsToFetch = Array.from(new Set([...userIds, ...targetUserIds]))
 
+  type UserRow = { id: string; pseudo: string | null; visibility: string | null }
   const usersRows = idsToFetch.length
     ? await db.select({ id: users.id, pseudo: users.pseudo, visibility: users.visibility }).from(users)
       .where(inArray(users.id, idsToFetch))
-    : []
+    : [] as UserRow[]
 
-  const usersMap = usersRows.reduce((acc, row) => {
+  const usersMap = (usersRows as UserRow[]).reduce((acc, row: UserRow) => {
     acc[row.id] = row
     return acc
-  }, {} as Record<string, { id: string; pseudo: string; visibility: string }>)
+  }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null }>)
 
-  const items = rows
-    .filter((row) => usersMap[row.userId]?.visibility === 'public')
-    .filter((row) => {
+  const items = typedRows
+    .filter((row: ActivityRow) => usersMap[row.userId]?.visibility === 'public')
+    .filter((row: ActivityRow) => {
       if (row.type !== 'new_follow') return true
       return usersMap[row.targetId]?.visibility === 'public'
     })
-    .map((row) => ({
+    .map((row: ActivityRow) => ({
       id: row.id,
       type: row.type,
       createdAt: row.createdAt,
