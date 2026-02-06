@@ -83,7 +83,8 @@ export async function GET(request: NextRequest) {
       .select({ followedId: follows.followedId })
       .from(follows)
       .where(and(eq(follows.followerId, viewerId), inArray(follows.followedId, ids)))
-    followingMap = existing.reduce((acc, row) => {
+    type ExistingRow = { followedId: string }
+    followingMap = (existing as ExistingRow[]).reduce((acc: Record<string, boolean>, row: ExistingRow) => {
       acc[row.followedId] = true
       return acc
     }, {} as Record<string, boolean>)
