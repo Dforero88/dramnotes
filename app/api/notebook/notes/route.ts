@@ -21,7 +21,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'userId missing' }, { status: 400 })
   }
 
-  const userRows = await db.select().from(users).where(eq(users.id, userId)).limit(1)
+  const userRows = await db
+    .select()
+    .from(users)
+    .where(isMysql ? sql`binary ${users.id} = binary ${userId}` : eq(users.id, userId))
+    .limit(1)
   const user = userRows?.[0]
   if (!user) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -35,7 +39,7 @@ export async function GET(request: NextRequest) {
   const countRes = await db
     .select({ count: sql<number>`count(*)` })
     .from(tastingNotes)
-    .where(eq(tastingNotes.userId, user.id))
+    .where(isMysql ? sql`binary ${tastingNotes.userId} = binary ${user.id}` : eq(tastingNotes.userId, user.id))
   const total = Number(countRes?.[0]?.count || 0)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
@@ -49,8 +53,11 @@ export async function GET(request: NextRequest) {
       bottleImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
     })
     .from(tastingNotes)
-    .leftJoin(whiskies, eq(tastingNotes.whiskyId, whiskies.id))
-    .where(eq(tastingNotes.userId, user.id))
+    .leftJoin(
+      whiskies,
+      isMysql ? sql`binary ${tastingNotes.whiskyId} = binary ${whiskies.id}` : eq(tastingNotes.whiskyId, whiskies.id)
+    )
+    .where(isMysql ? sql`binary ${tastingNotes.userId} = binary ${user.id}` : eq(tastingNotes.userId, user.id))
     .orderBy(sql`${tastingNotes.tastingDate} desc`)
     .limit(pageSize)
     .offset(offset)
