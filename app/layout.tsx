@@ -6,6 +6,9 @@ import SessionProvider from '@/components/providers/SessionProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export const metadata: Metadata = {
   title: 'DramNotes - Votre cave à whisky',
   description: 'Cataloguez et partagez votre collection de whiskies',
