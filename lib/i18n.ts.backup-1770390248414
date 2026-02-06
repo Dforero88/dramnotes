@@ -105,7 +105,6 @@ export const translations = {
       'page': 'Page',
       'prev': 'Prev',
       'resetFilters': 'Reset',
-      'subtitle': 'Subtitle',
       'title': 'Catalogue des whiskies'
     },
     common: {
@@ -305,7 +304,6 @@ export const translations = {
       'stepResult': 'Step Result',
       'takeBottlePhoto': 'Prendre la bouteille',
       'takeLabelPhoto': 'Prendre l\'étiquette',
-      'title': 'Title',
       'verifyBarcode': 'Vérifier le code-barres',
       'viewWhisky': 'Voir le whisky',
       'zoomIn': 'Zoom In',
@@ -415,7 +413,6 @@ export const translations = {
       'page': 'Page',
       'prev': 'Prev',
       'resetFilters': 'Reset Filters',
-      'subtitle': 'Subtitle',
       'title': 'Title'
     },
     common: {
@@ -615,7 +612,6 @@ export const translations = {
       'stepResult': 'Step Result',
       'takeBottlePhoto': 'Take Bottle Photo',
       'takeLabelPhoto': 'Take Label Photo',
-      'title': 'Title',
       'verifyBarcode': 'Verify Barcode',
       'viewWhisky': 'View Whisky',
       'zoomIn': 'Zoom In',
