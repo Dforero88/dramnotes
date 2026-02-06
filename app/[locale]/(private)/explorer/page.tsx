@@ -1,8 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
 import { useAuth } from '@/hooks/useAuth'
 import { useParams } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'

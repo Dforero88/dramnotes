@@ -51,7 +51,3 @@ export default async function ConfirmedPage({
     </div>
   )
 }
-'use client'
-
-export const dynamic = 'force-dynamic'
-export const revalidate = 0

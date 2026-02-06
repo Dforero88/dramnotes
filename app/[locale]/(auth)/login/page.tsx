@@ -1,9 +1,6 @@
 // app/[locale]/(auth)/login/page.tsx
 'use client'
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'

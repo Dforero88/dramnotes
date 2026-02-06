@@ -1,9 +1,6 @@
 // app/[locale]/(auth)/register/page.tsx
 'use client'
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
 import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
