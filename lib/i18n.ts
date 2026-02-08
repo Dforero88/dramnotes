@@ -175,7 +175,20 @@ export const translations = {
       'topUsersTitle': 'Les utilisateurs les plus actifs'
     },
     map: {
-      'title': 'Title'
+      'title': 'Carte des dégustations',
+      'subtitle': 'Explorez vos notes et celles des personnes que vous suivez.',
+      'loginTitle': 'Explorer la carte',
+      'loginSubtitle': 'Connectez-vous pour visualiser les dégustations sur la carte.',
+      'showMine': 'Afficher mes dégustations',
+      'searchPlaceholder': 'Rechercher un utilisateur suivi',
+      'followedTitle': 'Utilisateurs suivis',
+      'noFollowed': 'Vous ne suivez personne pour le moment.',
+      'selectedLabel': '{count} sélectionné(s)',
+      'maxLabel': 'Maximum {max} utilisateurs',
+      'mapTitle': 'Carte',
+      'legend': 'Légende',
+      'legendMine': 'Mes dégustations',
+      'viewWhisky': 'Voir le whisky'
     },
     navigation: {
       'aromaticWheel': 'Roue aromatique',
@@ -495,7 +508,20 @@ export const translations = {
       'topUsersTitle': 'Top Users Title'
     },
     map: {
-      'title': 'Title'
+      'title': 'Tasting map',
+      'subtitle': 'Explore your notes and those of people you follow.',
+      'loginTitle': 'Explore the map',
+      'loginSubtitle': 'Sign in to view tastings on the map.',
+      'showMine': 'Show my tastings',
+      'searchPlaceholder': 'Search followed users',
+      'followedTitle': 'Followed users',
+      'noFollowed': 'You are not following anyone yet.',
+      'selectedLabel': '{count} selected',
+      'maxLabel': 'Maximum {max} users',
+      'mapTitle': 'Map',
+      'legend': 'Legend',
+      'legendMine': 'My tastings',
+      'viewWhisky': 'View whisky'
     },
     navigation: {
       'aromaticWheel': 'my Aromatic Wheel',

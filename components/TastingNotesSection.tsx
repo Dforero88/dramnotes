@@ -79,6 +79,7 @@ export default function TastingNotesSection({
 
   const locationRef = useRef<HTMLInputElement>(null)
   const [mapsReady, setMapsReady] = useState(false)
+  const autocompleteRef = useRef<any>(null)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -244,33 +245,63 @@ export default function TastingNotesSection({
   }
 
   useEffect(() => {
-    if (!googleMapsApiKey || !mapsReady) return
-    if (!locationRef.current) return
+    if (!googleMapsApiKey) return
     if (typeof window === 'undefined') return
-    const win = window as any
-    if (!win.google || !win.google.maps?.places) return
 
-    const autocomplete = new win.google.maps.places.Autocomplete(locationRef.current, {
-      types: ['establishment', 'geocode'],
-    })
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace()
-      if (!place?.geometry) return
-      const formatted = place.formatted_address || place.name || ''
-      if (formatted) setLocation(formatted)
-      setLatitude(place.geometry.location.lat())
-      setLongitude(place.geometry.location.lng())
-      const comps = place.address_components || []
-      let ctry = ''
-      let cityName = ''
-      comps.forEach((c: any) => {
-        if (c.types.includes('country')) ctry = c.long_name
-        if (c.types.includes('locality') || c.types.includes('postal_town')) cityName = c.long_name
+    const win = window as any
+
+    const initAutocomplete = () => {
+      if (autocompleteRef.current) return
+      if (!locationRef.current) return
+      if (!win.google || !win.google.maps?.places) return
+      const autocomplete = new win.google.maps.places.Autocomplete(locationRef.current, {
+        types: ['establishment', 'geocode'],
       })
-      setCountry(ctry)
-      setCity(cityName)
-    })
-  }, [googleMapsApiKey, mapsReady])
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace()
+        if (!place?.geometry) return
+        const name = place.name || ''
+        const address = place.formatted_address || ''
+        let formatted = ''
+        if (name && address) {
+          const lowerName = name.toLowerCase()
+          const lowerAddress = address.toLowerCase()
+          formatted = lowerAddress.startsWith(lowerName) ? address : `${name}, ${address}`
+        } else {
+          formatted = address || name
+        }
+        if (formatted) setLocation(formatted)
+        setLatitude(place.geometry.location.lat())
+        setLongitude(place.geometry.location.lng())
+        const comps = place.address_components || []
+        let ctry = ''
+        let cityName = ''
+        comps.forEach((c: any) => {
+          if (c.types.includes('country')) ctry = c.long_name
+          if (c.types.includes('locality') || c.types.includes('postal_town')) cityName = c.long_name
+        })
+        setCountry(ctry)
+        setCity(cityName)
+      })
+      autocompleteRef.current = autocomplete
+      setMapsReady(true)
+    }
+
+    if (editing) {
+      autocompleteRef.current = null
+    }
+
+    initAutocomplete()
+
+    const interval = setInterval(() => {
+      if (autocompleteRef.current) return
+      initAutocomplete()
+    }, 300)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [googleMapsApiKey, editing])
 
   if (!isAuthenticated) {
     return (
