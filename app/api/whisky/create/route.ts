@@ -50,8 +50,7 @@ export async function POST(request: NextRequest) {
 
     let bottleImageUrl: string | null = null
     if (bottleImage) {
-      const ext = bottleImage.type === 'image/png' ? 'png' : 'jpg'
-      const filename = `${generateId()}.${ext}`
+      const filename = `${generateId()}.webp`
       const uploadsRoot = process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads')
       const publicBase = process.env.UPLOADS_PUBLIC_URL || '/uploads/bottles'
       const publicPath = publicBase.replace(/^\/+/, '')
@@ -62,7 +61,27 @@ export async function POST(request: NextRequest) {
       await fs.mkdir(uploadDir, { recursive: true })
       const filePath = path.join(uploadDir, filename)
       const buffer = Buffer.from(await bottleImage.arrayBuffer())
-      await fs.writeFile(filePath, buffer)
+      let outputBuffer = buffer
+      try {
+        const sharpModule = await import('sharp')
+        const sharp = sharpModule.default || sharpModule
+        const image = sharp(buffer).rotate()
+        const meta = await image.metadata()
+        const maxDim = Math.max(meta.width || 0, meta.height || 0, 1200)
+        const target = Math.min(1200, maxDim)
+        outputBuffer = await image
+          .resize({
+            width: target,
+            height: target,
+            fit: 'contain',
+            background: { r: 255, g: 255, b: 255, alpha: 1 },
+          })
+          .webp({ quality: 85 })
+          .toBuffer()
+      } catch (e) {
+        // Fallback: store original if sharp is unavailable
+      }
+      await fs.writeFile(filePath, outputBuffer)
       bottleImageUrl = `${publicBase}/${filename}`
       console.log('✅ Bottle image saved:', filePath)
     }
