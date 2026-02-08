@@ -178,31 +178,38 @@ export default async function HomePage({
           <p className="text-gray-600 mt-3 max-w-2xl">
             {t('home.subtitle')}
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link
+              href={`/${locale}/catalogue`}
+              className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-lg font-semibold text-gray-900">{t('home.actionCatalogueTitle')}</div>
+                <span
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white transition"
+                  style={{ backgroundColor: 'var(--color-primary)' }}
+                >
+                  →
+                </span>
+              </div>
+              <div className="mt-2 text-sm text-gray-600">{t('home.actionCatalogueDesc')}</div>
+            </Link>
+
             <Link
               href={`/${locale}/explorer`}
-              className="px-5 py-2 rounded-lg text-white"
-              style={{ backgroundColor: 'var(--color-primary)' }}
+              className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              {t('home.ctaExplore')}
+              <div className="flex items-center justify-between">
+                <div className="text-lg font-semibold text-gray-900">{t('home.actionExploreTitle')}</div>
+                <span
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white transition"
+                  style={{ backgroundColor: 'var(--color-primary)' }}
+                >
+                  →
+                </span>
+              </div>
+              <div className="mt-2 text-sm text-gray-600">{t('home.actionExploreDesc')}</div>
             </Link>
-            {isLoggedIn ? (
-              <Link
-                href={`/${locale}/add-whisky`}
-                className="px-5 py-2 rounded-lg border"
-                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-              >
-                {t('home.ctaAddWhisky')}
-              </Link>
-            ) : (
-              <Link
-                href={`/${locale}/register`}
-                className="px-5 py-2 rounded-lg border"
-                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-              >
-                {t('home.ctaRegister')}
-              </Link>
-            )}
           </div>
         </div>
 

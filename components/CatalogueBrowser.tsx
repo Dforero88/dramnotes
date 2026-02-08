@@ -30,6 +30,7 @@ type Filters = {
   region: string
   type: string
   bottlingType: string
+  sort: string
 }
 
 const typeOptions = [
@@ -62,6 +63,7 @@ const emptyFilters: Filters = {
   region: '',
   type: '',
   bottlingType: '',
+  sort: 'name_asc',
 }
 
 export default function CatalogueBrowser({ locale }: { locale: Locale }) {
@@ -84,6 +86,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
         params.set(key, String(value).trim())
       }
     })
+    if (!params.has('sort')) params.set('sort', 'name_asc')
     params.set('page', String(page))
     params.set('pageSize', String(pageSize))
     return params.toString()
@@ -317,6 +320,29 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
         </aside>
 
         <section>
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm font-semibold text-gray-700">{t('catalogue.sortLabel')}</div>
+            <select
+              value={draftFilters.sort}
+              onChange={(e) => {
+                const value = e.target.value
+                setDraftFilters({ ...draftFilters, sort: value })
+                setAppliedFilters((prev) => ({ ...prev, sort: value }))
+                setPage(1)
+              }}
+              className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm shadow-sm"
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            >
+              <option value="name_asc">{t('catalogue.sortNameAsc')}</option>
+              <option value="name_desc">{t('catalogue.sortNameDesc')}</option>
+              <option value="created_desc">{t('catalogue.sortCreatedDesc')}</option>
+              <option value="created_asc">{t('catalogue.sortCreatedAsc')}</option>
+              <option value="notes_desc">{t('catalogue.sortNotesDesc')}</option>
+              <option value="notes_asc">{t('catalogue.sortNotesAsc')}</option>
+              <option value="rating_desc">{t('catalogue.sortRatingDesc')}</option>
+              <option value="rating_asc">{t('catalogue.sortRatingAsc')}</option>
+            </select>
+          </div>
           {loading && (
             <div className="p-6 bg-white rounded-xl border border-gray-200 text-center">
               {t('catalogue.loading')}

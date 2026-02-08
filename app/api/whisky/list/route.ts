@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, whiskies, distillers, bottlers, countries } from '@/lib/db'
+import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')?.trim() || ''
     const countryId = searchParams.get('countryId')?.trim() || ''
     const bottlingType = searchParams.get('bottlingType')?.trim() || ''
+    const sort = searchParams.get('sort')?.trim() || 'name_asc'
 
     const filters: any[] = []
 
@@ -96,7 +97,25 @@ export async function GET(request: NextRequest) {
       .leftJoin(distillers, eq(whiskies.distillerId, distillers.id))
       .leftJoin(bottlers, eq(whiskies.bottlerId, bottlers.id))
       .leftJoin(countries, eq(whiskies.countryId, countries.id))
+      .leftJoin(whiskyAnalyticsCache, eq(whiskies.id, whiskyAnalyticsCache.whiskyId))
       .where(whereClause)
+      .orderBy(
+        sort === 'name_desc'
+          ? sql`lower(${whiskies.name}) desc`
+          : sort === 'created_desc'
+            ? sql`${whiskies.createdAt} desc`
+            : sort === 'created_asc'
+              ? sql`${whiskies.createdAt} asc`
+              : sort === 'notes_desc'
+                ? sql`coalesce(${whiskyAnalyticsCache.totalReviews}, 0) desc`
+                : sort === 'notes_asc'
+                  ? sql`coalesce(${whiskyAnalyticsCache.totalReviews}, 0) asc`
+                  : sort === 'rating_desc'
+                    ? sql`coalesce(${whiskyAnalyticsCache.avgRating}, 0) desc`
+                    : sort === 'rating_asc'
+                      ? sql`coalesce(${whiskyAnalyticsCache.avgRating}, 0) asc`
+                      : sql`lower(${whiskies.name}) asc`
+      )
       .limit(pageSize)
       .offset(offset)
 
