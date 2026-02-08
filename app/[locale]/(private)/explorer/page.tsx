@@ -12,6 +12,7 @@ type ExplorerUser = {
   id: string
   pseudo: string
   notesCount: number
+  isFollowing?: boolean
 }
 
 function buildAvatar(pseudo: string) {
@@ -44,6 +45,7 @@ export default function ExplorerPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [isTop, setIsTop] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [followLoadingId, setFollowLoadingId] = useState<string | null>(null)
 
   const trimmedQuery = useMemo(() => query.trim(), [query])
 
@@ -66,6 +68,26 @@ export default function ExplorerPage() {
     }
     run()
   }, [appliedQuery, page, isLoggedIn])
+
+  const handleToggleFollow = async (targetId: string) => {
+    if (followLoadingId) return
+    setFollowLoadingId(targetId)
+    try {
+      const res = await fetch('/api/follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: targetId }),
+      })
+      if (res.ok) {
+        const json = await res.json()
+        setUsers((prev) =>
+          prev.map((u) => (u.id === targetId ? { ...u, isFollowing: Boolean(json.following) } : u))
+        )
+      }
+    } finally {
+      setFollowLoadingId(null)
+    }
+  }
 
   if (isLoading) return <div className="p-8">{t('common.loading')}</div>
   if (!isLoggedIn) {
@@ -137,30 +159,62 @@ export default function ExplorerPage() {
         {users.map((user) => {
           const avatar = buildAvatar(user.pseudo)
           const isSelf = viewer?.id === user.id
-          const content = (
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
-                  style={{ backgroundColor: avatar.color }}
-                >
-                  {avatar.initial}
-                </div>
-                <div>
-                  <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
-                  <div className="text-sm text-gray-500">
-                    {user.notesCount} {t('explorer.notesCount')}
+          return (
+            <div
+              key={user.id}
+              className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  {isSelf ? (
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
+                      style={{ backgroundColor: avatar.color }}
+                    >
+                      {avatar.initial}
+                    </div>
+                  ) : (
+                    <Link
+                      href={`/${locale}/user/${encodeURIComponent(user.pseudo)}`}
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
+                      style={{ backgroundColor: avatar.color }}
+                    >
+                      {avatar.initial}
+                    </Link>
+                  )}
+                  <div className="space-y-0.5">
+                    {isSelf ? (
+                      <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
+                    ) : (
+                      <Link
+                        href={`/${locale}/user/${encodeURIComponent(user.pseudo)}`}
+                        className="text-base font-semibold text-gray-900 hover:underline"
+                      >
+                        {user.pseudo}
+                      </Link>
+                    )}
+                    <div className="text-sm text-gray-500">
+                      {user.notesCount} {t('explorer.notesCount')}
+                    </div>
                   </div>
                 </div>
+
+                {!isSelf && (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleFollow(user.id)}
+                    disabled={followLoadingId === user.id}
+                    className={`px-4 py-2 rounded-lg text-sm transition ${followLoadingId === user.id ? 'opacity-70' : ''}`}
+                    style={{
+                      backgroundColor: user.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
+                      color: user.isFollowing ? 'var(--color-primary)' : '#fff',
+                    }}
+                  >
+                    {user.isFollowing ? t('notebook.following') : t('notebook.follow')}
+                  </button>
+                )}
               </div>
             </div>
-          )
-          return isSelf ? (
-            <div key={user.id}>{content}</div>
-          ) : (
-            <Link key={user.id} href={`/${locale}/user/${encodeURIComponent(user.pseudo)}`}>
-              {content}
-            </Link>
           )
         })}
       </div>

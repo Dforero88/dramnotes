@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, tastingNotes, users, isMysql } from '@/lib/db'
-import { and, eq, sql } from 'drizzle-orm'
+import { db, tastingNotes, users, follows, isMysql } from '@/lib/db'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -55,10 +55,28 @@ export async function GET(request: NextRequest) {
     .offset(offset)
 
   type Row = { id: string; pseudo: string; notesCount: number | null }
-  const items = (rows as Row[]).map((row: Row) => ({
+  const baseItems = (rows as Row[]).map((row: Row) => ({
     id: row.id,
     pseudo: row.pseudo,
     notesCount: Number(row.notesCount || 0),
+  }))
+
+  const ids = baseItems.map((row) => row.id)
+  let followingIds = new Set<string>()
+  if (ids.length > 0) {
+    const followRows = await db
+      .select({ followedId: follows.followedId })
+      .from(follows)
+      .where(and(
+        isMysql ? sql`binary ${follows.followerId} = binary ${session.user.id}` : eq(follows.followerId, session.user.id),
+        inArray(follows.followedId, ids)
+      ))
+    followingIds = new Set((followRows as { followedId: string }[]).map((row) => row.followedId))
+  }
+
+  const items = baseItems.map((row) => ({
+    ...row,
+    isFollowing: followingIds.has(row.id),
   }))
 
   return NextResponse.json({ items, total, totalPages, page, pageSize, isTop: isEmptyQuery })
