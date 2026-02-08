@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db, tastingNotes, tastingNoteTags } from '@/lib/db'
 import { and, eq } from 'drizzle-orm'
+import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
+import { recomputeUserAroma } from '@/lib/user-aroma'
 
 type TagsPayload = {
   nose?: Array<string | { id: string }>
@@ -44,7 +46,7 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
   }
 
   const existing = await db
-    .select({ id: tastingNotes.id })
+    .select({ id: tastingNotes.id, whiskyId: tastingNotes.whiskyId })
     .from(tastingNotes)
     .where(and(eq(tastingNotes.id, id), eq(tastingNotes.userId, userId)))
     .limit(1)
@@ -77,6 +79,9 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
     await db.insert(tastingNoteTags).values(relations)
   }
 
+  await recomputeWhiskyAnalytics(existing[0].whiskyId)
+  await recomputeUserAroma(userId)
+
   return NextResponse.json({ success: true })
 }
 
@@ -90,7 +95,7 @@ export async function DELETE(_request: NextRequest, context: { params: { id: str
   const id = context.params.id
 
   const existing = await db
-    .select({ id: tastingNotes.id })
+    .select({ id: tastingNotes.id, whiskyId: tastingNotes.whiskyId })
     .from(tastingNotes)
     .where(and(eq(tastingNotes.id, id), eq(tastingNotes.userId, userId)))
     .limit(1)
@@ -101,6 +106,9 @@ export async function DELETE(_request: NextRequest, context: { params: { id: str
 
   await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, id))
   await db.delete(tastingNotes).where(eq(tastingNotes.id, id))
+
+  await recomputeWhiskyAnalytics(existing[0].whiskyId)
+  await recomputeUserAroma(userId)
 
   return NextResponse.json({ success: true })
 }

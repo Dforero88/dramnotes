@@ -1,8 +1,11 @@
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
-import { db, whiskies, distillers, bottlers, countries } from '@/lib/db'
-import { eq, sql } from 'drizzle-orm'
+import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache, tagLang } from '@/lib/db'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import TastingNotesSection from '@/components/TastingNotesSection'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import type { AromaProfile } from '@/lib/whisky-analytics'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -27,6 +30,8 @@ export default async function WhiskyDetailPage({
 }) {
   const { locale, id } = params
   const t = getTranslations(locale)
+  const session = await getServerSession(authOptions)
+  const isLoggedIn = Boolean(session?.user?.id)
   if (process.env.DRAMNOTES_BUILD === '1') {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -126,6 +131,58 @@ export default async function WhiskyDetailPage({
     { label: t('whisky.fieldType'), value: whisky.type },
   ].filter((item) => item.value !== null && item.value !== undefined && String(item.value).trim() !== '')
 
+  let analyticsData: {
+    avgRating: number
+    totalReviews: number
+    profile: AromaProfile
+    tags: { nose: { name: string; count: number }[]; palate: { name: string; count: number }[]; finish: { name: string; count: number }[] }
+  } | null = null
+
+  if (isLoggedIn) {
+    const cacheRows = await db
+      .select({
+        avgRating: whiskyAnalyticsCache.avgRating,
+        totalReviews: whiskyAnalyticsCache.totalReviews,
+        aromaProfile: whiskyAnalyticsCache.aromaProfile,
+      })
+      .from(whiskyAnalyticsCache)
+      .where(eq(whiskyAnalyticsCache.whiskyId, id))
+      .limit(1)
+
+    const cache = cacheRows?.[0]
+    if (cache && Number(cache.totalReviews || 0) > 0) {
+      const profile = (cache.aromaProfile ? JSON.parse(cache.aromaProfile) : { nose: [], palate: [], finish: [] }) as AromaProfile
+      const topN = (arr: { tagId: string; count: number }[]) => arr.slice(0, 4)
+      const nose = topN(profile.nose || [])
+      const palate = topN(profile.palate || [])
+      const finish = topN(profile.finish || [])
+      const tagIds = Array.from(new Set([...nose, ...palate, ...finish].map((t) => t.tagId)))
+      const tagRows = tagIds.length
+        ? await db
+            .select({ tagId: tagLang.tagId, name: tagLang.name })
+            .from(tagLang)
+            .where(and(eq(tagLang.lang, locale), inArray(tagLang.tagId, tagIds)))
+        : []
+      const tagMap = new Map(tagRows.map((row) => [row.tagId, row.name]))
+
+      const mapTags = (list: { tagId: string; count: number }[]) =>
+        list
+          .map((item) => ({ name: tagMap.get(item.tagId) || '', count: item.count }))
+          .filter((item) => item.name)
+
+      analyticsData = {
+        avgRating: Number(cache.avgRating || 0),
+        totalReviews: Number(cache.totalReviews || 0),
+        profile,
+        tags: {
+          nose: mapTags(nose),
+          palate: mapTags(palate),
+          finish: mapTags(finish),
+        },
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div
@@ -190,6 +247,67 @@ export default async function WhiskyDetailPage({
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-10">
+          {isLoggedIn ? (
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <h2 className="text-lg font-semibold mb-4">{t('whisky.analyticsTitle')}</h2>
+              {analyticsData ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-6">
+                    <div>
+                      <div className="text-3xl font-semibold text-gray-900">{analyticsData.avgRating}/10</div>
+                      <div className="flex items-center gap-1 text-sm text-gray-300 mt-1">
+                        {Array.from({ length: 10 }).map((_, index) => {
+                          const value = index + 1
+                          const active = analyticsData.avgRating >= value - 0.5
+                          return (
+                            <span
+                              key={`avg-star-${value}`}
+                              className={active ? 'text-yellow-400' : 'text-gray-300'}
+                            >
+                              {active ? '★' : '☆'}
+                            </span>
+                          )
+                        })}
+                      </div>
+                      <div className="text-sm text-gray-500">{t('whisky.analyticsAvgLabel')}</div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-semibold text-gray-900">{analyticsData.totalReviews}</div>
+                      <div className="text-sm text-gray-500">{t('whisky.analyticsReviewsLabel')}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    {([
+                      { key: 'nose', label: t('tasting.nose') },
+                      { key: 'palate', label: t('tasting.palate') },
+                      { key: 'finish', label: t('tasting.finish') },
+                    ] as const).map((section) => (
+                      <div key={section.key} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">{section.label}</div>
+                        <div className="flex flex-wrap gap-2">
+                          {(analyticsData.tags[section.key] || []).map((tag) => (
+                            <span key={`${section.key}-${tag.name}`} className="px-3 py-1 rounded-full text-xs border border-gray-200 bg-white">
+                              {tag.name} ({tag.count})
+                            </span>
+                          ))}
+                          {(analyticsData.tags[section.key] || []).length === 0 && (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-gray-600">{t('whisky.analyticsFirstNote')}</div>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-600">{t('whisky.analyticsLogin')}</div>
+          )}
         </div>
 
         <TastingNotesSection

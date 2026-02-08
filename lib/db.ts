@@ -12,6 +12,8 @@ type DbSchema = {
   tastingNoteTags: any
   follows: any
   activities: any
+  whiskyAnalyticsCache: any
+  userAromaProfile: any
 }
 
 const databaseUrl = process.env.DATABASE_URL || ''
@@ -139,7 +141,37 @@ function createSqliteSchema(): DbSchema {
     createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
   })
 
-  return { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags, follows, activities }
+  const whiskyAnalyticsCache = sqliteTable('whisky_analytics_cache', {
+    whiskyId: text('whisky_id').primaryKey(),
+    avgRating: real('avg_rating'),
+    totalReviews: integer('total_reviews'),
+    aromaProfile: text('aroma_profile'),
+    lastCalculated: integer('last_calculated', { mode: 'timestamp' }),
+  })
+
+  const userAromaProfile = sqliteTable('user_aroma_profile', {
+    userId: text('user_id').primaryKey(),
+    avgRating: real('avg_rating'),
+    totalNotes: integer('total_notes'),
+    aromaProfile: text('aroma_profile'),
+    lastUpdated: integer('last_updated', { mode: 'timestamp' }),
+  })
+
+  return {
+    countries,
+    users,
+    distillers,
+    bottlers,
+    whiskies,
+    tastingNotes,
+    tags,
+    tagLang,
+    tastingNoteTags,
+    follows,
+    activities,
+    whiskyAnalyticsCache,
+    userAromaProfile,
+  }
 }
 
 function createMysqlSchema(): DbSchema {
@@ -257,11 +289,55 @@ function createMysqlSchema(): DbSchema {
     createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
   })
 
-  return { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags, follows, activities }
+  const whiskyAnalyticsCache = mysqlTable('whisky_analytics_cache', {
+    whiskyId: varchar('whisky_id', { length: 36 }).primaryKey(),
+    avgRating: double('avg_rating'),
+    totalReviews: int('total_reviews'),
+    aromaProfile: text('aroma_profile'),
+    lastCalculated: datetime('last_calculated', { mode: 'date' }),
+  })
+
+  const userAromaProfile = mysqlTable('user_aroma_profile', {
+    userId: varchar('user_id', { length: 36 }).primaryKey(),
+    avgRating: double('avg_rating'),
+    totalNotes: int('total_notes'),
+    aromaProfile: text('aroma_profile'),
+    lastUpdated: datetime('last_updated', { mode: 'date' }),
+  })
+
+  return {
+    countries,
+    users,
+    distillers,
+    bottlers,
+    whiskies,
+    tastingNotes,
+    tags,
+    tagLang,
+    tastingNoteTags,
+    follows,
+    activities,
+    whiskyAnalyticsCache,
+    userAromaProfile,
+  }
 }
 
 const schema: DbSchema = useMysql ? createMysqlSchema() : createSqliteSchema()
-export const { countries, users, distillers, bottlers, whiskies, tastingNotes, tags, tagLang, tastingNoteTags, follows, activities } = schema
+export const {
+  countries,
+  users,
+  distillers,
+  bottlers,
+  whiskies,
+  tastingNotes,
+  tags,
+  tagLang,
+  tastingNoteTags,
+  follows,
+  activities,
+  whiskyAnalyticsCache,
+  userAromaProfile,
+} = schema
 
 let dbInstance: any
 let sqliteInitialized = false

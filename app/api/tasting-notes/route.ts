@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { db, tastingNotes, tastingNoteTags, activities } from '@/lib/db'
 import { and, eq } from 'drizzle-orm'
 import { generateId } from '@/lib/db'
+import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
+import { recomputeUserAroma } from '@/lib/user-aroma'
 
 type TagsPayload = {
   nose?: Array<string | { id: string }>
@@ -93,6 +95,9 @@ export async function POST(request: NextRequest) {
     targetId: whiskyId,
     createdAt: now,
   } as any)
+
+  await recomputeWhiskyAnalytics(whiskyId)
+  await recomputeUserAroma(userId)
 
   return NextResponse.json({ success: true, id })
 }

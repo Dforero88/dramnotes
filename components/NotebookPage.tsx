@@ -67,7 +67,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
 
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loadingSummary, setLoadingSummary] = useState(true)
-  const [activeTab, setActiveTab] = useState<'notes' | 'followers' | 'following'>('notes')
+  const [activeTab, setActiveTab] = useState<'notes' | 'followers' | 'following' | 'aroma'>('notes')
 
   const [notes, setNotes] = useState<NoteCard[]>([])
   const [notesPage, setNotesPage] = useState(1)
@@ -83,6 +83,15 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   const [followingPage, setFollowingPage] = useState(1)
   const [followingPages, setFollowingPages] = useState(1)
   const [loadingFollowing, setLoadingFollowing] = useState(false)
+
+  const [aromaData, setAromaData] = useState<{
+    hasProfile: boolean
+    totalNotes: number
+    avgRating: number
+    top: Record<string, { name: string; score: number; count: number }[]>
+    worst: Record<string, { name: string; score: number; count: number }[]>
+  } | null>(null)
+  const [loadingAroma, setLoadingAroma] = useState(false)
 
   const hideSocial = useMemo(() => {
     if (!summary) return false
@@ -143,6 +152,18 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     setLoadingFollowing(false)
   }
 
+  const loadAroma = async () => {
+    if (!summary?.user?.id) return
+    setLoadingAroma(true)
+    const params = new URLSearchParams()
+    params.set('userId', summary.user.id)
+    params.set('lang', locale)
+    const res = await fetch(`/api/notebook/aroma?${params.toString()}`, { cache: 'no-store' })
+    const json = await res.json()
+    setAromaData(json)
+    setLoadingAroma(false)
+  }
+
   useEffect(() => {
     if (isLoggedIn) loadSummary()
   }, [isLoggedIn])
@@ -156,6 +177,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     if (!summary || summary.private) return
     if (activeTab === 'followers') loadFollowers(1)
     if (activeTab === 'following') loadFollowing(1)
+    if (activeTab === 'aroma') loadAroma()
   }, [activeTab, summary?.user?.id])
 
   const toggleFollow = async (targetUserId: string) => {
@@ -278,7 +300,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
             )}
           </div>
 
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
               onClick={() => setActiveTab('notes')}
               className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'notes' ? 'border-transparent' : 'border-gray-200'}`}
@@ -305,6 +327,15 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                 >
                   <div className="text-2xl font-semibold text-gray-900">{summary.counts.following}</div>
                   <div className="text-sm text-gray-600">{t('notebook.followingCount')}</div>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('aroma')}
+                  className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'aroma' ? 'border-transparent' : 'border-gray-200'}`}
+                  style={activeTab === 'aroma' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
+                >
+                  <div className="text-2xl font-semibold text-gray-900">✦</div>
+                  <div className="text-sm text-gray-600">{t('notebook.aromaTitle')}</div>
                 </button>
               </>
             )}
@@ -537,6 +568,79 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                   )}
                 </>
               )}
+            </div>
+          )}
+
+          {activeTab === 'aroma' && !hideSocial && (
+            <div>
+              {loadingAroma ? (
+                <div className="text-sm text-gray-500">{t('common.loading')}</div>
+              ) : aromaData && !aromaData.hasProfile ? (
+                <div className="text-sm text-gray-600">{t('notebook.aromaEmpty')}</div>
+              ) : aromaData ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+                      <div className="text-3xl font-semibold text-gray-900">{aromaData.avgRating}/10</div>
+                      <div className="flex items-center gap-1 text-sm text-gray-300 mt-1">
+                        {Array.from({ length: 10 }).map((_, index) => {
+                          const value = index + 1
+                          const active = aromaData.avgRating >= value - 0.5
+                          return (
+                            <span
+                              key={`user-aroma-star-${value}`}
+                              className={active ? 'text-yellow-400' : 'text-gray-300'}
+                            >
+                              {active ? '★' : '☆'}
+                            </span>
+                          )
+                        })}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">{t('notebook.aromaAvg')}</div>
+                    </div>
+                    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+                      <div className="text-3xl font-semibold text-gray-900">{aromaData.totalNotes}</div>
+                      <div className="text-sm text-gray-500 mt-1">{t('notebook.notesCount')}</div>
+                    </div>
+                  </div>
+
+                  {(['nose', 'palate', 'finish'] as const).map((section) => (
+                    <div key={section} className="rounded-2xl border border-gray-200 bg-white p-5">
+                      <div className="text-xs uppercase tracking-wide text-gray-500 mb-4">
+                        {t(`tasting.${section}`)}
+                      </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                          <div className="text-sm font-semibold text-gray-800 mb-2">{t('notebook.aromaTop')}</div>
+                          <div className="flex flex-wrap gap-2">
+                            {(aromaData.top?.[section] || []).map((tag) => (
+                              <span key={`${section}-top-${tag.name}`} className="px-3 py-1 rounded-full text-xs border border-gray-200 bg-white">
+                                {tag.name} {tag.score}/10 ({tag.count})
+                              </span>
+                            ))}
+                            {(aromaData.top?.[section] || []).length === 0 && (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-800 mb-2">{t('notebook.aromaWorst')}</div>
+                          <div className="flex flex-wrap gap-2">
+                            {(aromaData.worst?.[section] || []).map((tag) => (
+                              <span key={`${section}-worst-${tag.name}`} className="px-3 py-1 rounded-full text-xs border border-gray-200 bg-white">
+                                {tag.name} {tag.score}/10 ({tag.count})
+                              </span>
+                            ))}
+                            {(aromaData.worst?.[section] || []).length === 0 && (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           )}
         </div>
