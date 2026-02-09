@@ -177,7 +177,11 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   useEffect(() => {
     if (!summary || summary.private) return
     const isOwn = summary.isOwner
-    trackEvent('account_viewed', { user_id: summary.user.id, is_own: isOwn })
+    trackEvent('account_viewed', {
+      user_id: summary.user.id,
+      pseudo: summary.user.pseudo,
+      viewer_is_owner: isOwn,
+    })
   }, [summary?.user?.id])
 
   useEffect(() => {
