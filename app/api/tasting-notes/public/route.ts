@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
   const whiskyId = searchParams.get('whiskyId')
   const lang = (searchParams.get('lang') || 'fr').trim()
   const pseudo = searchParams.get('user')?.trim()
+  const sort = (searchParams.get('sort') || 'recent').trim()
   const page = Math.max(1, Number(searchParams.get('page') || '1'))
   const pageSize = Math.max(1, Math.min(20, Number(searchParams.get('pageSize') || '5')))
   const offset = (page - 1) * pageSize
@@ -45,6 +46,11 @@ export async function GET(request: NextRequest) {
   const total = Number(countRes?.[0]?.count || 0)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
+  let orderBy = sql`${tastingNotes.tastingDate} desc`
+  if (sort === 'oldest') orderBy = sql`${tastingNotes.tastingDate} asc`
+  if (sort === 'ratingDesc') orderBy = sql`${tastingNotes.rating} desc, ${tastingNotes.tastingDate} desc`
+  if (sort === 'ratingAsc') orderBy = sql`${tastingNotes.rating} asc, ${tastingNotes.tastingDate} desc`
+
   const notes = await db
     .select({
       id: tastingNotes.id,
@@ -61,7 +67,7 @@ export async function GET(request: NextRequest) {
       isMysql ? sql`binary ${users.id} = binary ${tastingNotes.userId}` : eq(users.id, tastingNotes.userId)
     )
     .where(and(...filters))
-    .orderBy(sql`${tastingNotes.tastingDate} desc`)
+    .orderBy(orderBy)
     .limit(pageSize)
     .offset(offset)
 

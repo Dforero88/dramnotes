@@ -33,10 +33,11 @@ export default async function CataloguePage({
     <div>
       <CatalogueBrowser locale={locale} />
       
-      <div className="mt-12 pt-8 border-t">
-        <div className="max-w-4xl mx-auto">
+      <div className="mt-12 border-t">
+        <div className="bg-primary-light">
+          <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
           {session?.user ? (
-            <div className="bg-primary-light p-8 rounded-xl text-center">
+            <div className="text-center">
               <h3 className="text-2xl font-bold text-primary mb-4">
                 {t('catalogue.missingWhisky')}
               </h3>
@@ -52,7 +53,7 @@ export default async function CataloguePage({
               </Link>
             </div>
           ) : (
-            <div className="bg-gray-50 p-8 rounded-xl text-center">
+            <div className="text-center">
               <h3 className="text-2xl font-bold text-gray-700 mb-4">
                 {t('catalogue.loginToAdd')}
               </h3>
@@ -75,6 +76,7 @@ export default async function CataloguePage({
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

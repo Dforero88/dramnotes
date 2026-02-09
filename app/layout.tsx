@@ -28,6 +28,14 @@ export default function RootLayout({
           <main className="min-h-screen">
             {children}
           </main>
+          <footer
+            className="border-t"
+            style={{ backgroundColor: 'var(--color-primary-light)' }}
+          >
+            <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 text-center text-sm text-gray-600">
+              DramNotes © 2026
+            </div>
+          </footer>
         </SessionProvider>
       </body>
     </html>

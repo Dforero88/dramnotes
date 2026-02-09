@@ -76,6 +76,7 @@ export default function TastingNotesSection({
   const [others, setOthers] = useState<Note[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [sort, setSort] = useState('recent')
 
   const locationRef = useRef<HTMLInputElement>(null)
   const [mapsReady, setMapsReady] = useState(false)
@@ -106,6 +107,7 @@ export default function TastingNotesSection({
         lang: locale,
         page: String(page),
         pageSize: '5',
+        sort,
       })
       if (filterPseudo) params.set('user', filterPseudo)
       const res = await fetch(`/api/tasting-notes/public?${params.toString()}`, { cache: 'no-store' })
@@ -114,7 +116,7 @@ export default function TastingNotesSection({
       setTotalPages(json?.totalPages || 1)
     }
     loadOthers()
-  }, [isAuthenticated, whiskyId, locale, page, filterPseudo])
+  }, [isAuthenticated, whiskyId, locale, page, filterPseudo, sort])
 
   useEffect(() => {
     if (!myNote || editing) return
@@ -490,6 +492,22 @@ export default function TastingNotesSection({
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold">{t('tasting.otherNotesTitle')}</h3>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-500">{t('tasting.sortLabel')}</label>
+              <select
+                value={sort}
+                onChange={(event) => {
+                  setSort(event.target.value)
+                  setPage(1)
+                }}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-light"
+              >
+                <option value="recent">{t('tasting.sortRecent')}</option>
+                <option value="oldest">{t('tasting.sortOldest')}</option>
+                <option value="ratingDesc">{t('tasting.sortRatingDesc')}</option>
+                <option value="ratingAsc">{t('tasting.sortRatingAsc')}</option>
+              </select>
+            </div>
           </div>
           {filterPseudo && (
             <div className="mb-4 p-3 bg-gray-50 rounded-xl text-sm flex items-center justify-between">
