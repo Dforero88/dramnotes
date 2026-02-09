@@ -160,8 +160,15 @@ function createSqliteSchema(): DbSchema {
     userId: text('user_id').primaryKey(),
     avgRating: real('avg_rating'),
     totalNotes: integer('total_notes'),
-    aromaProfile: text('aroma_profile'),
     lastUpdated: integer('last_updated', { mode: 'timestamp' }),
+  })
+
+  const userTagStats = sqliteTable('user_tag_stats', {
+    userId: text('user_id').notNull(),
+    tagId: text('tag_id').notNull(),
+    section: text('section').notNull(),
+    avgScore: real('avg_score').notNull(),
+    count: integer('count').notNull(),
   })
 
   return {
@@ -179,6 +186,7 @@ function createSqliteSchema(): DbSchema {
     whiskyAnalyticsCache,
     whiskyTagStats,
     userAromaProfile,
+    userTagStats,
   }
 }
 
@@ -315,8 +323,15 @@ function createMysqlSchema(): DbSchema {
     userId: varchar('user_id', { length: 36 }).primaryKey(),
     avgRating: double('avg_rating'),
     totalNotes: int('total_notes'),
-    aromaProfile: text('aroma_profile'),
     lastUpdated: datetime('last_updated', { mode: 'date' }),
+  })
+
+  const userTagStats = mysqlTable('user_tag_stats', {
+    userId: varchar('user_id', { length: 36 }).notNull(),
+    tagId: varchar('tag_id', { length: 36 }).notNull(),
+    section: varchar('section', { length: 20 }).notNull(),
+    avgScore: double('avg_score').notNull(),
+    count: int('count').notNull(),
   })
 
   return {
@@ -334,6 +349,7 @@ function createMysqlSchema(): DbSchema {
     whiskyAnalyticsCache,
     whiskyTagStats,
     userAromaProfile,
+    userTagStats,
   }
 }
 
@@ -353,6 +369,7 @@ export const {
   whiskyAnalyticsCache,
   whiskyTagStats,
   userAromaProfile,
+  userTagStats,
 } = schema
 
 let dbInstance: any
@@ -545,6 +562,25 @@ function initSqlite(sqlite: any) {
       whisky_id TEXT NOT NULL,
       tag_id TEXT NOT NULL,
       section TEXT NOT NULL,
+      count INTEGER NOT NULL
+    )
+  `).run()
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS user_aroma_profile (
+      user_id TEXT PRIMARY KEY,
+      avg_rating REAL,
+      total_notes INTEGER,
+      last_updated INTEGER
+    )
+  `).run()
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS user_tag_stats (
+      user_id TEXT NOT NULL,
+      tag_id TEXT NOT NULL,
+      section TEXT NOT NULL,
+      avg_score REAL NOT NULL,
       count INTEGER NOT NULL
     )
   `).run()

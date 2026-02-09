@@ -1,11 +1,5 @@
-import { db, tastingNotes, tastingNoteTags, userAromaProfile, isMysql } from '@/lib/db'
+import { db, tastingNotes, tastingNoteTags, userAromaProfile, userTagStats, isMysql } from '@/lib/db'
 import { eq, sql } from 'drizzle-orm'
-
-export type UserAromaProfile = {
-  nose: { tagId: string; score: number; count: number }[]
-  palate: { tagId: string; score: number; count: number }[]
-  finish: { tagId: string; score: number; count: number }[]
-}
 
 export async function recomputeUserAroma(userId: string) {
   const stats = await db
@@ -19,6 +13,7 @@ export async function recomputeUserAroma(userId: string) {
   const totalNotes = Number(stats?.[0]?.totalNotes || 0)
   if (totalNotes === 0) {
     await db.delete(userAromaProfile).where(eq(userAromaProfile.userId, userId))
+    await db.delete(userTagStats).where(eq(userTagStats.userId, userId))
     return null
   }
 
@@ -41,24 +36,26 @@ export async function recomputeUserAroma(userId: string) {
     .where(isMysql ? sql`binary ${tastingNotes.userId} = binary ${userId}` : eq(tastingNotes.userId, userId))
     .groupBy(tastingNoteTags.tagId, tastingNoteTags.type)
 
-  const profile: UserAromaProfile = { nose: [], palate: [], finish: [] }
-  ;(rows as { tagId: string; type: string; score: number; count: number }[]).forEach((row) => {
-    if (!profile[row.type as keyof UserAromaProfile]) return
-    profile[row.type as keyof UserAromaProfile].push({
-      tagId: row.tagId,
-      score: Number(row.score || 0),
-      count: Number(row.count || 0),
-    })
-  })
+  await db.delete(userTagStats).where(eq(userTagStats.userId, userId))
+  if (rows.length > 0) {
+    await db.insert(userTagStats).values(
+      (rows as { tagId: string; type: string; score: number; count: number }[]).map((row) => ({
+        userId,
+        tagId: row.tagId,
+        section: row.type,
+        avgScore: Number(row.score || 0),
+        count: Number(row.count || 0),
+      }))
+    )
+  }
 
   await db.delete(userAromaProfile).where(eq(userAromaProfile.userId, userId))
   await db.insert(userAromaProfile).values({
     userId,
     avgRating,
     totalNotes,
-    aromaProfile: JSON.stringify(profile),
     lastUpdated: new Date(),
   } as any)
 
-  return { avgRating, totalNotes, aromaProfile: profile }
+  return { avgRating, totalNotes }
 }

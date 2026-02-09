@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, users, userAromaProfile, tastingNotes, tagLang, isMysql } from '@/lib/db'
+import { db, users, userAromaProfile, userTagStats, tastingNotes, tagLang, isMysql } from '@/lib/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
-import type { UserAromaProfile } from '@/lib/user-aroma'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -39,14 +38,13 @@ export async function GET(request: NextRequest) {
     .select({
       avgRating: userAromaProfile.avgRating,
       totalNotes: userAromaProfile.totalNotes,
-      aromaProfile: userAromaProfile.aromaProfile,
     })
     .from(userAromaProfile)
     .where(isMysql ? sql`binary ${userAromaProfile.userId} = binary ${user.id}` : eq(userAromaProfile.userId, user.id))
     .limit(1)
 
   const profileRow = profileRows?.[0]
-  if (!profileRow || !profileRow.aromaProfile) {
+  if (!profileRow) {
     const countRes = await db
       .select({ count: sql<number>`count(*)` })
       .from(tastingNotes)
@@ -61,35 +59,35 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const profile = JSON.parse(profileRow.aromaProfile) as UserAromaProfile
-  const allTagIds = Array.from(new Set([
-    ...(profile.nose || []).map((t) => t.tagId),
-    ...(profile.palate || []).map((t) => t.tagId),
-    ...(profile.finish || []).map((t) => t.tagId),
-  ]))
+  const statsRows = await db
+    .select({
+      tagId: userTagStats.tagId,
+      section: userTagStats.section,
+      avgScore: userTagStats.avgScore,
+      count: userTagStats.count,
+      name: tagLang.name,
+    })
+    .from(userTagStats)
+    .leftJoin(tagLang, and(eq(tagLang.tagId, userTagStats.tagId), eq(tagLang.lang, lang)))
+    .where(isMysql ? sql`binary ${userTagStats.userId} = binary ${user.id}` : eq(userTagStats.userId, user.id))
 
-  const tagRows = allTagIds.length
-    ? await db
-        .select({ tagId: tagLang.tagId, name: tagLang.name })
-        .from(tagLang)
-        .where(and(eq(tagLang.lang, lang), inArray(tagLang.tagId, allTagIds)))
-    : []
+  const grouped = {
+    nose: [] as { name: string; score: number; count: number }[],
+    palate: [] as { name: string; score: number; count: number }[],
+    finish: [] as { name: string; score: number; count: number }[],
+  }
 
-  const tagMap = new Map(tagRows.map((row) => [row.tagId, row.name]))
+  statsRows.forEach((row) => {
+    if (!row.name) return
+    if (row.section === 'nose') grouped.nose.push({ name: row.name, score: Number(row.avgScore || 0), count: Number(row.count || 0) })
+    if (row.section === 'palate') grouped.palate.push({ name: row.name, score: Number(row.avgScore || 0), count: Number(row.count || 0) })
+    if (row.section === 'finish') grouped.finish.push({ name: row.name, score: Number(row.avgScore || 0), count: Number(row.count || 0) })
+  })
 
-  const toDisplay = (items: { tagId: string; score: number; count: number }[]) =>
-    items
-      .map((item) => ({
-        name: tagMap.get(item.tagId) || '',
-        score: item.score,
-        count: item.count,
-      }))
-      .filter((item) => item.name)
-
-  const sortTop = (items: { tagId: string; score: number; count: number }[]) =>
+  const sortTop = (items: { name: string; score: number; count: number }[]) =>
     [...items].sort((a, b) => b.score - a.score).slice(0, 6)
 
-  const sortWorst = (items: { tagId: string; score: number; count: number }[]) =>
+  const sortWorst = (items: { name: string; score: number; count: number }[]) =>
     [...items].sort((a, b) => a.score - b.score).slice(0, 6)
 
   return NextResponse.json({
@@ -97,14 +95,14 @@ export async function GET(request: NextRequest) {
     totalNotes: Number(profileRow.totalNotes || 0),
     avgRating: Number(profileRow.avgRating || 0),
     top: {
-      nose: toDisplay(sortTop(profile.nose || [])),
-      palate: toDisplay(sortTop(profile.palate || [])),
-      finish: toDisplay(sortTop(profile.finish || [])),
+      nose: sortTop(grouped.nose),
+      palate: sortTop(grouped.palate),
+      finish: sortTop(grouped.finish),
     },
     worst: {
-      nose: toDisplay(sortWorst(profile.nose || [])),
-      palate: toDisplay(sortWorst(profile.palate || [])),
-      finish: toDisplay(sortWorst(profile.finish || [])),
+      nose: sortWorst(grouped.nose),
+      palate: sortWorst(grouped.palate),
+      finish: sortWorst(grouped.finish),
     },
   })
 }
