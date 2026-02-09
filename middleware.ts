@@ -73,7 +73,7 @@ function withSecurityHeaders(res: NextResponse) {
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://maps.gstatic.com https://unpkg.com https://www.googletagmanager.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "connect-src 'self' https://api-free.deepl.com https://api.deepl.com https://maps.googleapis.com https://maps.gstatic.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://*.ingest.sentry.io https://sentry.io",
+    "connect-src 'self' https://api-free.deepl.com https://api.deepl.com https://maps.googleapis.com https://maps.gstatic.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://sentry.io",
     "frame-src https://www.google.com https://maps.google.com",
     "object-src 'none'",
     "base-uri 'self'",
