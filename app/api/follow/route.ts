@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
     userId: currentUserId,
     type: 'new_follow',
     targetId: targetUserId,
+    createdAt: new Date(),
   } as any)
 
   return NextResponse.json({ following: true })

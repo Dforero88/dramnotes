@@ -42,6 +42,56 @@ function buildAvatar(pseudo: string) {
   return { color, initial }
 }
 
+function normalizeActivityDate(value: unknown) {
+  if (!value) return null
+  if (value instanceof Date) {
+    const time = value.getTime()
+    if (!Number.isFinite(time)) return null
+    if (time > Date.now() + 1000 * 60 * 60 * 24 * 365) {
+      return new Date(Math.floor(time / 1000))
+    }
+    return value
+  }
+  if (typeof value === 'number') {
+    return new Date(value < 1e12 ? value * 1000 : value)
+  }
+  if (typeof value === 'string') {
+    const numeric = Number(value)
+    if (!Number.isNaN(numeric)) {
+      return new Date(numeric < 1e12 ? numeric * 1000 : numeric)
+    }
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+  }
+  return null
+}
+
+function formatRelativeDate(date: Date | null, locale: string) {
+  if (!date) return ''
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  const diffMs = date.getTime() - Date.now()
+  const diffSeconds = Math.round(diffMs / 1000)
+  const divisions: { amount: number; unit: Intl.RelativeTimeFormatUnit }[] = [
+    { amount: 60, unit: 'second' },
+    { amount: 60, unit: 'minute' },
+    { amount: 24, unit: 'hour' },
+    { amount: 7, unit: 'day' },
+    { amount: 4.34524, unit: 'week' },
+    { amount: 12, unit: 'month' },
+  ]
+
+  let duration = diffSeconds
+  for (let i = 0; i < divisions.length; i += 1) {
+    const division = divisions[i]
+    if (Math.abs(duration) < division.amount) {
+      return rtf.format(duration, division.unit)
+    }
+    duration = Math.round(duration / division.amount)
+  }
+
+  return rtf.format(duration, 'year')
+}
+
 export default async function HomePage({
   params,
 }: {
@@ -167,6 +217,13 @@ export default async function HomePage({
       ...row,
       targetPseudo: activityUsersMap[row.targetId]?.pseudo || null,
     }))
+    .sort((a, b) => {
+      const aDate = normalizeActivityDate(a.createdAt)
+      const bDate = normalizeActivityDate(b.createdAt)
+      const aTime = aDate ? aDate.getTime() : 0
+      const bTime = bDate ? bDate.getTime() : 0
+      return bTime - aTime
+    })
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -322,19 +379,17 @@ export default async function HomePage({
                 const pseudo = activity.actorPseudo || 'User'
                 const avatar = buildAvatar(pseudo)
                 const isFollow = activity.type === 'new_follow'
+                const isSelfTarget = isFollow && activity.targetId === currentUserId
                 const title = isFollow
                   ? `${t('home.activityFollow')} ${activity.targetPseudo || '—'}`
                   : `${t('home.activityNote')} ${activity.whiskyName || '—'}`
-                return (
-                  <Link
-                    key={activity.id}
-                    href={
-                      isFollow
-                        ? `/${locale}/user/${encodeURIComponent(activity.targetPseudo || '')}`
-                        : `/${locale}/whisky/${activity.targetId}?user=${encodeURIComponent(pseudo)}`
-                    }
-                    className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
-                  >
+                const createdAt = normalizeActivityDate(activity.createdAt)
+                const activityDate = createdAt ? formatRelativeDate(createdAt, locale) : ''
+                const href = isFollow
+                  ? `/${locale}/user/${encodeURIComponent(activity.targetPseudo || '')}`
+                  : `/${locale}/whisky/${activity.targetId}?user=${encodeURIComponent(pseudo)}`
+                const rowContent = (
+                  <>
                     <div className="flex items-center gap-3 min-w-0">
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold"
@@ -343,13 +398,43 @@ export default async function HomePage({
                         {avatar.initial}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm text-gray-500">{pseudo}</div>
-                        <div className="text-base font-semibold text-gray-900 truncate">{title}</div>
+                        <div className="text-sm text-gray-500">
+                          <span className="font-medium text-gray-700">{pseudo}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-base font-semibold text-gray-900">
+                          <span className="truncate">{title}</span>
+                          {!isFollow && activity.rating ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-xs font-semibold">
+                              ★ {activity.rating}/10
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                     <div className="text-sm text-gray-500 whitespace-nowrap">
-                      {!isFollow && activity.rating ? `${activity.rating}/10` : ''}
+                      {activityDate ? <div className="text-xs text-gray-400 mb-1">{activityDate}</div> : null}
                     </div>
+                  </>
+                )
+
+                if (isSelfTarget) {
+                  return (
+                    <div
+                      key={activity.id}
+                      className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
+                    >
+                      {rowContent}
+                    </div>
+                  )
+                }
+
+                return (
+                  <Link
+                    key={activity.id}
+                    href={href}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-gray-200 hover:shadow-sm transition"
+                  >
+                    {rowContent}
                   </Link>
                 )
               })}
