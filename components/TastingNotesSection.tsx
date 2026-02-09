@@ -6,6 +6,7 @@ import Link from 'next/link'
 import TagInput from '@/components/TagInput'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Script from 'next/script'
+import { trackEvent } from '@/lib/analytics-client'
 
 type Note = {
   id: string
@@ -180,7 +181,11 @@ export default function TastingNotesSection({
       const json = await reload.json()
       setMyNote(json?.note || null)
       setMyTags(json?.tags || emptyTags)
+      trackEvent('tasting_note_created', { whisky_id: whiskyId })
+      return
     }
+    const errorJson = await res.json().catch(() => ({}))
+    setFormError(errorJson?.error || t('common.errorOccurred'))
   }
 
   const handleUpdate = async () => {
@@ -214,7 +219,10 @@ export default function TastingNotesSection({
       const json = await reload.json()
       setMyNote(json?.note || null)
       setMyTags(json?.tags || emptyTags)
+      return
     }
+    const errorJson = await res.json().catch(() => ({}))
+    setFormError(errorJson?.error || t('common.errorOccurred'))
   }
 
   const handleDelete = async () => {

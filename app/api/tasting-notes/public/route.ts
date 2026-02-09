@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db, tastingNotes, tastingNoteTags, tagLang, users, isMysql } from '@/lib/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
+import { normalizeSearch } from '@/lib/moderation'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const whiskyId = searchParams.get('whiskyId')
   const lang = (searchParams.get('lang') || 'fr').trim()
-  const pseudo = searchParams.get('user')?.trim()
+  const pseudo = normalizeSearch(searchParams.get('user') || '', 40)
   const sort = (searchParams.get('sort') || 'recent').trim()
   const page = Math.max(1, Number(searchParams.get('page') || '1'))
   const pageSize = Math.max(1, Math.min(20, Number(searchParams.get('pageSize') || '5')))

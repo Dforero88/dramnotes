@@ -4,6 +4,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import { generateId } from '@/lib/db'
 import path from 'path'
 import fs from 'fs/promises'
+import { validateWhiskyName, validateDisplayName, sanitizeText } from '@/lib/moderation'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,10 +24,15 @@ export async function POST(request: NextRequest) {
     }
 
     const data = JSON.parse(String(rawData))
-    const name = String(data?.name || '').trim()
-    if (!name) {
+    const nameRaw = String(data?.name || '').trim()
+    if (!nameRaw) {
       return NextResponse.json({ error: 'Nom requis' }, { status: 400 })
     }
+    const nameCheck = await validateWhiskyName(nameRaw)
+    if (!nameCheck.ok) {
+      return NextResponse.json({ error: nameCheck.message || 'Nom invalide' }, { status: 400 })
+    }
+    const name = nameCheck.value
     if (!data?.country_id || String(data.country_id).trim() === '') {
       return NextResponse.json({ error: 'Pays requis' }, { status: 400 })
     }
@@ -90,8 +96,13 @@ export async function POST(request: NextRequest) {
     const id = generateId()
 
     let distillerId: string | null = null
+    let distillerName: string | null = null
     if (data?.distiller && String(data.distiller).trim()) {
-      const distillerName = String(data.distiller).trim()
+      const check = await validateDisplayName(String(data.distiller), 80)
+      if (!check.ok) {
+        return NextResponse.json({ error: check.message || 'Distilleur invalide' }, { status: 400 })
+      }
+      distillerName = check.value
       const existing = await db
         .select({ id: distillers.id })
         .from(distillers)
@@ -106,8 +117,13 @@ export async function POST(request: NextRequest) {
     }
 
     let bottlerId: string | null = null
+    let bottlerName: string | null = null
     if (data?.bottler && String(data.bottler).trim()) {
-      const bottlerName = String(data.bottler).trim()
+      const check = await validateDisplayName(String(data.bottler), 80)
+      if (!check.ok) {
+        return NextResponse.json({ error: check.message || 'Embouteilleur invalide' }, { status: 400 })
+      }
+      bottlerName = check.value
       const existing = await db
         .select({ id: bottlers.id })
         .from(bottlers)
@@ -119,6 +135,51 @@ export async function POST(request: NextRequest) {
         bottlerId = generateId()
         await db.insert(bottlers).values({ id: bottlerId, name: bottlerName })
       }
+    }
+
+    let region: string | null = null
+    if (data?.region && String(data.region).trim()) {
+      const check = await validateDisplayName(String(data.region), 80)
+      if (!check.ok) {
+        return NextResponse.json({ error: check.message || 'Région invalide' }, { status: 400 })
+      }
+      region = check.value
+    }
+
+    let type: string | null = null
+    if (data?.type && String(data.type).trim()) {
+      const check = await validateDisplayName(String(data.type), 80)
+      if (!check.ok) {
+        return NextResponse.json({ error: check.message || 'Type invalide' }, { status: 400 })
+      }
+      type = check.value
+    }
+
+    let bottledFor: string | null = null
+    if (data?.bottled_for && String(data.bottled_for).trim()) {
+      const check = await validateDisplayName(String(data.bottled_for), 80)
+      if (!check.ok) {
+        return NextResponse.json({ error: check.message || 'Embouteillé pour invalide' }, { status: 400 })
+      }
+      bottledFor = check.value
+    }
+
+    let caskType: string | null = null
+    if (data?.cask_type && String(data.cask_type).trim()) {
+      const check = await validateDisplayName(String(data.cask_type), 80)
+      if (!check.ok) {
+        return NextResponse.json({ error: check.message || 'Type de fût invalide' }, { status: 400 })
+      }
+      caskType = check.value
+    }
+
+    let batchId: string | null = null
+    if (data?.batch_id && String(data.batch_id).trim()) {
+      const cleaned = sanitizeText(String(data.batch_id), 40)
+      if (cleaned.length < 1) {
+        return NextResponse.json({ error: 'Batch invalide' }, { status: 400 })
+      }
+      batchId = cleaned
     }
 
     await db.insert(whiskies).values({
@@ -134,12 +195,12 @@ export async function POST(request: NextRequest) {
       distilledYear,
       bottledYear,
       age: normalizeYear(data?.age),
-      caskType: data?.cask_type || null,
-      batchId: data?.batch_id || null,
+      caskType,
+      batchId,
       alcoholVolume: data?.alcohol_volume ? Number(data.alcohol_volume) : null,
-      bottledFor: data?.bottled_for || null,
-      region: data?.region || null,
-      type: data?.type || null,
+      bottledFor,
+      region,
+      type,
       description: null,
       imageUrl: bottleImageUrl,
       bottleImageUrl,

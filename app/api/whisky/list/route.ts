@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache, whiskyTagStats, isMysql } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
+import { normalizeSearch } from '@/lib/moderation'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,16 +16,16 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.max(1, Math.min(24, Number(searchParams.get('pageSize') || '12')))
     const offset = (page - 1) * pageSize
 
-    const name = searchParams.get('name')?.trim() || ''
-    const distiller = searchParams.get('distiller')?.trim() || ''
-    const bottler = searchParams.get('bottler')?.trim() || ''
-    const barcode = searchParams.get('barcode')?.trim() || ''
-    const distilledYear = searchParams.get('distilledYear')?.trim() || ''
-    const bottledYear = searchParams.get('bottledYear')?.trim() || ''
-    const age = searchParams.get('age')?.trim() || ''
-    const alcoholVolume = searchParams.get('alcoholVolume')?.trim() || ''
-    const region = searchParams.get('region')?.trim() || ''
-    const type = searchParams.get('type')?.trim() || ''
+    const name = normalizeSearch(searchParams.get('name') || '', 80)
+    const distiller = normalizeSearch(searchParams.get('distiller') || '', 80)
+    const bottler = normalizeSearch(searchParams.get('bottler') || '', 80)
+    const barcode = normalizeSearch(searchParams.get('barcode') || '', 40)
+    const distilledYear = normalizeSearch(searchParams.get('distilledYear') || '', 10)
+    const bottledYear = normalizeSearch(searchParams.get('bottledYear') || '', 10)
+    const age = normalizeSearch(searchParams.get('age') || '', 10)
+    const alcoholVolume = normalizeSearch(searchParams.get('alcoholVolume') || '', 10)
+    const region = normalizeSearch(searchParams.get('region') || '', 80)
+    const type = normalizeSearch(searchParams.get('type') || '', 80)
     const countryId = searchParams.get('countryId')?.trim() || ''
     const bottlingType = searchParams.get('bottlingType')?.trim() || ''
     const sort = searchParams.get('sort')?.trim() || 'name_asc'

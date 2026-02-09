@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { trackEvent } from '@/lib/analytics-client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
@@ -81,6 +82,11 @@ export default function RegisterPage({
       }
       
       setSuccess(true)
+      if (result?.userId) {
+        trackEvent('account_created', { user_id: result.userId })
+      } else {
+        trackEvent('account_created')
+      }
       setTimeout(() => {
         router.push(`/${locale}/login`)
       }, 3000)

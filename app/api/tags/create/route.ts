@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db, tags, tagLang } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { generateId } from '@/lib/db'
+import { validateTagName } from '@/lib/moderation'
 
 async function translateWithDeepL(text: string, sourceLang: string, targetLang: string) {
   const apiKey = process.env.DEEPL_API_KEY
@@ -37,11 +38,12 @@ export async function POST(request: NextRequest) {
     const rawLang = (body?.lang || 'fr').trim()
     const lang = rawLang.split('-')[0].split('_')[0].toLowerCase()
 
-    if (!nameRaw) {
-      return NextResponse.json({ error: 'Name required' }, { status: 400 })
+    const tagCheck = await validateTagName(nameRaw)
+    if (!tagCheck.ok) {
+      return NextResponse.json({ error: tagCheck.message || 'Tag invalide' }, { status: 400 })
     }
 
-    const name = nameRaw.toLowerCase()
+    const name = tagCheck.value.toLowerCase()
 
     const existing = await db
       .select({ id: tagLang.tagId, name: tagLang.name })

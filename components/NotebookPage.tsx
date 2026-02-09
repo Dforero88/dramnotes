@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { trackEvent } from '@/lib/analytics-client'
 
 type Summary = {
   user: { id: string; pseudo: string; visibility: 'public' | 'private' }
@@ -175,6 +176,12 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
 
   useEffect(() => {
     if (!summary || summary.private) return
+    const isOwn = summary.isOwner
+    trackEvent('account_viewed', { user_id: summary.user.id, is_own: isOwn })
+  }, [summary?.user?.id])
+
+  useEffect(() => {
+    if (!summary || summary.private) return
     loadNotes(1)
   }, [summary?.user?.id])
 
@@ -195,6 +202,11 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     const json = await res.json()
     if (summary && summary.user.id === targetUserId) {
       setSummary({ ...summary, isFollowing: json.following })
+    }
+    if (json.following) {
+      trackEvent('follow_user', { target_user_id: targetUserId })
+    } else {
+      trackEvent('unfollow_user', { target_user_id: targetUserId })
     }
     loadSummary()
     if (activeTab === 'followers') loadFollowers()

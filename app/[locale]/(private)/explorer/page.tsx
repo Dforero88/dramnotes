@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
+import { trackEvent } from '@/lib/analytics-client'
 
 type ExplorerUser = {
   id: string
@@ -83,6 +84,11 @@ export default function ExplorerPage() {
         setUsers((prev) =>
           prev.map((u) => (u.id === targetId ? { ...u, isFollowing: Boolean(json.following) } : u))
         )
+        if (json.following) {
+          trackEvent('follow_user', { target_user_id: targetId })
+        } else {
+          trackEvent('unfollow_user', { target_user_id: targetId })
+        }
       }
     } finally {
       setFollowLoadingId(null)

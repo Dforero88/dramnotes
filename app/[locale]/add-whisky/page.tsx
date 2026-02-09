@@ -9,6 +9,7 @@ import Camera from '@/components/Camera'
 import BarcodeCropper from '@/components/BarcodeCropper'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { useSession } from 'next-auth/react'
+import { trackEvent } from '@/lib/analytics-client'
 
 export default function AddWhiskyPage({
   params
@@ -301,6 +302,7 @@ export default function AddWhiskyPage({
       name: payload.name,
       imageUrl: json?.bottleImageUrl || bottlePreview || null,
     })
+    trackEvent('whisky_created', { whisky_id: json?.id })
     setStep('exists')
   }
 

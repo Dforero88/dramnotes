@@ -7,6 +7,7 @@ import { registerSchema } from '@/lib/validation/schemas'
 import { generateConfirmationToken } from '@/lib/auth/tokens'
 import { sendEmail, getConfirmationEmailTemplate } from '@/lib/email/sender'
 import { generateId } from '@/lib/db'
+import { validatePseudo, sanitizeText } from '@/lib/moderation'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,12 +23,18 @@ export async function POST(request: NextRequest) {
     }
     
     const { pseudo, email, password } = validationResult.data
+    const pseudoCheck = await validatePseudo(pseudo)
+    if (!pseudoCheck.ok) {
+      return NextResponse.json({ error: pseudoCheck.message || 'Pseudo invalide' }, { status: 400 })
+    }
+    const safePseudo = pseudoCheck.value
+    const safeEmail = sanitizeText(email, 255)
     
     // 2. Vérifier si l'email existe déjà
     const existingEmail = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(eq(users.email, safeEmail))
       .limit(1)
     
     if (existingEmail.length > 0) {
@@ -41,7 +48,7 @@ export async function POST(request: NextRequest) {
     const existingPseudo = await db
       .select()
       .from(users)
-      .where(eq(users.pseudo, pseudo))
+      .where(eq(users.pseudo, safePseudo))
       .limit(1)
     
     if (existingPseudo.length > 0) {
@@ -57,7 +64,7 @@ export async function POST(request: NextRequest) {
     
     // 5. Générer ID et token
     const userId = generateId()
-    const confirmationToken = generateConfirmationToken(userId, email, pseudo)
+    const confirmationToken = generateConfirmationToken(userId, safeEmail, safePseudo)
     if (!confirmationToken) {
       return NextResponse.json(
         { error: 'JWT_SECRET manquant dans les variables d\'environnement' },
@@ -72,9 +79,9 @@ export async function POST(request: NextRequest) {
     // 7. Créer l'utilisateur en base - CORRECTION : utiliser Date
     await db.insert(users).values({
       id: userId,
-      email,
+      email: safeEmail,
       password: passwordHash,
-      pseudo,
+      pseudo: safePseudo,
       confirmationToken,
       tokenExpiry,
       confirmedAt: null, // Pas encore confirmé
@@ -99,7 +106,8 @@ export async function POST(request: NextRequest) {
       { 
         success: true, 
         message: 'Compte créé. Vérifiez vos emails pour confirmer.',
-        emailSent
+        emailSent,
+        userId
       },
       { status: 201 }
     )

@@ -4,9 +4,26 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import CatalogueBrowser from '@/components/CatalogueBrowser'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+export async function generateMetadata({ params }: { params: { locale: Locale } }): Promise<Metadata> {
+  const baseUrl = process.env.APP_URL || 'https://dramnotes.com'
+  const title = 'Catalogue des whiskies'
+  const url = `${baseUrl}/${params.locale}/catalogue`
+  return {
+    title,
+    description: 'Explorez et recherchez des whiskies par nom, type, pays et notes.',
+    openGraph: {
+      title,
+      description: 'Explorez et recherchez des whiskies par nom, type, pays et notes.',
+      url,
+    },
+    alternates: { canonical: url },
+  }
+}
 
 export default async function CataloguePage({
   params

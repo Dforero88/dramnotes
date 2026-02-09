@@ -5,9 +5,40 @@ import { and, eq, sql } from 'drizzle-orm'
 import TastingNotesSection from '@/components/TastingNotesSection'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import type { Metadata } from 'next'
+import WhiskyViewTracker from '@/components/WhiskyViewTracker'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+export async function generateMetadata({ params }: { params: { locale: Locale; id: string } }): Promise<Metadata> {
+  const baseUrl = process.env.APP_URL || 'https://dramnotes.com'
+  const whiskyRow = await db
+    .select({
+      name: whiskies.name,
+      image: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
+    })
+    .from(whiskies)
+    .where(eq(whiskies.id, params.id))
+    .limit(1)
+
+  const whisky = whiskyRow?.[0]
+  const title = whisky?.name ? `${whisky.name}` : 'Whisky'
+  const imageUrl = whisky?.image ? (whisky.image.startsWith('http') || whisky.image.startsWith('/') ? whisky.image : `${baseUrl}/${whisky.image}`) : undefined
+  const url = `${baseUrl}/${params.locale}/whisky/${params.id}`
+
+  return {
+    title,
+    description: whisky?.name ? `Notes de dégustation et profil aromatique pour ${whisky.name}.` : 'Fiche whisky.',
+    openGraph: {
+      title,
+      description: whisky?.name ? `Notes de dégustation et profil aromatique pour ${whisky.name}.` : 'Fiche whisky.',
+      url,
+      images: imageUrl ? [{ url: imageUrl }] : undefined,
+    },
+    alternates: { canonical: url },
+  }
+}
 
 function normalizeImage(url?: string | null) {
   if (!url) return ''
@@ -184,6 +215,7 @@ export default async function WhiskyDetailPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {isLoggedIn && <WhiskyViewTracker whiskyId={id} />}
       <div
         className="px-4 md:px-8 py-4"
         style={{ backgroundColor: 'var(--color-primary-light)' }}

@@ -171,6 +171,14 @@ function createSqliteSchema(): DbSchema {
     count: integer('count').notNull(),
   })
 
+  const moderationTerms = sqliteTable('moderation_terms', {
+    id: text('id').primaryKey(),
+    term: text('term').notNull(),
+    category: text('category').notNull(),
+    lang: text('lang').notNull(),
+    active: integer('active').notNull(),
+  })
+
   return {
     countries,
     users,
@@ -187,6 +195,7 @@ function createSqliteSchema(): DbSchema {
     whiskyTagStats,
     userAromaProfile,
     userTagStats,
+    moderationTerms,
   }
 }
 
@@ -334,6 +343,14 @@ function createMysqlSchema(): DbSchema {
     count: int('count').notNull(),
   })
 
+  const moderationTerms = mysqlTable('moderation_terms', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    term: varchar('term', { length: 128 }).notNull(),
+    category: varchar('category', { length: 32 }).notNull(),
+    lang: varchar('lang', { length: 8 }).notNull(),
+    active: int('active').notNull(),
+  })
+
   return {
     countries,
     users,
@@ -350,6 +367,7 @@ function createMysqlSchema(): DbSchema {
     whiskyTagStats,
     userAromaProfile,
     userTagStats,
+    moderationTerms,
   }
 }
 
@@ -370,6 +388,7 @@ export const {
   whiskyTagStats,
   userAromaProfile,
   userTagStats,
+  moderationTerms,
 } = schema
 
 let dbInstance: any
@@ -584,6 +603,74 @@ function initSqlite(sqlite: any) {
       count INTEGER NOT NULL
     )
   `).run()
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS moderation_terms (
+      id TEXT PRIMARY KEY,
+      term TEXT NOT NULL,
+      category TEXT NOT NULL,
+      lang TEXT NOT NULL,
+      active INTEGER NOT NULL
+    )
+  `).run()
+
+  const moderationCount = sqlite
+    .prepare('SELECT COUNT(*) as count FROM moderation_terms')
+    .get() as { count: number }
+
+  if (!moderationCount || moderationCount.count === 0) {
+    const seed = [
+      { term: 'fuck', category: 'insult', lang: 'en' },
+      { term: 'shit', category: 'insult', lang: 'en' },
+      { term: 'bitch', category: 'insult', lang: 'en' },
+      { term: 'asshole', category: 'insult', lang: 'en' },
+      { term: 'cunt', category: 'insult', lang: 'en' },
+      { term: 'dick', category: 'sexual', lang: 'en' },
+      { term: 'pussy', category: 'sexual', lang: 'en' },
+      { term: 'slut', category: 'sexual', lang: 'en' },
+      { term: 'whore', category: 'sexual', lang: 'en' },
+      { term: 'porn', category: 'sexual', lang: 'en' },
+      { term: 'rape', category: 'sexual', lang: 'en' },
+      { term: 'rapist', category: 'sexual', lang: 'en' },
+      { term: 'nazi', category: 'hate', lang: 'en' },
+      { term: 'hitler', category: 'hate', lang: 'en' },
+      { term: 'racist', category: 'hate', lang: 'en' },
+      { term: 'nigger', category: 'hate', lang: 'en' },
+      { term: 'faggot', category: 'hate', lang: 'en' },
+      { term: 'pute', category: 'insult', lang: 'fr' },
+      { term: 'putain', category: 'insult', lang: 'fr' },
+      { term: 'salope', category: 'insult', lang: 'fr' },
+      { term: 'connard', category: 'insult', lang: 'fr' },
+      { term: 'encule', category: 'insult', lang: 'fr' },
+      { term: 'merde', category: 'insult', lang: 'fr' },
+      { term: 'sexe', category: 'sexual', lang: 'fr' },
+      { term: 'porno', category: 'sexual', lang: 'fr' },
+      { term: 'viol', category: 'sexual', lang: 'fr' },
+      { term: 'violeur', category: 'sexual', lang: 'fr' },
+      { term: 'raciste', category: 'hate', lang: 'fr' },
+      { term: 'nazi', category: 'hate', lang: 'fr' },
+      { term: 'hitler', category: 'hate', lang: 'fr' },
+      { term: 'sale juif', category: 'hate', lang: 'fr' },
+      { term: 'sale arabe', category: 'hate', lang: 'fr' },
+      { term: 'sale noir', category: 'hate', lang: 'fr' },
+    ]
+
+    const insert = sqlite.prepare(`
+      INSERT INTO moderation_terms (id, term, category, lang, active)
+      VALUES (@id, @term, @category, @lang, @active)
+    `)
+
+    const now = Date.now().toString(36)
+    seed.forEach((row, index) => {
+      insert.run({
+        id: `${now}-${index}`,
+        term: row.term,
+        category: row.category,
+        lang: row.lang,
+        active: 1,
+      })
+    })
+  }
 
   sqliteInitialized = true
 }

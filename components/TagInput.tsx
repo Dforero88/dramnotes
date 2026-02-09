@@ -24,6 +24,7 @@ export default function TagInput({
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<Tag[]>([])
   const [open, setOpen] = useState(false)
+  const [error, setError] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export default function TagInput({
 
   const addTag = (tag: Tag) => {
     if (value.some((t) => t.id === tag.id)) return
+    setError('')
     onChange([...value, tag])
     setQuery('')
     setOpen(false)
@@ -66,10 +68,13 @@ export default function TagInput({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, lang }),
     })
-    const json = await res.json()
+    const json = await res.json().catch(() => ({}))
     if (res.ok && json?.tag) {
+      setError('')
       addTag(json.tag)
+      return
     }
+    setError(json?.error || 'Erreur lors de la création du tag')
   }
 
   const removeTag = (id: string) => {
@@ -133,6 +138,7 @@ export default function TagInput({
           )}
         </div>
       )}
+      {error && <div className="text-xs text-red-600">{error}</div>}
     </div>
   )
 }

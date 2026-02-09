@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db, tastingNotes, users, follows, isMysql } from '@/lib/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
+import { normalizeSearch } from '@/lib/moderation'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const q = (searchParams.get('q') || '').trim().toLowerCase()
+  const q = normalizeSearch((searchParams.get('q') || '').toLowerCase(), 40)
   const requestedPage = Math.max(1, Number(searchParams.get('page') || '1'))
   const requestedPageSize = Math.max(1, Math.min(24, Number(searchParams.get('pageSize') || '12')))
   const isEmptyQuery = q.length === 0

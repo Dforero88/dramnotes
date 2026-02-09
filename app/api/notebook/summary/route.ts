@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db, users, tastingNotes, follows, isMysql } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
+import { normalizeSearch } from '@/lib/moderation'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const pseudo = searchParams.get('pseudo')?.trim()
+  const pseudo = normalizeSearch(searchParams.get('pseudo') || '', 40)
   const viewerId = session.user.id
 
   const userRows = pseudo
