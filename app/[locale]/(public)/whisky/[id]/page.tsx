@@ -65,6 +65,7 @@ export default async function WhiskyDetailPage({
       distillerName: distillers.name,
       bottlerName: bottlers.name,
       countryName: countries.name,
+      countryNameFr: countries.nameFr,
       bottlingType: whiskies.bottlingType,
       barcode: whiskies.barcode,
       distilledYear: whiskies.distilledYear,
@@ -105,9 +106,11 @@ export default async function WhiskyDetailPage({
   }
 
   const imageSrc = normalizeImage(whisky.bottleImageUrl)
+  const countryLabel =
+    locale === 'fr' ? whisky.countryNameFr || whisky.countryName : whisky.countryName
 
   const detailItems = [
-    { label: t('whisky.fieldCountry'), value: whisky.countryName },
+    { label: t('whisky.fieldCountry'), value: countryLabel },
     { label: t('whisky.fieldDistiller'), value: whisky.distillerName },
     { label: t('whisky.fieldBottler'), value: whisky.bottlerName },
     {
@@ -201,7 +204,7 @@ export default async function WhiskyDetailPage({
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-10">
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-            <div className="w-full h-[420px] bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden">
+            <div className="w-full h-[420px] bg-white rounded-xl flex items-center justify-center overflow-hidden">
               {imageSrc ? (
                 <img src={imageSrc} alt={whisky.name} className="w-full h-full object-contain" />
               ) : (
@@ -224,9 +227,9 @@ export default async function WhiskyDetailPage({
                     {whisky.bottlingType === 'DB' ? whisky.distillerName : whisky.bottlerName}
                   </span>
                 )}
-                {whisky.countryName && (
+                {countryLabel && (
                   <span className="px-3 py-1 rounded-full text-sm border border-gray-200 bg-white">
-                    {whisky.countryName}
+                    {countryLabel}
                   </span>
                 )}
               </div>

@@ -418,7 +418,7 @@ export default function TastingNotesSection({
                 value={myTags.nose}
                 onChange={(tags) => setMyTags({ ...myTags, nose: tags })}
                 lang={locale}
-                placeholder={t('tasting.tagPlaceholder')}
+                placeholder={t('tasting.nosePlaceholder')}
                 createLabel={t('tasting.createTag')}
               />
               <TagInput
@@ -426,7 +426,7 @@ export default function TastingNotesSection({
                 value={myTags.palate}
                 onChange={(tags) => setMyTags({ ...myTags, palate: tags })}
                 lang={locale}
-                placeholder={t('tasting.tagPlaceholder')}
+                placeholder={t('tasting.palatePlaceholder')}
                 createLabel={t('tasting.createTag')}
               />
               <TagInput
@@ -434,7 +434,7 @@ export default function TastingNotesSection({
                 value={myTags.finish}
                 onChange={(tags) => setMyTags({ ...myTags, finish: tags })}
                 lang={locale}
-                placeholder={t('tasting.tagPlaceholder')}
+                placeholder={t('tasting.finishPlaceholder')}
                 createLabel={t('tasting.createTag')}
               />
 
@@ -445,6 +445,7 @@ export default function TastingNotesSection({
                   onChange={(e) => setOverall(e.target.value)}
                   rows={3}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+                  placeholder={t('tasting.overallPlaceholder')}
                   style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
                 />
               </div>

@@ -47,7 +47,7 @@ export default function AddWhiskyPage({
   const [createStatus, setCreateStatus] = useState<'success' | 'duplicate' | null>(null)
   const [createdWhisky, setCreatedWhisky] = useState<{ id: string; name: string; imageUrl?: string | null } | null>(null)
   const [barcodeExists, setBarcodeExists] = useState(false)
-  const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null }>>([])
+  const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null; displayName?: string | null }>>([])
 
   const typeOptions = [
     'American whiskey',
@@ -74,7 +74,12 @@ export default function AddWhiskyPage({
 
   const mapCountryToId = (value: string) => {
     const needle = value.trim().toLowerCase()
-    const match = countries.find((c) => c.name?.toLowerCase() === needle)
+    const match = countries.find(
+      (c) =>
+        c.name?.toLowerCase() === needle ||
+        c.nameFr?.toLowerCase() === needle ||
+        c.displayName?.toLowerCase() === needle
+    )
     return match?.id || ''
   }
 
@@ -104,7 +109,7 @@ export default function AddWhiskyPage({
   useEffect(() => {
     const loadCountries = async () => {
       try {
-        const res = await fetch('/api/countries')
+        const res = await fetch(`/api/countries?lang=${locale}`)
         const json = await res.json()
         setCountries(json?.countries || [])
       } catch (e) {
@@ -540,7 +545,7 @@ export default function AddWhiskyPage({
                       <select name="country_id" defaultValue={whiskyData.country_id || ''} className="w-full border rounded px-3 py-2">
                         <option value="">{t('common.selectEmpty')}</option>
                         {countries.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
+                          <option key={c.id} value={c.id}>{c.displayName || c.nameFr || c.name}</option>
                         ))}
                       </select>
                     </div>

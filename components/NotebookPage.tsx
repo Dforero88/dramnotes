@@ -20,6 +20,11 @@ type NoteCard = {
   rating: number | null
   whiskyId: string
   whiskyName: string | null
+  distillerName: string | null
+  bottlerName: string | null
+  bottlingType: string | null
+  type: string | null
+  countryName: string | null
   bottleImageUrl: string | null
   tags: string[]
   extraTagsCount: number
@@ -272,16 +277,16 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
 
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-10">
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-            <div className="flex items-center gap-4">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+            <div className="flex items-center gap-4 min-w-0">
               <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-semibold"
+                className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-semibold shrink-0"
                 style={{ backgroundColor: avatar.color }}
               >
                 {avatar.initial}
               </div>
-              <div>
-                <div className="text-xl font-semibold text-gray-900">{summary.user.pseudo}</div>
+              <div className="min-w-0">
+                <div className="text-xl font-semibold text-gray-900 truncate">{summary.user.pseudo}</div>
                 <div className="text-sm text-gray-500">{t('notebook.profileSubtitle')}</div>
               </div>
             </div>
@@ -289,7 +294,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
             {!summary.isOwner && (
               <button
                 onClick={() => toggleFollow(summary.user.id)}
-                className="px-4 py-2 rounded-lg text-sm"
+                className="px-4 py-2 rounded-lg text-sm transition shrink-0 justify-self-end"
                 style={{
                   backgroundColor: summary.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
                   color: summary.isFollowing ? 'var(--color-primary)' : '#fff',
@@ -354,21 +359,36 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {notes.map((note) => {
                       const imageSrc = normalizeImage(note.bottleImageUrl)
+                      const producer =
+                        note.bottlingType === 'DB' ? note.distillerName : note.bottlerName
+                      const typeLine = [note.type, note.countryName].filter(Boolean).join(' • ')
                       return (
                         <Link
                           key={note.id}
                           href={`/${locale}/whisky/${note.whiskyId}${mode === 'public' ? `?user=${summary.user.pseudo}` : ''}`}
                           className="bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md transition"
                         >
-                          <div className="w-full h-40 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden">
+                          <div className="w-full h-40 bg-white rounded-xl flex items-center justify-center overflow-hidden">
                             {imageSrc ? (
                               <img src={imageSrc} alt={note.whiskyName || ''} className="w-full h-full object-contain" />
                             ) : (
                               <div className="text-gray-400">{t('catalogue.noImage')}</div>
                             )}
                           </div>
-                          <div className="mt-4 space-y-2">
-                            <div className="text-base font-semibold text-gray-900">{note.whiskyName}</div>
+                          <div className="mt-4 space-y-1">
+                            <div className="text-base font-semibold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>
+                              {note.whiskyName}
+                            </div>
+                            {producer && (
+                              <div className="text-sm text-gray-600 line-clamp-1">
+                                {producer}
+                              </div>
+                            )}
+                            {typeLine && (
+                              <div className="text-xs text-gray-500">
+                                {typeLine}
+                              </div>
+                            )}
                             <div className="text-sm text-gray-600">
                               {t('notebook.ratingLabel')} {note.rating ?? '-'} / 10
                             </div>
@@ -433,33 +453,36 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                     {followers.map((user) => {
                       const avatar = avatarForPseudo(user.pseudo)
                       return (
-                        <div key={user.id} className="bg-white rounded-2xl border border-gray-200 p-5">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
-                              style={{ backgroundColor: avatar.color }}
-                            >
-                              {avatar.initial}
-                            </div>
-                            <div>
-                              <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
-                              <div className="text-sm text-gray-500">
-                                {user.notesCount} {t('notebook.notesCount')}
+                        <div key={user.id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              <div
+                                className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
+                                style={{ backgroundColor: avatar.color }}
+                              >
+                                {avatar.initial}
+                              </div>
+                              <div className="space-y-0.5">
+                                <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
+                                <div className="text-sm text-gray-500">
+                                  {user.notesCount} {t('notebook.notesCount')}
+                                </div>
                               </div>
                             </div>
+
+                            {viewer?.id !== user.id && (
+                              <button
+                                onClick={() => toggleFollow(user.id)}
+                                className="px-4 py-2 rounded-lg text-sm transition"
+                                style={{
+                                  backgroundColor: user.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
+                                  color: user.isFollowing ? 'var(--color-primary)' : '#fff',
+                                }}
+                              >
+                                {user.isFollowing ? t('notebook.following') : t('notebook.follow')}
+                              </button>
+                            )}
                           </div>
-                          {viewer?.id !== user.id && (
-                            <button
-                              onClick={() => toggleFollow(user.id)}
-                              className="mt-4 px-3 py-1.5 rounded-lg text-sm"
-                              style={{
-                                backgroundColor: user.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
-                                color: user.isFollowing ? 'var(--color-primary)' : '#fff',
-                              }}
-                            >
-                              {user.isFollowing ? t('notebook.following') : t('notebook.follow')}
-                            </button>
-                          )}
                         </div>
                       )
                     })}
@@ -508,33 +531,36 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                     {following.map((user) => {
                       const avatar = avatarForPseudo(user.pseudo)
                       return (
-                        <div key={user.id} className="bg-white rounded-2xl border border-gray-200 p-5">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
-                              style={{ backgroundColor: avatar.color }}
-                            >
-                              {avatar.initial}
-                            </div>
-                            <div>
-                              <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
-                              <div className="text-sm text-gray-500">
-                                {user.notesCount} {t('notebook.notesCount')}
+                        <div key={user.id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              <div
+                                className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
+                                style={{ backgroundColor: avatar.color }}
+                              >
+                                {avatar.initial}
+                              </div>
+                              <div className="space-y-0.5">
+                                <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
+                                <div className="text-sm text-gray-500">
+                                  {user.notesCount} {t('notebook.notesCount')}
+                                </div>
                               </div>
                             </div>
+
+                            {viewer?.id !== user.id && (
+                              <button
+                                onClick={() => toggleFollow(user.id)}
+                                className="px-4 py-2 rounded-lg text-sm transition"
+                                style={{
+                                  backgroundColor: user.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
+                                  color: user.isFollowing ? 'var(--color-primary)' : '#fff',
+                                }}
+                              >
+                                {user.isFollowing ? t('notebook.following') : t('notebook.follow')}
+                              </button>
+                            )}
                           </div>
-                          {viewer?.id !== user.id && (
-                            <button
-                              onClick={() => toggleFollow(user.id)}
-                              className="mt-4 px-3 py-1.5 rounded-lg text-sm"
-                              style={{
-                                backgroundColor: user.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
-                                color: user.isFollowing ? 'var(--color-primary)' : '#fff',
-                              }}
-                            >
-                              {user.isFollowing ? t('notebook.following') : t('notebook.follow')}
-                            </button>
-                          )}
                         </div>
                       )
                     })}

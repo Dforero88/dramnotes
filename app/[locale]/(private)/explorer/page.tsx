@@ -149,7 +149,6 @@ export default function ExplorerPage() {
       {isTop && (
         <div className="mb-4 text-sm text-gray-600">
           <span className="font-medium text-gray-800">{t('explorer.topTitle')}</span>
-          <span className="ml-2">{t('explorer.topSubtitle')}</span>
         </div>
       )}
 

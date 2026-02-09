@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, users, tastingNotes, whiskies, tagLang, tastingNoteTags, isMysql } from '@/lib/db'
+import { db, users, tastingNotes, whiskies, distillers, bottlers, countries, tagLang, tastingNoteTags, isMysql } from '@/lib/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
@@ -50,6 +50,12 @@ export async function GET(request: NextRequest) {
       rating: tastingNotes.rating,
       whiskyId: tastingNotes.whiskyId,
       whiskyName: whiskies.name,
+      distillerName: distillers.name,
+      bottlerName: bottlers.name,
+      bottlingType: whiskies.bottlingType,
+      type: whiskies.type,
+      countryName: countries.name,
+      countryNameFr: countries.nameFr,
       bottleImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
     })
     .from(tastingNotes)
@@ -57,6 +63,9 @@ export async function GET(request: NextRequest) {
       whiskies,
       isMysql ? sql`binary ${tastingNotes.whiskyId} = binary ${whiskies.id}` : eq(tastingNotes.whiskyId, whiskies.id)
     )
+    .leftJoin(distillers, eq(whiskies.distillerId, distillers.id))
+    .leftJoin(bottlers, eq(whiskies.bottlerId, bottlers.id))
+    .leftJoin(countries, eq(whiskies.countryId, countries.id))
     .where(isMysql ? sql`binary ${tastingNotes.userId} = binary ${user.id}` : eq(tastingNotes.userId, user.id))
     .orderBy(sql`${tastingNotes.tastingDate} desc`)
     .limit(pageSize)
@@ -68,6 +77,12 @@ export async function GET(request: NextRequest) {
     rating: number | null
     whiskyId: string
     whiskyName: string | null
+    distillerName: string | null
+    bottlerName: string | null
+    bottlingType: string | null
+    type: string | null
+    countryName: string | null
+    countryNameFr: string | null
     bottleImageUrl: string | null
   }
 
@@ -95,6 +110,7 @@ export async function GET(request: NextRequest) {
     const uniqueTags = Array.from(new Set(allTags))
     return {
       ...note,
+      countryName: lang.toLowerCase() === 'fr' ? note.countryNameFr || note.countryName : note.countryName,
       tags: uniqueTags.slice(0, 3),
       extraTagsCount: Math.max(0, uniqueTags.length - 3),
     }

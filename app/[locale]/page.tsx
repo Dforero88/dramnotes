@@ -175,9 +175,6 @@ export default async function HomePage({
           <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">
             {t('home.title')}
           </h1>
-          <p className="text-gray-600 mt-3 max-w-2xl">
-            {t('home.subtitle')}
-          </p>
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
             <Link
               href={`/${locale}/catalogue`}
@@ -217,7 +214,6 @@ export default async function HomePage({
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">{t('home.topUsersTitle')}</h2>
-              <span className="text-sm text-gray-500">{t('home.topUsersSubtitle')}</span>
             </div>
             <div className="space-y-4">
               {topUsers.map((user) => {
@@ -257,7 +253,6 @@ export default async function HomePage({
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">{t('home.latestWhiskiesTitle')}</h2>
-              <span className="text-sm text-gray-500">{t('home.latestWhiskiesSubtitle')}</span>
             </div>
             <div className="space-y-4">
               {latestWhiskies.map((whisky: LatestWhisky) => {
@@ -273,9 +268,17 @@ export default async function HomePage({
                     href={`/${locale}/whisky/${whisky.id}`}
                     className="flex items-center gap-4"
                   >
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex items-center justify-center">
+                    <div
+                      className="w-16 h-16 rounded-xl bg-white overflow-hidden flex items-center justify-center"
+                      style={{ backgroundColor: '#fff' }}
+                    >
                       {imageSrc ? (
-                        <img src={imageSrc} alt={whisky.name} className="w-full h-full object-contain" />
+                        <img
+                          src={imageSrc}
+                          alt={whisky.name}
+                          className="w-full h-full object-contain"
+                          style={{ backgroundColor: '#fff' }}
+                        />
                       ) : (
                         <span className="text-xs text-gray-400">No image</span>
                       )}
@@ -313,7 +316,6 @@ export default async function HomePage({
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">{t('home.activityTitle')}</h2>
-              <span className="text-sm text-gray-500">{t('home.activitySubtitle')}</span>
             </div>
             <div className="space-y-4">
               {activitiesVisible.map((activity) => {

@@ -75,7 +75,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null }>>([])
+  const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null; displayName?: string | null }>>([])
 
   const pageSize = 12
 
@@ -96,7 +96,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`/api/whisky/list?${queryString}`)
+        const res = await fetch(`/api/whisky/list?lang=${locale}&${queryString}`)
         const json = await res.json()
         setItems(json?.items || [])
         setTotalPages(json?.totalPages || 1)
@@ -114,7 +114,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   useEffect(() => {
     const loadCountries = async () => {
       try {
-        const res = await fetch('/api/countries')
+        const res = await fetch(`/api/countries?lang=${locale}`)
         const json = await res.json()
         setCountries(json?.countries || [])
       } catch (e) {
@@ -226,7 +226,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
               value={draftFilters.distilledYear}
               onChange={(e) => setDraftFilters({ ...draftFilters, distilledYear: e.target.value })}
               className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-              placeholder="YYYY"
+              placeholder={t('catalogue.filterDistilledYearPlaceholder')}
               style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             />
           </div>
@@ -236,7 +236,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
               value={draftFilters.bottledYear}
               onChange={(e) => setDraftFilters({ ...draftFilters, bottledYear: e.target.value })}
               className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-              placeholder="YYYY"
+              placeholder={t('catalogue.filterBottledYearPlaceholder')}
               style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             />
           </div>
@@ -273,7 +273,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           >
             <option value="">{t('common.selectEmpty')}</option>
             {countries.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>{c.displayName || c.nameFr || c.name}</option>
             ))}
           </select>
         </div>
@@ -368,7 +368,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
                   href={`/${locale}/whisky/${item.id}`}
                   className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow block"
                 >
-                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+                  <div className="w-full h-48 bg-white flex items-center justify-center">
                     {imageSrc ? (
                       <img
                         src={imageSrc}

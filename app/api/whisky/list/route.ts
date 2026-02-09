@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     const countryId = searchParams.get('countryId')?.trim() || ''
     const bottlingType = searchParams.get('bottlingType')?.trim() || ''
     const sort = searchParams.get('sort')?.trim() || 'name_asc'
+    const locale = (searchParams.get('lang') || 'fr').toLowerCase()
 
     const filters: any[] = []
 
@@ -59,7 +60,11 @@ export async function GET(request: NextRequest) {
       filters.push(eq(whiskies.age, Number(age)))
     }
     if (alcoholVolume) {
-      filters.push(eq(whiskies.alcoholVolume, Number(alcoholVolume)))
+      const normalized = alcoholVolume.replace('%', '').trim()
+      const value = Number(normalized)
+      if (Number.isFinite(value)) {
+        filters.push(eq(whiskies.alcoholVolume, value))
+      }
     }
     if (distiller) {
       filters.push(sql`lower(${distillers.name}) like ${buildLike(distiller)}`)
@@ -88,6 +93,7 @@ export async function GET(request: NextRequest) {
         distillerName: distillers.name,
         bottlerName: bottlers.name,
         countryName: countries.name,
+        countryNameFr: countries.nameFr,
         type: whiskies.type,
         age: whiskies.age,
         region: whiskies.region,
@@ -119,8 +125,13 @@ export async function GET(request: NextRequest) {
       .limit(pageSize)
       .offset(offset)
 
+    const items = rows.map((row) => ({
+      ...row,
+      countryName: locale === 'fr' ? row.countryNameFr || row.countryName : row.countryName,
+    }))
+
     return NextResponse.json({
-      items: rows,
+      items,
       total,
       totalPages,
       page,

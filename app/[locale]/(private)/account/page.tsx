@@ -21,6 +21,7 @@ type Country = {
   id: string
   name: string
   nameFr?: string | null
+  displayName?: string | null
 }
 
 export default function AccountPage() {
@@ -74,7 +75,7 @@ export default function AccountPage() {
   useEffect(() => {
     const loadCountries = async () => {
       try {
-        const res = await fetch('/api/countries')
+        const res = await fetch(`/api/countries?lang=${locale}`)
         const json = await res.json()
         setCountries(json?.countries || [])
       } catch (e) {
@@ -262,11 +263,11 @@ export default function AccountPage() {
             >
               <option value="">{t('common.selectEmpty')}</option>
               {countries.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>{c.displayName || c.nameFr || c.name}</option>
               ))}
             </select>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 flex justify-end">
             <button
               onClick={saveAddress}
               disabled={loadingAddress}
