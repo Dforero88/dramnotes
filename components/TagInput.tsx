@@ -11,6 +11,7 @@ export default function TagInput({
   lang,
   placeholder,
   createLabel,
+  allowCreate = true,
 }: {
   label: string
   value: Tag[]
@@ -18,6 +19,7 @@ export default function TagInput({
   lang: string
   placeholder: string
   createLabel: string
+  allowCreate?: boolean
 }) {
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<Tag[]>([])
@@ -56,6 +58,7 @@ export default function TagInput({
   }
 
   const createTag = async () => {
+    if (!allowCreate) return
     const name = query.trim()
     if (!name) return
     const res = await fetch('/api/tags/create', {
@@ -100,14 +103,14 @@ export default function TagInput({
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
-              createTag()
+              if (allowCreate) createTag()
             }
           }}
           placeholder={placeholder}
           className="w-full outline-none text-sm"
         />
       </div>
-      {open && (suggestions.length > 0 || query.trim().length >= 2) && (
+      {open && (suggestions.length > 0 || (allowCreate && query.trim().length >= 2)) && (
         <div className="border rounded-xl bg-white shadow-sm overflow-hidden">
           {suggestions.map((s) => (
             <button
@@ -119,7 +122,7 @@ export default function TagInput({
               {s.name}
             </button>
           ))}
-          {suggestions.length === 0 && (
+          {allowCreate && suggestions.length === 0 && (
             <button
               type="button"
               onClick={createTag}

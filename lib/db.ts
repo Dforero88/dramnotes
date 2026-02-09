@@ -13,6 +13,7 @@ type DbSchema = {
   follows: any
   activities: any
   whiskyAnalyticsCache: any
+  whiskyTagStats: any
   userAromaProfile: any
 }
 
@@ -145,8 +146,14 @@ function createSqliteSchema(): DbSchema {
     whiskyId: text('whisky_id').primaryKey(),
     avgRating: real('avg_rating'),
     totalReviews: integer('total_reviews'),
-    aromaProfile: text('aroma_profile'),
     lastCalculated: integer('last_calculated', { mode: 'timestamp' }),
+  })
+
+  const whiskyTagStats = sqliteTable('whisky_tag_stats', {
+    whiskyId: text('whisky_id').notNull(),
+    tagId: text('tag_id').notNull(),
+    section: text('section').notNull(),
+    count: integer('count').notNull(),
   })
 
   const userAromaProfile = sqliteTable('user_aroma_profile', {
@@ -170,6 +177,7 @@ function createSqliteSchema(): DbSchema {
     follows,
     activities,
     whiskyAnalyticsCache,
+    whiskyTagStats,
     userAromaProfile,
   }
 }
@@ -293,8 +301,14 @@ function createMysqlSchema(): DbSchema {
     whiskyId: varchar('whisky_id', { length: 36 }).primaryKey(),
     avgRating: double('avg_rating'),
     totalReviews: int('total_reviews'),
-    aromaProfile: text('aroma_profile'),
     lastCalculated: datetime('last_calculated', { mode: 'date' }),
+  })
+
+  const whiskyTagStats = mysqlTable('whisky_tag_stats', {
+    whiskyId: varchar('whisky_id', { length: 36 }).notNull(),
+    tagId: varchar('tag_id', { length: 36 }).notNull(),
+    section: varchar('section', { length: 20 }).notNull(),
+    count: int('count').notNull(),
   })
 
   const userAromaProfile = mysqlTable('user_aroma_profile', {
@@ -318,6 +332,7 @@ function createMysqlSchema(): DbSchema {
     follows,
     activities,
     whiskyAnalyticsCache,
+    whiskyTagStats,
     userAromaProfile,
   }
 }
@@ -336,6 +351,7 @@ export const {
   follows,
   activities,
   whiskyAnalyticsCache,
+  whiskyTagStats,
   userAromaProfile,
 } = schema
 
@@ -521,6 +537,15 @@ function initSqlite(sqlite: any) {
       note_id TEXT NOT NULL,
       tag_id TEXT NOT NULL,
       type TEXT NOT NULL
+    )
+  `).run()
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS whisky_tag_stats (
+      whisky_id TEXT NOT NULL,
+      tag_id TEXT NOT NULL,
+      section TEXT NOT NULL,
+      count INTEGER NOT NULL
     )
   `).run()
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache } from '@/lib/db'
+import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache, whiskyTagStats, isMysql } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
@@ -29,6 +29,11 @@ export async function GET(request: NextRequest) {
     const bottlingType = searchParams.get('bottlingType')?.trim() || ''
     const sort = searchParams.get('sort')?.trim() || 'name_asc'
     const locale = (searchParams.get('lang') || 'fr').toLowerCase()
+    const ratingMin = searchParams.get('ratingMin')?.trim() || ''
+    const ratingMax = searchParams.get('ratingMax')?.trim() || ''
+    const noseTags = (searchParams.get('noseTags') || '').split(',').map((t) => t.trim()).filter(Boolean)
+    const palateTags = (searchParams.get('palateTags') || '').split(',').map((t) => t.trim()).filter(Boolean)
+    const finishTags = (searchParams.get('finishTags') || '').split(',').map((t) => t.trim()).filter(Boolean)
 
     const filters: any[] = []
 
@@ -72,6 +77,32 @@ export async function GET(request: NextRequest) {
     if (bottler) {
       filters.push(sql`lower(${bottlers.name}) like ${buildLike(bottler)}`)
     }
+    if (ratingMin || ratingMax) {
+      filters.push(sql`coalesce(${whiskyAnalyticsCache.totalReviews}, 0) > 0`)
+      if (ratingMin) {
+        const min = Number(ratingMin)
+        if (Number.isFinite(min)) {
+          filters.push(sql`coalesce(${whiskyAnalyticsCache.avgRating}, 0) >= ${min}`)
+        }
+      }
+      if (ratingMax) {
+        const max = Number(ratingMax)
+        if (Number.isFinite(max)) {
+          filters.push(sql`coalesce(${whiskyAnalyticsCache.avgRating}, 0) <= ${max}`)
+        }
+      }
+    }
+
+    const addTagFilters = (tags: string[], section: string) => {
+      tags.forEach((tagId) => {
+        filters.push(
+          sql`exists (select 1 from ${whiskyTagStats} wts where ${isMysql ? sql`binary wts.whisky_id = binary ${whiskies.id}` : sql`wts.whisky_id = ${whiskies.id}`} and wts.section = ${section} and ${isMysql ? sql`binary wts.tag_id = binary ${tagId}` : sql`wts.tag_id = ${tagId}`})`
+        )
+      })
+    }
+    addTagFilters(noseTags, 'nose')
+    addTagFilters(palateTags, 'palate')
+    addTagFilters(finishTags, 'finish')
 
     const whereClause = filters.length ? and(...filters) : undefined
 
@@ -80,6 +111,7 @@ export async function GET(request: NextRequest) {
       .from(whiskies)
       .leftJoin(distillers, eq(whiskies.distillerId, distillers.id))
       .leftJoin(bottlers, eq(whiskies.bottlerId, bottlers.id))
+      .leftJoin(whiskyAnalyticsCache, eq(whiskies.id, whiskyAnalyticsCache.whiskyId))
       .where(whereClause)
 
     const total = Number(countRows?.[0]?.count || 0)

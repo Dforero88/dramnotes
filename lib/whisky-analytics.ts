@@ -1,11 +1,5 @@
-import { db, tastingNotes, tastingNoteTags, whiskyAnalyticsCache, isMysql } from '@/lib/db'
+import { db, tastingNotes, tastingNoteTags, whiskyAnalyticsCache, whiskyTagStats, isMysql } from '@/lib/db'
 import { eq, sql } from 'drizzle-orm'
-
-export type AromaProfile = {
-  nose: { tagId: string; count: number }[]
-  palate: { tagId: string; count: number }[]
-  finish: { tagId: string; count: number }[]
-}
 
 export async function recomputeWhiskyAnalytics(whiskyId: string) {
   const stats = await db
@@ -19,6 +13,7 @@ export async function recomputeWhiskyAnalytics(whiskyId: string) {
   const totalReviews = Number(stats?.[0]?.totalReviews || 0)
   if (totalReviews === 0) {
     await db.delete(whiskyAnalyticsCache).where(eq(whiskyAnalyticsCache.whiskyId, whiskyId))
+    await db.delete(whiskyTagStats).where(eq(whiskyTagStats.whiskyId, whiskyId))
     return null
   }
 
@@ -41,20 +36,25 @@ export async function recomputeWhiskyAnalytics(whiskyId: string) {
     .groupBy(tastingNoteTags.tagId, tastingNoteTags.type)
     .orderBy(sql`count(*) desc`)
 
-  const profile: AromaProfile = { nose: [], palate: [], finish: [] }
-  ;(tagRows as { tagId: string; type: string; count: number }[]).forEach((row) => {
-    if (!profile[row.type as keyof AromaProfile]) return
-    profile[row.type as keyof AromaProfile].push({ tagId: row.tagId, count: Number(row.count || 0) })
-  })
+  await db.delete(whiskyTagStats).where(eq(whiskyTagStats.whiskyId, whiskyId))
+  if (tagRows.length > 0) {
+    await db.insert(whiskyTagStats).values(
+      (tagRows as { tagId: string; type: string; count: number }[]).map((row) => ({
+        whiskyId,
+        tagId: row.tagId,
+        section: row.type,
+        count: Number(row.count || 0),
+      }))
+    )
+  }
 
   await db.delete(whiskyAnalyticsCache).where(eq(whiskyAnalyticsCache.whiskyId, whiskyId))
   await db.insert(whiskyAnalyticsCache).values({
     whiskyId,
     avgRating,
     totalReviews,
-    aromaProfile: JSON.stringify(profile),
     lastCalculated: new Date(),
   } as any)
 
-  return { avgRating, totalReviews, aromaProfile: profile }
+  return { avgRating, totalReviews }
 }

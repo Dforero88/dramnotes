@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
+import TagInput from '@/components/TagInput'
 
 type WhiskyCard = {
   id: string
@@ -27,11 +28,18 @@ type Filters = {
   bottledYear: string
   age: string
   alcoholVolume: string
+  ratingMin: string
+  ratingMax: string
+  noseTags: string
+  palateTags: string
+  finishTags: string
   region: string
   type: string
   bottlingType: string
   sort: string
 }
+
+type Tag = { id: string; name: string }
 
 const typeOptions = [
   'American whiskey',
@@ -60,6 +68,11 @@ const emptyFilters: Filters = {
   bottledYear: '',
   age: '',
   alcoholVolume: '',
+  ratingMin: '',
+  ratingMax: '',
+  noseTags: '',
+  palateTags: '',
+  finishTags: '',
   region: '',
   type: '',
   bottlingType: '',
@@ -76,6 +89,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   const [totalPages, setTotalPages] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null; displayName?: string | null }>>([])
+  const [noseTags, setNoseTags] = useState<Tag[]>([])
+  const [palateTags, setPalateTags] = useState<Tag[]>([])
+  const [finishTags, setFinishTags] = useState<Tag[]>([])
 
   const pageSize = 12
 
@@ -125,7 +141,12 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   }, [])
 
   const applyFilters = () => {
-    setAppliedFilters({ ...draftFilters })
+    setAppliedFilters({
+      ...draftFilters,
+      noseTags: noseTags.map((t) => t.id).join(','),
+      palateTags: palateTags.map((t) => t.id).join(','),
+      finishTags: finishTags.map((t) => t.id).join(','),
+    })
     setPage(1)
     setFiltersOpen(false)
   }
@@ -133,6 +154,9 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   const resetFilters = () => {
     setDraftFilters(emptyFilters)
     setAppliedFilters(emptyFilters)
+    setNoseTags([])
+    setPalateTags([])
+    setFinishTags([])
     setPage(1)
     setFiltersOpen(false)
   }
@@ -263,6 +287,55 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             />
           </div>
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterRatingMin')}</label>
+            <input
+              value={draftFilters.ratingMin}
+              onChange={(e) => setDraftFilters({ ...draftFilters, ratingMin: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              placeholder={t('catalogue.filterRatingMinPlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterRatingMax')}</label>
+            <input
+              value={draftFilters.ratingMax}
+              onChange={(e) => setDraftFilters({ ...draftFilters, ratingMax: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              placeholder={t('catalogue.filterRatingMaxPlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            />
+          </div>
+        </div>
+        <TagInput
+          label={t('catalogue.filterNoseTags')}
+          value={noseTags}
+          onChange={setNoseTags}
+          lang={locale}
+          placeholder={t('catalogue.filterNoseTagsPlaceholder')}
+          createLabel={t('tasting.createTag')}
+          allowCreate={false}
+        />
+        <TagInput
+          label={t('catalogue.filterPalateTags')}
+          value={palateTags}
+          onChange={setPalateTags}
+          lang={locale}
+          placeholder={t('catalogue.filterPalateTagsPlaceholder')}
+          createLabel={t('tasting.createTag')}
+          allowCreate={false}
+        />
+        <TagInput
+          label={t('catalogue.filterFinishTags')}
+          value={finishTags}
+          onChange={setFinishTags}
+          lang={locale}
+          placeholder={t('catalogue.filterFinishTagsPlaceholder')}
+          createLabel={t('tasting.createTag')}
+          allowCreate={false}
+        />
         <div>
           <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterCountry')}</label>
           <select

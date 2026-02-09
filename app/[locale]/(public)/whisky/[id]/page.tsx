@@ -1,11 +1,10 @@
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
-import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache, tagLang } from '@/lib/db'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache, whiskyTagStats, tagLang } from '@/lib/db'
+import { and, eq, sql } from 'drizzle-orm'
 import TastingNotesSection from '@/components/TastingNotesSection'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import type { AromaProfile } from '@/lib/whisky-analytics'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -137,7 +136,6 @@ export default async function WhiskyDetailPage({
   let analyticsData: {
     avgRating: number
     totalReviews: number
-    profile: AromaProfile
     tags: { nose: { name: string; count: number }[]; palate: { name: string; count: number }[]; finish: { name: string; count: number }[] }
   } | null = null
 
@@ -146,7 +144,6 @@ export default async function WhiskyDetailPage({
       .select({
         avgRating: whiskyAnalyticsCache.avgRating,
         totalReviews: whiskyAnalyticsCache.totalReviews,
-        aromaProfile: whiskyAnalyticsCache.aromaProfile,
       })
       .from(whiskyAnalyticsCache)
       .where(eq(whiskyAnalyticsCache.whiskyId, id))
@@ -154,33 +151,32 @@ export default async function WhiskyDetailPage({
 
     const cache = cacheRows?.[0]
     if (cache && Number(cache.totalReviews || 0) > 0) {
-      const profile = (cache.aromaProfile ? JSON.parse(cache.aromaProfile) : { nose: [], palate: [], finish: [] }) as AromaProfile
-      const topN = (arr: { tagId: string; count: number }[]) => arr.slice(0, 4)
-      const nose = topN(profile.nose || [])
-      const palate = topN(profile.palate || [])
-      const finish = topN(profile.finish || [])
-      const tagIds = Array.from(new Set([...nose, ...palate, ...finish].map((t) => t.tagId)))
-      const tagRows = tagIds.length
-        ? await db
-            .select({ tagId: tagLang.tagId, name: tagLang.name })
-            .from(tagLang)
-            .where(and(eq(tagLang.lang, locale), inArray(tagLang.tagId, tagIds)))
-        : []
-      const tagMap = new Map(tagRows.map((row) => [row.tagId, row.name]))
+      const tagRows = await db
+        .select({
+          section: whiskyTagStats.section,
+          count: whiskyTagStats.count,
+          name: tagLang.name,
+        })
+        .from(whiskyTagStats)
+        .leftJoin(tagLang, and(eq(tagLang.tagId, whiskyTagStats.tagId), eq(tagLang.lang, locale)))
+        .where(eq(whiskyTagStats.whiskyId, id))
+        .orderBy(sql`${whiskyTagStats.count} desc`)
 
-      const mapTags = (list: { tagId: string; count: number }[]) =>
-        list
-          .map((item) => ({ name: tagMap.get(item.tagId) || '', count: item.count }))
-          .filter((item) => item.name)
+      const grouped = { nose: [] as { name: string; count: number }[], palate: [] as { name: string; count: number }[], finish: [] as { name: string; count: number }[] }
+      tagRows.forEach((row) => {
+        if (!row.name) return
+        if (row.section === 'nose' && grouped.nose.length < 4) grouped.nose.push({ name: row.name, count: Number(row.count || 0) })
+        if (row.section === 'palate' && grouped.palate.length < 4) grouped.palate.push({ name: row.name, count: Number(row.count || 0) })
+        if (row.section === 'finish' && grouped.finish.length < 4) grouped.finish.push({ name: row.name, count: Number(row.count || 0) })
+      })
 
       analyticsData = {
         avgRating: Number(cache.avgRating || 0),
         totalReviews: Number(cache.totalReviews || 0),
-        profile,
         tags: {
-          nose: mapTags(nose),
-          palate: mapTags(palate),
-          finish: mapTags(finish),
+          nose: grouped.nose,
+          palate: grouped.palate,
+          finish: grouped.finish,
         },
       }
     }
