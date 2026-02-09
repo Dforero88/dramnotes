@@ -14,6 +14,9 @@ jobs:
       NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
       APP_URL: ${{ secrets.APP_URL }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+      NEXT_PUBLIC_GA_ID: ${{ secrets.NEXT_PUBLIC_GA_ID }}
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
       SMTP_PORT: ${{ secrets.SMTP_PORT }}
       SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
