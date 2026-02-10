@@ -7,6 +7,7 @@ import { generateId } from '@/lib/db'
 import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { recomputeUserAroma } from '@/lib/user-aroma'
 import { validateLocation, validateOverall, validateDisplayName } from '@/lib/moderation'
+import * as Sentry from '@sentry/nextjs'
 
 type TagsPayload = {
   nose?: Array<string | { id: string }>
@@ -128,6 +129,11 @@ export async function POST(request: NextRequest) {
 
   await recomputeWhiskyAnalytics(whiskyId)
   await recomputeUserAroma(userId)
+
+  Sentry.captureMessage('tasting_note_created', {
+    level: 'info',
+    tags: { userId, whiskyId },
+  })
 
   return NextResponse.json({ success: true, id })
 }

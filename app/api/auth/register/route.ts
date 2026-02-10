@@ -8,6 +8,7 @@ import { generateConfirmationToken } from '@/lib/auth/tokens'
 import { sendEmail, getConfirmationEmailTemplate } from '@/lib/email/sender'
 import { generateId } from '@/lib/db'
 import { validatePseudo, sanitizeText } from '@/lib/moderation'
+import * as Sentry from '@sentry/nextjs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,6 +88,11 @@ export async function POST(request: NextRequest) {
       confirmedAt: null, // Pas encore confirmé
       createdAt: now,
       updatedAt: now,
+    })
+
+    Sentry.captureMessage('account_created', {
+      level: 'info',
+      tags: { userId },
     })
     
     // 8. Envoyer l'email de confirmation

@@ -1,5 +1,6 @@
 import { db, tastingNotes, tastingNoteTags, userAromaProfile, userTagStats, isMysql } from '@/lib/db'
 import { eq, sql } from 'drizzle-orm'
+import * as Sentry from '@sentry/nextjs'
 
 export async function recomputeUserAroma(userId: string) {
   const stats = await db
@@ -56,6 +57,11 @@ export async function recomputeUserAroma(userId: string) {
     totalNotes,
     lastUpdated: new Date(),
   } as any)
+
+  Sentry.captureMessage('aroma_user_recomputed', {
+    level: 'info',
+    tags: { userId },
+  })
 
   return { avgRating, totalNotes }
 }

@@ -5,6 +5,7 @@ import { generateId } from '@/lib/db'
 import path from 'path'
 import fs from 'fs/promises'
 import { validateWhiskyName, validateDisplayName, sanitizeText } from '@/lib/moderation'
+import * as Sentry from '@sentry/nextjs'
 
 export const dynamic = 'force-dynamic'
 
@@ -206,6 +207,11 @@ export async function POST(request: NextRequest) {
       bottleImageUrl,
       createdAt: now,
       updatedAt: now,
+    })
+
+    Sentry.captureMessage('whisky_created', {
+      level: 'info',
+      tags: { whiskyId: id },
     })
 
     return NextResponse.json({ success: true, id, bottleImageUrl })

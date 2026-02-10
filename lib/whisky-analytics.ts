@@ -1,5 +1,6 @@
 import { db, tastingNotes, tastingNoteTags, whiskyAnalyticsCache, whiskyTagStats, isMysql } from '@/lib/db'
 import { eq, sql } from 'drizzle-orm'
+import * as Sentry from '@sentry/nextjs'
 
 export async function recomputeWhiskyAnalytics(whiskyId: string) {
   const stats = await db
@@ -55,6 +56,11 @@ export async function recomputeWhiskyAnalytics(whiskyId: string) {
     totalReviews,
     lastCalculated: new Date(),
   } as any)
+
+  Sentry.captureMessage('aroma_whisky_recomputed', {
+    level: 'info',
+    tags: { whiskyId },
+  })
 
   return { avgRating, totalReviews }
 }
