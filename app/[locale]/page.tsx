@@ -4,9 +4,15 @@ import { authOptions } from '@/lib/auth'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import { db, tastingNotes, users, whiskies, follows, activities, isMysql } from '@/lib/db'
 import { eq, inArray, sql } from 'drizzle-orm'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+export async function generateMetadata({ params }: { params: { locale: Locale } }): Promise<Metadata> {
+  const t = getTranslations(params.locale)
+  return { title: t('home.pageTitle') }
+}
 
 type TopUser = {
   id: string

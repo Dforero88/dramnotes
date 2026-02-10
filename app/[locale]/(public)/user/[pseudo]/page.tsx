@@ -8,7 +8,7 @@ export async function generateMetadata({
   params: { locale: Locale; pseudo: string }
 }): Promise<Metadata> {
   const t = getTranslations(params.locale)
-  const title = `${params.pseudo} — ${t('notebook.title')}`
+  const title = `${params.pseudo} — ${t('notebook.pageTitle')}`
   return { title }
 }
 

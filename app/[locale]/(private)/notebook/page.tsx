@@ -5,7 +5,7 @@ import { getTranslations, type Locale } from '@/lib/i18n'
 export async function generateMetadata({ params }: { params: { locale: Locale } }): Promise<Metadata> {
   const t = getTranslations(params.locale)
   return {
-    title: t('notebook.title'),
+    title: t('notebook.pageTitle'),
   }
 }
 
