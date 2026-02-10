@@ -20,27 +20,28 @@ export default function AuthBlock({
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-8">
-      <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg text-center">
-        <div className="text-6xl mb-6">🔒</div>
-        <h2 className="text-2xl font-bold text-amber-900 mb-4">{resolvedTitle}</h2>
-        <p className="text-gray-600 mb-8">{resolvedMessage}</p>
-        
-        <div className="space-y-4">
-          <Link 
-            href={`/${locale}/login`} 
-            className="block w-full py-3 bg-amber-900 text-white rounded-lg hover:bg-amber-800"
+      <div className="max-w-md w-full p-8 bg-white rounded-2xl shadow-sm text-center border border-gray-200">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-3">{resolvedTitle}</h2>
+        <p className="text-gray-600 mb-6">{resolvedMessage}</p>
+
+        <div className="flex flex-col gap-3">
+          <Link
+            href={`/${locale}/login`}
+            className="block w-full py-3 text-white rounded-full transition"
+            style={{ backgroundColor: 'var(--color-primary)' }}
           >
             {t('auth.loginButton')}
           </Link>
-          <Link 
-            href={`/${locale}/register`} 
-            className="block w-full py-3 border-2 border-amber-900 text-amber-900 rounded-lg hover:bg-amber-50"
+          <Link
+            href={`/${locale}/register`}
+            className="block w-full py-3 border rounded-full hover:bg-gray-50 transition"
+            style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
           >
             {t('auth.signUp')}
           </Link>
         </div>
-        
-        <p className="mt-8 text-sm text-gray-500">
+
+        <p className="mt-6 text-sm text-gray-500">
           {t('auth.communityCta')}
         </p>
       </div>

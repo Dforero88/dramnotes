@@ -100,17 +100,17 @@ export default function ExplorerPageClient() {
         <div className="max-w-md w-full p-8 bg-white rounded-2xl shadow-sm text-center border border-gray-200">
           <h2 className="text-2xl font-semibold text-gray-800 mb-3">{t('explorer.loginTitle')}</h2>
           <p className="text-gray-600 mb-6">{t('explorer.loginSubtitle')}</p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col gap-3">
             <Link
               href={`/${locale}/login`}
-              className="py-2 px-6 text-white rounded-lg"
+              className="block w-full py-3 rounded-full text-center text-white text-sm font-medium transition"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {t('navigation.signIn')}
             </Link>
             <Link
               href={`/${locale}/register`}
-              className="py-2 px-6 bg-white rounded-lg border"
+              className="block w-full py-3 rounded-full text-center border text-sm font-medium transition"
               style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
             >
               {t('navigation.signUp')}

@@ -318,11 +318,19 @@ export default function TastingNotesSection({
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm text-center mt-10">
         <h3 className="text-xl font-semibold">{t('tasting.loginTitle')}</h3>
         <p className="text-gray-600 mt-2">{t('tasting.loginSubtitle')}</p>
-        <div className="mt-4 flex items-center justify-center gap-3">
-          <Link href={`/${locale}/login`} className="px-4 py-2 rounded-lg text-white" style={{ backgroundColor: 'var(--color-primary)' }}>
+        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+          <Link
+            href={`/${locale}/login`}
+            className="block w-full sm:w-auto px-6 py-3 rounded-full text-center text-white text-sm font-medium transition"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
             {t('navigation.signIn')}
           </Link>
-          <Link href={`/${locale}/register`} className="px-4 py-2 rounded-lg border" style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>
+          <Link
+            href={`/${locale}/register`}
+            className="block w-full sm:w-auto px-6 py-3 rounded-full text-center border text-sm font-medium transition"
+            style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+          >
             {t('navigation.signUp')}
           </Link>
         </div>

@@ -375,11 +375,11 @@ export default async function HomePage({
           </div>
         </div>
 
-        {isLoggedIn && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">{t('home.activityTitle')}</h2>
-            </div>
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">{t('home.activityTitle')}</h2>
+          </div>
+          {isLoggedIn ? (
             <div className="space-y-4">
               {activitiesVisible.map((activity) => {
                 const pseudo = activity.actorPseudo || 'User'
@@ -448,8 +448,28 @@ export default async function HomePage({
                 <div className="text-sm text-gray-500">{t('home.noActivity')}</div>
               )}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-5 text-center">
+              <div className="text-sm text-gray-600">{t('home.activityLoginSubtitle')}</div>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  href={`/${locale}/login`}
+                  className="px-4 py-2 rounded-full text-white text-sm font-medium transition"
+                  style={{ backgroundColor: 'var(--color-primary)' }}
+                >
+                  {t('auth.loginButton')}
+                </Link>
+                <Link
+                  href={`/${locale}/register`}
+                  className="px-4 py-2 rounded-full border text-sm font-medium transition"
+                  style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                >
+                  {t('auth.register')}
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -249,17 +249,17 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
         <div className="max-w-md w-full p-8 bg-white rounded-2xl shadow-sm text-center border border-gray-200">
           <h2 className="text-2xl font-semibold text-gray-800 mb-3">{t('notebook.loginTitle')}</h2>
           <p className="text-gray-600 mb-6">{t('notebook.loginSubtitle')}</p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col gap-3">
             <Link
               href={`/${locale}/login`}
-              className="py-2 px-6 text-white rounded-lg"
+              className="block w-full py-3 rounded-full text-center text-white text-sm font-medium transition"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {t('navigation.signIn')}
             </Link>
             <Link
               href={`/${locale}/register`}
-              className="py-2 px-6 bg-white rounded-lg border"
+              className="block w-full py-3 rounded-full text-center border text-sm font-medium transition"
               style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
             >
               {t('navigation.signUp')}
@@ -345,14 +345,29 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                   {summary.isFollowing ? t('notebook.following') : t('notebook.follow')}
                 </button>
               )}
-              {canShare && (
-                <div className="flex flex-col items-end gap-1">
-                  <button
-                    onClick={handleShare}
-                    className="px-4 py-2 rounded-lg text-sm transition border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                  >
-                    {t('notebook.share')}
-                  </button>
+                  {canShare && (
+                    <div className="flex flex-col items-end gap-1">
+                      <button
+                        onClick={handleShare}
+                        className="h-10 w-10 inline-flex items-center justify-center rounded-full text-sm transition border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                        aria-label={t('notebook.share')}
+                      >
+                        <svg
+                          aria-hidden
+                          viewBox="0 0 24 24"
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="18" cy="5" r="3" />
+                          <circle cx="6" cy="12" r="3" />
+                          <circle cx="18" cy="19" r="3" />
+                          <path d="M8.6 11l6.8-3.4M8.6 13l6.8 3.4" />
+                        </svg>
+                      </button>
                   {shareNotice && <span className="text-xs text-gray-500">{shareNotice}</span>}
                 </div>
               )}

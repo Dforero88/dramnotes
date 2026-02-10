@@ -101,13 +101,15 @@ export default function Navigation() {
                 <>
                   <Link 
                     href={`/${locale}/login`} 
-                    className="px-4 py-2 text-primary hover:text-primary-dark-light"
+                    className="px-4 py-2 rounded-full text-white text-sm font-medium transition"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
                   >
                     {t('navigation.signIn')}
                   </Link>
                   <Link 
                     href={`/${locale}/register`} 
-                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark-light"
+                    className="px-4 py-2 rounded-full text-sm font-medium border transition"
+                    style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                   >
                     {t('navigation.signUp')}
                   </Link>
@@ -165,34 +167,30 @@ export default function Navigation() {
               {t('navigation.catalogue')}
             </Link>
             
-            {session && (
-              <>
-                <Link 
-                  href={`/${locale}/notebook`} 
-                  className="text-primary-light hover:text-white py-2 transition-colors"
-                >
-                  {t('navigation.notebook')}
-                </Link>
-                <Link 
-                  href={`/${locale}/explorer`} 
-                  className="text-primary-light hover:text-white py-2 transition-colors"
-                >
-                  {t('navigation.explorer')}
-                </Link>
-                <Link 
-                  href={`/${locale}/map`} 
-                  className="text-primary-light hover:text-white py-2 transition-colors"
-                >
-                  {t('navigation.map')}
-                </Link>
-                <Link 
-                  href={`/${locale}/account`} 
-                  className="text-primary-light hover:text-white py-2 transition-colors"
-                >
-                  {t('navigation.myAccount')}
-                </Link>
-              </>
-            )}
+            <Link 
+              href={`/${locale}/notebook`} 
+              className="text-primary-light hover:text-white py-2 transition-colors"
+            >
+              {t('navigation.notebook')}
+            </Link>
+            <Link 
+              href={`/${locale}/explorer`} 
+              className="text-primary-light hover:text-white py-2 transition-colors"
+            >
+              {t('navigation.explorer')}
+            </Link>
+            <Link 
+              href={`/${locale}/map`} 
+              className="text-primary-light hover:text-white py-2 transition-colors"
+            >
+              {t('navigation.map')}
+            </Link>
+            <Link 
+              href={`/${locale}/account`} 
+              className="text-primary-light hover:text-white py-2 transition-colors"
+            >
+              {t('navigation.myAccount')}
+            </Link>
           </div>
         </div>
       </nav>
@@ -217,22 +215,18 @@ export default function Navigation() {
             <Link href={`/${locale}/catalogue`} className="block text-primary" onClick={() => setMobileOpen(false)}>
               {t('navigation.catalogue')}
             </Link>
-            {session && (
-              <>
-                <Link href={`/${locale}/notebook`} className="block text-primary" onClick={() => setMobileOpen(false)}>
-                  {t('navigation.notebook')}
-                </Link>
-                <Link href={`/${locale}/explorer`} className="block text-primary" onClick={() => setMobileOpen(false)}>
-                  {t('navigation.explorer')}
-                </Link>
-                <Link href={`/${locale}/map`} className="block text-primary" onClick={() => setMobileOpen(false)}>
-                  {t('navigation.map')}
-                </Link>
-                <Link href={`/${locale}/account`} className="block text-primary" onClick={() => setMobileOpen(false)}>
-                  {t('navigation.myAccount')}
-                </Link>
-              </>
-            )}
+            <Link href={`/${locale}/notebook`} className="block text-primary" onClick={() => setMobileOpen(false)}>
+              {t('navigation.notebook')}
+            </Link>
+            <Link href={`/${locale}/explorer`} className="block text-primary" onClick={() => setMobileOpen(false)}>
+              {t('navigation.explorer')}
+            </Link>
+            <Link href={`/${locale}/map`} className="block text-primary" onClick={() => setMobileOpen(false)}>
+              {t('navigation.map')}
+            </Link>
+            <Link href={`/${locale}/account`} className="block text-primary" onClick={() => setMobileOpen(false)}>
+              {t('navigation.myAccount')}
+            </Link>
           </div>
         </div>
       )}
