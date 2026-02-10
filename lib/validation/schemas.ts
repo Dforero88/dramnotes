@@ -20,7 +20,10 @@ export const registerSchema = z.object({
       return errors.length === 0
     }, {
       message: 'Le mot de passe ne respecte pas les règles de sécurité'
-    })
+    }),
+  acceptedTerms: z.boolean().refine((value) => value === true, {
+    message: 'Veuillez accepter la politique de confidentialité',
+  }),
 })
 
 export const confirmSchema = z.object({

@@ -36,7 +36,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const { pseudo, email, password } = validationResult.data
+    const { pseudo, email, password, acceptedTerms } = validationResult.data
+    if (!acceptedTerms) {
+      return NextResponse.json({ error: 'Veuillez accepter la politique de confidentialité.' }, { status: 400 })
+    }
     const pseudoCheck = await validatePseudo(pseudo)
     if (!pseudoCheck.ok) {
       return NextResponse.json({ error: pseudoCheck.message || 'Pseudo invalide' }, { status: 400 })

@@ -30,6 +30,9 @@ const registerSchema = z.object({
     .regex(/[a-z]/, 'validation.passwordLowercase')
     .regex(/[0-9]/, 'validation.passwordNumber')
     .regex(/[^A-Za-z0-9]/, 'validation.passwordSpecial'),
+  acceptedTerms: z.boolean().refine((value) => value === true, {
+    message: 'validation.acceptTerms',
+  }),
 })
 
 type RegisterForm = z.infer<typeof registerSchema>
@@ -59,6 +62,7 @@ export default function RegisterPage({
       pseudo: '',
       email: '',
       password: '',
+      acceptedTerms: false,
     }
   })
   
@@ -242,8 +246,26 @@ export default function RegisterPage({
             </button>
           </div>
           
-          <div className="text-xs text-gray-500 text-center">
-            <p>{t('auth.termsAgreement')}</p>
+          <div className="space-y-1">
+            <label className="flex items-start gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                {...register('acceptedTerms')}
+              />
+              <span>
+                {t('auth.termsAgreement')}{' '}
+                <Link
+                  href={`/${locale}/privacy`}
+                  className="font-medium text-primary hover:text-primary-dark-light underline"
+                >
+                  {t('auth.privacyPolicy')}
+                </Link>
+              </span>
+            </label>
+            {errors.acceptedTerms && (
+              <p className="text-xs text-red-600">{t(errors.acceptedTerms.message as any)}</p>
+            )}
           </div>
         </form>
       </div>
