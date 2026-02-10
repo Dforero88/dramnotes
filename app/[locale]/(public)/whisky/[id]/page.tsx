@@ -6,7 +6,6 @@ import TastingNotesSection from '@/components/TastingNotesSection'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import type { Metadata } from 'next'
-import WhiskyViewTracker from '@/components/WhiskyViewTracker'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -215,7 +214,6 @@ export default async function WhiskyDetailPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {isLoggedIn && <WhiskyViewTracker whiskyId={id} />}
       <div
         className="px-4 md:px-8 py-4"
         style={{ backgroundColor: 'var(--color-primary-light)' }}
