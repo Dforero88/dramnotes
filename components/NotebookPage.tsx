@@ -74,6 +74,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loadingSummary, setLoadingSummary] = useState(true)
   const [activeTab, setActiveTab] = useState<'notes' | 'followers' | 'following' | 'aroma'>('notes')
+  const [shareNotice, setShareNotice] = useState<string | null>(null)
 
   const [notes, setNotes] = useState<NoteCard[]>([])
   const [notesPage, setNotesPage] = useState(1)
@@ -103,6 +104,24 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     if (!summary) return false
     return summary.isOwner && summary.user.visibility !== 'public'
   }, [summary])
+
+  const canShare = Boolean(summary && summary.user.visibility === 'public')
+
+  const handleShare = async () => {
+    if (!summary) return
+    const url = `${window.location.origin}/${locale}/user/${summary.user.pseudo}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${summary.user.pseudo} — ${t('notebook.pageTitle')}`, url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setShareNotice(t('notebook.shareCopied'))
+      setTimeout(() => setShareNotice(null), 2000)
+    } catch {
+      // ignore
+    }
+  }
 
   const loadSummary = async () => {
     if (!isLoggedIn) return
@@ -190,6 +209,16 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     if (activeTab === 'followers') loadFollowers(1)
     if (activeTab === 'following') loadFollowing(1)
     if (activeTab === 'aroma') loadAroma()
+  }, [activeTab, summary?.user?.id])
+
+  useEffect(() => {
+    if (!summary || summary.private) return
+    if (activeTab === 'notes') return
+    trackEvent('notebook_section_view', {
+      section: activeTab,
+      viewer_is_owner: summary.isOwner,
+      profile_pseudo: summary.user.pseudo,
+    })
   }, [activeTab, summary?.user?.id])
 
   const toggleFollow = async (targetUserId: string) => {
@@ -303,18 +332,31 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
               </div>
             </div>
 
-            {!summary.isOwner && (
-              <button
-                onClick={() => toggleFollow(summary.user.id)}
-                className="px-4 py-2 rounded-lg text-sm transition shrink-0 justify-self-end"
-                style={{
-                  backgroundColor: summary.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
-                  color: summary.isFollowing ? 'var(--color-primary)' : '#fff',
-                }}
-              >
-                {summary.isFollowing ? t('notebook.following') : t('notebook.follow')}
-              </button>
-            )}
+            <div className="flex items-center gap-3 justify-self-end">
+              {!summary.isOwner && (
+                <button
+                  onClick={() => toggleFollow(summary.user.id)}
+                  className="px-4 py-2 rounded-lg text-sm transition shrink-0"
+                  style={{
+                    backgroundColor: summary.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
+                    color: summary.isFollowing ? 'var(--color-primary)' : '#fff',
+                  }}
+                >
+                  {summary.isFollowing ? t('notebook.following') : t('notebook.follow')}
+                </button>
+              )}
+              {canShare && (
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    onClick={handleShare}
+                    className="px-4 py-2 rounded-lg text-sm transition border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  >
+                    {t('notebook.share')}
+                  </button>
+                  {shareNotice && <span className="text-xs text-gray-500">{shareNotice}</span>}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
