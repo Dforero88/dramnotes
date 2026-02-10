@@ -3,6 +3,7 @@ import { db, tags, tagLang } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { generateId } from '@/lib/db'
 import { validateTagName } from '@/lib/moderation'
+import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
 async function translateWithDeepL(text: string, sourceLang: string, targetLang: string) {
   const apiKey = process.env.DEEPL_API_KEY
@@ -33,6 +34,18 @@ async function translateWithDeepL(text: string, sourceLang: string, targetLang: 
 
 export async function POST(request: NextRequest) {
   try {
+    const limit = rateLimit(request, {
+      key: buildRateLimitKey(request, null, 'tags-create'),
+      windowMs: 60 * 60 * 1000,
+      max: 30,
+    })
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Réessayez plus tard.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+      )
+    }
+
     const body = await request.json()
     const nameRaw = String(body?.name || '').trim()
     const rawLang = (body?.lang || 'fr').trim()

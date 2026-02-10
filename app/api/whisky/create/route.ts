@@ -6,6 +6,7 @@ import path from 'path'
 import fs from 'fs/promises'
 import { validateWhiskyName, validateDisplayName, sanitizeText } from '@/lib/moderation'
 import * as Sentry from '@sentry/nextjs'
+import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,18 @@ function normalizeYear(value: any): number | null {
 
 export async function POST(request: NextRequest) {
   try {
+    const limit = rateLimit(request, {
+      key: buildRateLimitKey(request, null, 'whisky-create'),
+      windowMs: 60 * 60 * 1000,
+      max: 10,
+    })
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Réessayez plus tard.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+      )
+    }
+
     const formData = await request.formData()
     const rawData = formData.get('whisky_data')
     const bottleImage = formData.get('bottle_image') as File | null

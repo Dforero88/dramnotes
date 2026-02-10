@@ -9,9 +9,22 @@ import { sendEmail, getConfirmationEmailTemplate } from '@/lib/email/sender'
 import { generateId } from '@/lib/db'
 import { validatePseudo, sanitizeText } from '@/lib/moderation'
 import * as Sentry from '@sentry/nextjs'
+import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    const limit = rateLimit(request, {
+      key: buildRateLimitKey(request, null, 'auth-register'),
+      windowMs: 60_000,
+      max: 5,
+    })
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Réessayez dans quelques instants.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+      )
+    }
+
     const body = await request.json()
     
     // 1. Validation avec Zod

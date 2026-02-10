@@ -8,6 +8,7 @@ import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { recomputeUserAroma } from '@/lib/user-aroma'
 import { validateLocation, validateOverall, validateDisplayName } from '@/lib/moderation'
 import * as Sentry from '@sentry/nextjs'
+import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
 type TagsPayload = {
   nose?: Array<string | { id: string }>
@@ -27,6 +28,18 @@ export async function POST(request: NextRequest) {
   const userId = session?.user?.id
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const limit = rateLimit(request, {
+    key: buildRateLimitKey(request, userId, 'tasting-notes-create'),
+    windowMs: 60 * 60 * 1000,
+    max: 20,
+  })
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: 'Trop de requêtes. Réessayez plus tard.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+    )
   }
 
   const body = await request.json()

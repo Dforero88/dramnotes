@@ -5,9 +5,22 @@ import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { sendEmail } from '@/lib/email/sender'
 import { getJwtSecret } from '@/lib/auth/tokens'
+import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    const limit = rateLimit(request, {
+      key: buildRateLimitKey(request, null, 'auth-forgot-password'),
+      windowMs: 60_000,
+      max: 5,
+    })
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Réessayez dans quelques instants.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+      )
+    }
+
     const { email } = await request.json()
     
     if (!email) {

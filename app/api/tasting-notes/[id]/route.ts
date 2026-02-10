@@ -6,6 +6,7 @@ import { and, eq } from 'drizzle-orm'
 import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { recomputeUserAroma } from '@/lib/user-aroma'
 import { validateLocation, validateOverall, validateDisplayName } from '@/lib/moderation'
+import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
 type TagsPayload = {
   nose?: Array<string | { id: string }>
@@ -25,6 +26,18 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
   const userId = session?.user?.id
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const limit = rateLimit(request, {
+    key: buildRateLimitKey(request, userId, 'tasting-notes-update'),
+    windowMs: 60 * 60 * 1000,
+    max: 30,
+  })
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: 'Trop de requêtes. Réessayez plus tard.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+    )
   }
 
   const id = context.params.id
@@ -115,11 +128,23 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
   return NextResponse.json({ success: true })
 }
 
-export async function DELETE(_request: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const limit = rateLimit(request, {
+    key: buildRateLimitKey(request, userId, 'tasting-notes-delete'),
+    windowMs: 60 * 60 * 1000,
+    max: 30,
+  })
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: 'Trop de requêtes. Réessayez plus tard.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+    )
   }
 
   const id = context.params.id
