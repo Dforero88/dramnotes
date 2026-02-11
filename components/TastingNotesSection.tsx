@@ -78,6 +78,8 @@ export default function TastingNotesSection({
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [sort, setSort] = useState('recent')
+  const [savingNote, setSavingNote] = useState(false)
+  const [deletingNote, setDeletingNote] = useState(false)
 
   const locationRef = useRef<HTMLInputElement>(null)
   const [mapsReady, setMapsReady] = useState(false)
@@ -150,6 +152,7 @@ export default function TastingNotesSection({
   }, [myNote, isAuthenticated])
 
   const handleSave = async () => {
+    if (savingNote) return
     setFormError('')
     const hasTags =
       myTags.nose.length > 0 && myTags.palate.length > 0 && myTags.finish.length > 0
@@ -170,26 +173,32 @@ export default function TastingNotesSection({
       tags: myTags,
     }
 
-    const res = await fetch('/api/tasting-notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    if (res.ok) {
-      setEditing(false)
-      const reload = await fetch(`/api/tasting-notes/my?whiskyId=${whiskyId}&lang=${locale}`, { cache: 'no-store' })
-      const json = await reload.json()
-      setMyNote(json?.note || null)
-      setMyTags(json?.tags || emptyTags)
-      trackEvent('tasting_note_created', { whisky_id: whiskyId })
-      return
+    setSavingNote(true)
+    try {
+      const res = await fetch('/api/tasting-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        setEditing(false)
+        const reload = await fetch(`/api/tasting-notes/my?whiskyId=${whiskyId}&lang=${locale}`, { cache: 'no-store' })
+        const json = await reload.json()
+        setMyNote(json?.note || null)
+        setMyTags(json?.tags || emptyTags)
+        trackEvent('tasting_note_created', { whisky_id: whiskyId })
+        return
+      }
+      const errorJson = await res.json().catch(() => ({}))
+      setFormError(errorJson?.error || t('common.errorOccurred'))
+    } finally {
+      setSavingNote(false)
     }
-    const errorJson = await res.json().catch(() => ({}))
-    setFormError(errorJson?.error || t('common.errorOccurred'))
   }
 
   const handleUpdate = async () => {
     if (!myNote) return
+    if (savingNote) return
     setFormError('')
     const hasTags =
       myTags.nose.length > 0 && myTags.palate.length > 0 && myTags.finish.length > 0
@@ -208,30 +217,41 @@ export default function TastingNotesSection({
       rating,
       tags: myTags,
     }
-    const res = await fetch(`/api/tasting-notes/${myNote.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    if (res.ok) {
-      setEditing(false)
-      const reload = await fetch(`/api/tasting-notes/my?whiskyId=${whiskyId}&lang=${locale}`, { cache: 'no-store' })
-      const json = await reload.json()
-      setMyNote(json?.note || null)
-      setMyTags(json?.tags || emptyTags)
-      return
+    setSavingNote(true)
+    try {
+      const res = await fetch(`/api/tasting-notes/${myNote.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        setEditing(false)
+        const reload = await fetch(`/api/tasting-notes/my?whiskyId=${whiskyId}&lang=${locale}`, { cache: 'no-store' })
+        const json = await reload.json()
+        setMyNote(json?.note || null)
+        setMyTags(json?.tags || emptyTags)
+        return
+      }
+      const errorJson = await res.json().catch(() => ({}))
+      setFormError(errorJson?.error || t('common.errorOccurred'))
+    } finally {
+      setSavingNote(false)
     }
-    const errorJson = await res.json().catch(() => ({}))
-    setFormError(errorJson?.error || t('common.errorOccurred'))
   }
 
   const handleDelete = async () => {
     if (!myNote) return
+    if (deletingNote || savingNote) return
     if (!confirm(t('tasting.confirmDelete'))) return
-    const res = await fetch(`/api/tasting-notes/${myNote.id}`, { method: 'DELETE' })
-    if (res.ok) {
-      setMyNote(null)
-      resetForm()
+    setDeletingNote(true)
+    try {
+      const res = await fetch(`/api/tasting-notes/${myNote.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setMyNote(null)
+        resetForm()
+      }
+    } finally {
+      setDeletingNote(false)
     }
   }
 
@@ -356,6 +376,7 @@ export default function TastingNotesSection({
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditing(true)}
+                  disabled={savingNote || deletingNote}
                   className="px-3 py-1.5 rounded-full border text-sm"
                   style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                 >
@@ -363,9 +384,10 @@ export default function TastingNotesSection({
                 </button>
                 <button
                   onClick={handleDelete}
+                  disabled={savingNote || deletingNote}
                   className="px-3 py-1.5 rounded-full border border-red-300 text-sm text-red-600"
                 >
-                  {t('tasting.delete')}
+                  {deletingNote ? t('common.saving') : t('tasting.delete')}
                 </button>
               </div>
             )}
@@ -474,6 +496,7 @@ export default function TastingNotesSection({
                     <button
                       type="button"
                       key={s}
+                      disabled={savingNote || deletingNote}
                       onClick={() => setRating(s)}
                       className="hover:scale-110 transition-transform"
                     >
@@ -486,14 +509,16 @@ export default function TastingNotesSection({
               <div className="flex gap-3">
                 <button
                   onClick={myNote ? handleUpdate : handleSave}
+                  disabled={savingNote || deletingNote}
                   className="px-4 py-2 rounded-lg text-white"
                   style={{ backgroundColor: 'var(--color-primary)' }}
                 >
-                  {t('tasting.save')}
+                  {savingNote ? t('common.saving') : t('tasting.save')}
                 </button>
                 {myNote && (
                   <button
                     onClick={() => setEditing(false)}
+                    disabled={savingNote || deletingNote}
                     className="px-4 py-2 rounded-lg border"
                     style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                   >

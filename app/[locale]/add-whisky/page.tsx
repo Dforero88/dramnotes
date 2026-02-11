@@ -48,6 +48,8 @@ export default function AddWhiskyPage({
   const [createStatus, setCreateStatus] = useState<'success' | 'duplicate' | null>(null)
   const [createdWhisky, setCreatedWhisky] = useState<{ id: string; name: string; imageUrl?: string | null } | null>(null)
   const [barcodeExists, setBarcodeExists] = useState(false)
+  const [checkingBarcode, setCheckingBarcode] = useState(false)
+  const [creatingWhisky, setCreatingWhisky] = useState(false)
   const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null; displayName?: string | null }>>([])
 
   const typeOptions = [
@@ -161,21 +163,26 @@ export default function AddWhiskyPage({
   }
 
   const proceedToNextStep = async () => {
+    if (checkingBarcode) return
     const value = barcode?.trim()
     if (!value) {
       setStep('label')
       return
     }
-
-    const exists = await checkBarcodeExistence(value)
-    if (exists) {
-      setBarcodeExists(true)
-      setImage('')
-      stopScanning()
-      setStep('scan')
-    } else {
-      setBarcodeExists(false)
-      setStep('label')
+    setCheckingBarcode(true)
+    try {
+      const exists = await checkBarcodeExistence(value)
+      if (exists) {
+        setBarcodeExists(true)
+        setImage('')
+        stopScanning()
+        setStep('scan')
+      } else {
+        setBarcodeExists(false)
+        setStep('label')
+      }
+    } finally {
+      setCheckingBarcode(false)
     }
   }
 
@@ -237,6 +244,7 @@ export default function AddWhiskyPage({
 
   const handleCreateWhisky = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (creatingWhisky) return
     setCreateError('')
     setCreateStatus(null)
     if (!session?.user?.id) {
@@ -281,29 +289,34 @@ export default function AddWhiskyPage({
     upload.append('whisky_data', JSON.stringify(payload))
     upload.append('bottle_image', bottleFile)
 
-    const res = await fetch('/api/whisky/create', {
-      method: 'POST',
-      body: upload,
-    })
-    const json = await res.json()
-    if (!res.ok) {
-      if (json?.code === 'DUPLICATE') {
-        setCreateStatus('duplicate')
-        setStep('exists')
+    setCreatingWhisky(true)
+    try {
+      const res = await fetch('/api/whisky/create', {
+        method: 'POST',
+        body: upload,
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        if (json?.code === 'DUPLICATE') {
+          setCreateStatus('duplicate')
+          setStep('exists')
+          return
+        }
+        setCreateError(json?.error || 'Erreur serveur')
         return
       }
-      setCreateError(json?.error || 'Erreur serveur')
-      return
-    }
 
-    setCreateStatus('success')
-    setCreatedWhisky({
-      id: json?.id,
-      name: payload.name,
-      imageUrl: json?.bottleImageUrl || bottlePreview || null,
-    })
-    trackEvent('whisky_created', { whisky_id: json?.id })
-    setStep('exists')
+      setCreateStatus('success')
+      setCreatedWhisky({
+        id: json?.id,
+        name: payload.name,
+        imageUrl: json?.bottleImageUrl || bottlePreview || null,
+      })
+      trackEvent('whisky_created', { whisky_id: json?.id })
+      setStep('exists')
+    } finally {
+      setCreatingWhisky(false)
+    }
   }
 
   if (status === 'unauthenticated') {
@@ -452,11 +465,11 @@ export default function AddWhiskyPage({
                   </div>
                   <button
                     onClick={proceedToNextStep}
-                    disabled={!barcode?.trim()}
+                    disabled={!barcode?.trim() || checkingBarcode}
                     className="px-6 py-3 text-white rounded-lg disabled:opacity-50"
                     style={{ backgroundColor: 'var(--color-primary)' }}
                   >
-                    {t('whisky.verifyBarcode')}
+                    {checkingBarcode ? t('common.loading') : t('whisky.verifyBarcode')}
                   </button>
 
                   <hr className="my-6 border-gray-200" />
@@ -632,9 +645,9 @@ export default function AddWhiskyPage({
                     type="submit"
                     className="px-6 py-2 text-white rounded-lg"
                     style={{ backgroundColor: 'var(--color-primary)' }}
-                    disabled={status !== 'authenticated'}
+                    disabled={status !== 'authenticated' || creatingWhisky}
                   >
-                    {t('whisky.createWhisky')}
+                    {creatingWhisky ? t('common.saving') : t('whisky.createWhisky')}
                   </button>
                 </form>
               )}
