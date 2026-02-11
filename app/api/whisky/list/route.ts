@@ -123,6 +123,8 @@ export async function GET(request: NextRequest) {
         id: whiskies.id,
         name: whiskies.name,
         bottleImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
+        avgRating: whiskyAnalyticsCache.avgRating,
+        totalReviews: whiskyAnalyticsCache.totalReviews,
         distillerName: distillers.name,
         bottlerName: bottlers.name,
         countryName: countries.name,
@@ -158,8 +160,26 @@ export async function GET(request: NextRequest) {
       .limit(pageSize)
       .offset(offset)
 
-    const items = rows.map((row) => ({
+    type WhiskyListRow = {
+      id: string
+      name: string
+      bottleImageUrl: string | null
+      avgRating: number | string | null
+      totalReviews: number | string | null
+      distillerName: string | null
+      bottlerName: string | null
+      countryName: string | null
+      countryNameFr: string | null
+      type: string | null
+      age: number | null
+      region: string | null
+      alcoholVolume: number | null
+    }
+
+    const items = (rows as WhiskyListRow[]).map((row: WhiskyListRow) => ({
       ...row,
+      avgRating: row.avgRating === null || row.avgRating === undefined ? null : Number(row.avgRating),
+      totalReviews: row.totalReviews === null || row.totalReviews === undefined ? 0 : Number(row.totalReviews),
       countryName: locale === 'fr' ? row.countryNameFr || row.countryName : row.countryName,
     }))
 

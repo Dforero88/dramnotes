@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, Number(searchParams.get('page') || '1'))
   const pageSize = Math.max(1, Math.min(24, Number(searchParams.get('pageSize') || '12')))
   const offset = (page - 1) * pageSize
+  const sort = (searchParams.get('sort') || 'created_desc').trim()
 
   if (!userId) {
     return NextResponse.json({ error: 'userId missing' }, { status: 400 })
@@ -43,11 +44,22 @@ export async function GET(request: NextRequest) {
   const total = Number(countRes?.[0]?.count || 0)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
+  let orderBy = sql`${tastingNotes.createdAt} desc`
+  if (sort === 'created_asc') {
+    orderBy = sql`${tastingNotes.createdAt} asc`
+  } else if (sort === 'rating_desc') {
+    orderBy = sql`${tastingNotes.rating} desc, ${tastingNotes.createdAt} desc`
+  } else if (sort === 'rating_asc') {
+    orderBy = sql`${tastingNotes.rating} asc, ${tastingNotes.createdAt} desc`
+  }
+
   const notes = await db
     .select({
       id: tastingNotes.id,
       tastingDate: tastingNotes.tastingDate,
       rating: tastingNotes.rating,
+      latitude: tastingNotes.latitude,
+      longitude: tastingNotes.longitude,
       whiskyId: tastingNotes.whiskyId,
       whiskyName: whiskies.name,
       distillerName: distillers.name,
@@ -67,7 +79,7 @@ export async function GET(request: NextRequest) {
     .leftJoin(bottlers, eq(whiskies.bottlerId, bottlers.id))
     .leftJoin(countries, eq(whiskies.countryId, countries.id))
     .where(isMysql ? sql`binary ${tastingNotes.userId} = binary ${user.id}` : eq(tastingNotes.userId, user.id))
-    .orderBy(sql`${tastingNotes.tastingDate} desc`)
+    .orderBy(orderBy)
     .limit(pageSize)
     .offset(offset)
 
@@ -75,6 +87,8 @@ export async function GET(request: NextRequest) {
     id: string
     tastingDate: string
     rating: number | null
+    latitude: number | null
+    longitude: number | null
     whiskyId: string
     whiskyName: string | null
     distillerName: string | null

@@ -348,7 +348,7 @@ export default function TastingNotesSection({
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8">
+      <div className="space-y-8">
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold">{t('tasting.myNoteTitle')}</h3>
@@ -533,7 +533,7 @@ export default function TastingNotesSection({
               </Link>
             </div>
           )}
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {others.map((note) => {
               const pseudo = note.pseudo || 'User'
               const avatar = buildAvatar(pseudo)

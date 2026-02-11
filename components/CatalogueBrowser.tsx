@@ -9,6 +9,8 @@ type WhiskyCard = {
   id: string
   name: string
   bottleImageUrl?: string | null
+  avgRating?: number | null
+  totalReviews?: number | null
   distillerName?: string | null
   bottlerName?: string | null
   countryName?: string | null
@@ -462,6 +464,18 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
                     <div className="text-xs text-gray-500">
                       {[item.type, item.countryName].filter(Boolean).join(' • ')}
                     </div>
+                    {(typeof item.avgRating === 'number' || Number(item.totalReviews || 0) > 0) && (
+                      <div className="pt-1 flex flex-wrap items-center gap-2">
+                        {typeof item.avgRating === 'number' && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-xs font-semibold">
+                            ★ {item.avgRating.toFixed(1)}/10
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-500">
+                          {Number(item.totalReviews || 0)} {t('catalogue.notesCount')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </Link>
               )

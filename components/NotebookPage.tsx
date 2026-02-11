@@ -6,6 +6,7 @@ import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics-client'
+import NotebookNotesMap from '@/components/NotebookNotesMap'
 
 type Summary = {
   user: { id: string; pseudo: string; visibility: 'public' | 'private' }
@@ -27,6 +28,8 @@ type NoteCard = {
   type: string | null
   countryName: string | null
   bottleImageUrl: string | null
+  latitude: number | null
+  longitude: number | null
   tags: string[]
   extraTagsCount: number
 }
@@ -74,12 +77,16 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loadingSummary, setLoadingSummary] = useState(true)
   const [activeTab, setActiveTab] = useState<'notes' | 'followers' | 'following' | 'aroma'>('notes')
+  const [notesView, setNotesView] = useState<'list' | 'map'>('list')
+  const [notesSort, setNotesSort] = useState<'created_desc' | 'created_asc' | 'rating_desc' | 'rating_asc'>('created_desc')
   const [shareNotice, setShareNotice] = useState<string | null>(null)
 
   const [notes, setNotes] = useState<NoteCard[]>([])
   const [notesPage, setNotesPage] = useState(1)
   const [notesPages, setNotesPages] = useState(1)
   const [loadingNotes, setLoadingNotes] = useState(false)
+  const [mapNotes, setMapNotes] = useState<NoteCard[]>([])
+  const [loadingMapNotes, setLoadingMapNotes] = useState(false)
 
   const [followers, setFollowers] = useState<UserCard[]>([])
   const [followersPage, setFollowersPage] = useState(1)
@@ -100,7 +107,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   } | null>(null)
   const [loadingAroma, setLoadingAroma] = useState(false)
 
-  const hideSocial = useMemo(() => {
+  const hideSocialTabs = useMemo(() => {
     if (!summary) return false
     return summary.isOwner && summary.user.visibility !== 'public'
   }, [summary])
@@ -134,7 +141,10 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     setLoadingSummary(false)
   }
 
-  const loadNotes = async (page = notesPage) => {
+  const loadNotes = async (
+    page = notesPage,
+    sort: 'created_desc' | 'created_asc' | 'rating_desc' | 'rating_asc' = notesSort
+  ) => {
     if (!summary?.user?.id) return
     setLoadingNotes(true)
     const params = new URLSearchParams()
@@ -142,11 +152,26 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     params.set('page', String(page))
     params.set('pageSize', '12')
     params.set('lang', locale)
+    params.set('sort', sort)
     const res = await fetch(`/api/notebook/notes?${params.toString()}`, { cache: 'no-store' })
     const json = await res.json()
     setNotes(json.items || [])
     setNotesPages(json.totalPages || 1)
     setLoadingNotes(false)
+  }
+
+  const loadMapNotes = async () => {
+    if (!summary?.user?.id) return
+    setLoadingMapNotes(true)
+    const params = new URLSearchParams()
+    params.set('userId', summary.user.id)
+    params.set('page', '1')
+    params.set('pageSize', '200')
+    params.set('lang', locale)
+    const res = await fetch(`/api/notebook/notes?${params.toString()}`, { cache: 'no-store' })
+    const json = await res.json()
+    setMapNotes(json.items || [])
+    setLoadingMapNotes(false)
   }
 
   const loadFollowers = async (page = followersPage) => {
@@ -201,15 +226,27 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
 
   useEffect(() => {
     if (!summary || summary.private) return
+    if (notesView !== 'list') return
+    setNotesPage(1)
     loadNotes(1)
-  }, [summary?.user?.id])
+  }, [summary?.user?.id, notesSort, notesView])
 
   useEffect(() => {
     if (!summary || summary.private) return
+    if (activeTab !== 'notes' || notesView !== 'map') return
+    loadMapNotes()
+  }, [summary?.user?.id, activeTab, notesView, locale])
+
+  useEffect(() => {
+    if (!summary || summary.private) return
+    if (hideSocialTabs && (activeTab === 'followers' || activeTab === 'following')) {
+      setActiveTab('notes')
+      return
+    }
     if (activeTab === 'followers') loadFollowers(1)
     if (activeTab === 'following') loadFollowing(1)
     if (activeTab === 'aroma') loadAroma()
-  }, [activeTab, summary?.user?.id])
+  }, [activeTab, summary?.user?.id, hideSocialTabs])
 
   useEffect(() => {
     if (!summary || summary.private) return
@@ -220,6 +257,15 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
       profile_pseudo: summary.user.pseudo,
     })
   }, [activeTab, summary?.user?.id])
+
+  useEffect(() => {
+    if (!summary || summary.private) return
+    if (activeTab !== 'notes' || notesView !== 'map') return
+    trackEvent('notebook_notes_map_viewed', {
+      viewer_is_owner: summary.isOwner,
+      profile_pseudo: summary.user.pseudo,
+    })
+  }, [activeTab, notesView, summary?.user?.id])
 
   const toggleFollow = async (targetUserId: string) => {
     const res = await fetch('/api/follow', {
@@ -384,7 +430,16 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
               <div className="text-sm text-gray-600">{t('notebook.notesCount')}</div>
             </button>
 
-            {!hideSocial && (
+            <button
+              onClick={() => setActiveTab('aroma')}
+              className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'aroma' ? 'border-transparent' : 'border-gray-200'}`}
+              style={activeTab === 'aroma' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
+            >
+              <div className="text-2xl font-semibold text-gray-900">✦</div>
+              <div className="text-sm text-gray-600">{t('notebook.aromaTitle')}</div>
+            </button>
+
+            {!hideSocialTabs && (
               <>
                 <button
                   onClick={() => setActiveTab('followers')}
@@ -402,15 +457,6 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                   <div className="text-2xl font-semibold text-gray-900">{summary.counts.following}</div>
                   <div className="text-sm text-gray-600">{t('notebook.followingCount')}</div>
                 </button>
-
-                <button
-                  onClick={() => setActiveTab('aroma')}
-                  className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'aroma' ? 'border-transparent' : 'border-gray-200'}`}
-                  style={activeTab === 'aroma' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
-                >
-                  <div className="text-2xl font-semibold text-gray-900">✦</div>
-                  <div className="text-sm text-gray-600">{t('notebook.aromaTitle')}</div>
-                </button>
               </>
             )}
           </div>
@@ -419,7 +465,59 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
         <div className="mt-8">
           {activeTab === 'notes' && (
             <div>
-              {loadingNotes ? (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-1">
+                  <button
+                    onClick={() => setNotesView('list')}
+                    className={`px-3 py-1.5 rounded-full text-sm transition ${notesView === 'list' ? 'text-white' : 'text-gray-700'}`}
+                    style={notesView === 'list' ? { backgroundColor: 'var(--color-primary)' } : {}}
+                  >
+                    {t('notebook.notesListView')}
+                  </button>
+                  <button
+                    onClick={() => setNotesView('map')}
+                    className={`px-3 py-1.5 rounded-full text-sm transition ${notesView === 'map' ? 'text-white' : 'text-gray-700'}`}
+                    style={notesView === 'map' ? { backgroundColor: 'var(--color-primary)' } : {}}
+                  >
+                    {t('notebook.notesMapView')}
+                  </button>
+                </div>
+                {notesView === 'list' && (
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="notes-sort" className="text-sm text-gray-600">
+                      {t('notebook.notesSortLabel')}
+                    </label>
+                    <select
+                      id="notes-sort"
+                      value={notesSort}
+                      onChange={(e) => {
+                        setNotesPage(1)
+                        setNotesSort(e.target.value as typeof notesSort)
+                      }}
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="created_desc">{t('notebook.notesSortCreatedDesc')}</option>
+                      <option value="created_asc">{t('notebook.notesSortCreatedAsc')}</option>
+                      <option value="rating_desc">{t('notebook.notesSortRatingDesc')}</option>
+                      <option value="rating_asc">{t('notebook.notesSortRatingAsc')}</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {notesView === 'map' ? (
+                loadingMapNotes ? (
+                  <div className="text-sm text-gray-500">{t('common.loading')}</div>
+                ) : mapNotes.filter((n) => n.latitude !== null && n.longitude !== null).length === 0 ? (
+                  <div className="text-sm text-gray-600">{t('notebook.noGeoNotes')}</div>
+                ) : (
+                  <NotebookNotesMap
+                    notes={mapNotes}
+                    locale={locale}
+                    viewWhiskyLabel={t('map.viewWhisky')}
+                  />
+                )
+              ) : loadingNotes ? (
                 <div className="text-sm text-gray-500">{t('common.loading')}</div>
               ) : notes.length === 0 ? (
                 <div className="text-sm text-gray-600">{t('notebook.noNotes')}</div>
@@ -458,9 +556,13 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                                 {typeLine}
                               </div>
                             )}
-                            <div className="text-sm text-gray-600">
-                              {t('notebook.ratingLabel')} {note.rating ?? '-'} / 10
-                            </div>
+                            {typeof note.rating === 'number' && (
+                              <div>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-xs font-semibold">
+                                  ★ {note.rating}/10
+                                </span>
+                              </div>
+                            )}
                             <div className="flex flex-wrap gap-2">
                               {note.tags.map((tag) => (
                                 <span key={tag} className="px-3 py-1 rounded-full text-xs border border-gray-200 bg-white">
@@ -510,7 +612,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
             </div>
           )}
 
-          {activeTab === 'followers' && !hideSocial && (
+          {activeTab === 'followers' && !hideSocialTabs && (
             <div>
               {loadingFollowers ? (
                 <div className="text-sm text-gray-500">{t('common.loading')}</div>
@@ -588,7 +690,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
             </div>
           )}
 
-          {activeTab === 'following' && !hideSocial && (
+          {activeTab === 'following' && !hideSocialTabs && (
             <div>
               {loadingFollowing ? (
                 <div className="text-sm text-gray-500">{t('common.loading')}</div>
@@ -666,7 +768,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
             </div>
           )}
 
-          {activeTab === 'aroma' && !hideSocial && (
+          {activeTab === 'aroma' && (
             <div>
               {loadingAroma ? (
                 <div className="text-sm text-gray-500">{t('common.loading')}</div>
