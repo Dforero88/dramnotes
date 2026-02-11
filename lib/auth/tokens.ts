@@ -13,13 +13,19 @@ export interface ConfirmationTokenPayload {
   userId: string
   email: string
   pseudo: string
+  locale?: 'fr' | 'en'
 }
 
-export function generateConfirmationToken(userId: string, email: string, pseudo: string): string {
+export function generateConfirmationToken(
+  userId: string,
+  email: string,
+  pseudo: string,
+  locale: 'fr' | 'en' = 'fr'
+): string {
   const secret = getJwtSecret()
   if (!secret) return ''
   return jwt.sign(
-    { userId, email, pseudo },
+    { userId, email, pseudo, locale },
     secret,
     { expiresIn: TOKEN_EXPIRY }
   )

@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     }
     
     const { pseudo, email, password, acceptedTerms } = validationResult.data
+    const locale = body?.locale === 'en' ? 'en' : 'fr'
     if (!acceptedTerms) {
       return NextResponse.json({ error: 'Veuillez accepter la politique de confidentialité.' }, { status: 400 })
     }
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     
     // 5. Générer ID et token
     const userId = generateId()
-    const confirmationToken = generateConfirmationToken(userId, safeEmail, safePseudo)
+    const confirmationToken = generateConfirmationToken(userId, safeEmail, safePseudo, locale)
     if (!confirmationToken) {
       return NextResponse.json(
         { error: 'JWT_SECRET manquant dans les variables d\'environnement' },
@@ -115,8 +116,8 @@ export async function POST(request: NextRequest) {
     const confirmationUrl = `${process.env.APP_URL}/api/auth/confirm?token=${confirmationToken}`
     const emailSent = await sendEmail({
       to: email,
-      subject: 'Confirmez votre compte DramNotes',
-      html: getConfirmationEmailTemplate(pseudo, confirmationUrl),
+      subject: locale === 'en' ? 'Confirm your DramNotes account' : 'Confirmez votre compte DramNotes',
+      html: getConfirmationEmailTemplate(pseudo, confirmationUrl, locale),
     })
     
     if (!emailSent) {

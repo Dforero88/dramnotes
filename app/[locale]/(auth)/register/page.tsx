@@ -9,7 +9,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { trackEvent } from '@/lib/analytics-client'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
 
 // Schéma de validation
@@ -45,7 +44,6 @@ export default function RegisterPage({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const router = useRouter()
   
   // params est déjà un objet, pas besoin de .then()
   const { locale } = params
@@ -76,7 +74,7 @@ export default function RegisterPage({
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, locale }),
       })
       
       const result = await response.json()
@@ -91,9 +89,6 @@ export default function RegisterPage({
       } else {
         trackEvent('account_created')
       }
-      setTimeout(() => {
-        router.push(`/${locale}/login`)
-      }, 3000)
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue')

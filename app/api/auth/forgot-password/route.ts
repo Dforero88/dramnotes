@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db, users } from '@/lib/db'
 import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
-import { sendEmail } from '@/lib/email/sender'
+import { getResetPasswordEmailTemplate, sendEmail } from '@/lib/email/sender'
 import { getJwtSecret } from '@/lib/auth/tokens'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
@@ -21,11 +21,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { email } = await request.json()
+    const { email, locale: requestedLocale } = await request.json()
+    const locale = requestedLocale === 'en' ? 'en' : 'fr'
     
     if (!email) {
       return NextResponse.json(
-        { error: 'Email requis' },
+        { error: locale === 'en' ? 'Email required' : 'Email requis' },
         { status: 400 }
       )
     }
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (userResult.length === 0) {
       // Pour la sécurité, on ne révèle pas si l'email existe
       return NextResponse.json(
-        { success: true, message: 'Si cet email existe, vous recevrez un lien' }
+        { success: true, message: locale === 'en' ? 'If this email exists, you will receive a link' : 'Si cet email existe, vous recevrez un lien' }
       )
     }
     
@@ -72,22 +73,17 @@ export async function POST(request: NextRequest) {
       .where(eq(users.id, user.id))
     
     // Envoyer email
-      const resetUrl = `${process.env.APP_URL}/fr/reset-password?token=${resetToken}`
+    const resetUrl = `${process.env.APP_URL}/${locale}/reset-password?token=${resetToken}`
 
     await sendEmail({
       to: email,
-      subject: 'Réinitialiser votre mot de passe DramNotes',
-      html: `
-        <h2>Réinitialisation de mot de passe</h2>
-        <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe :</p>
-        <a href="${resetUrl}">${resetUrl}</a>
-        <p>Ce lien expire dans 30 minutes.</p>
-      `
+      subject: locale === 'en' ? 'Reset your DramNotes password' : 'Réinitialiser votre mot de passe DramNotes',
+      html: getResetPasswordEmailTemplate(user.pseudo || 'there', resetUrl, locale),
     })
     
     return NextResponse.json({
       success: true,
-      message: 'Si cet email existe, vous recevrez un lien'
+      message: locale === 'en' ? 'If this email exists, you will receive a link' : 'Si cet email existe, vous recevrez un lien'
     })
     
   } catch (error) {

@@ -7,6 +7,8 @@ export interface EmailOptions {
   text?: string
 }
 
+type EmailLocale = 'fr' | 'en'
+
 // Configuration SMTP Infomaniak
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'mail.infomaniak.com',
@@ -57,49 +59,128 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   }
 }
 
-// Template d'email de confirmation
-export function getConfirmationEmailTemplate(
-  pseudo: string,
-  confirmationUrl: string
-): string {
+function buildEmailLayout(content: string, locale: EmailLocale): string {
+  const preheader =
+    locale === 'fr'
+      ? 'Confirmez votre compte DramNotes'
+      : 'Confirm your DramNotes account'
+
   return `
 <!DOCTYPE html>
-<html>
+<html lang="${locale}">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #8B4513; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-    .button { display: inline-block; background: #D4A76A; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; }
-    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #777; }
+    body { margin:0; padding:0; background:#f8fafc; font-family: Arial, sans-serif; color:#111827; }
+    .wrapper { width:100%; padding:24px 12px; box-sizing:border-box; }
+    .card { max-width:620px; margin:0 auto; background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden; }
+    .header { background:#2A0F14; color:#ffffff; padding:24px; text-align:center; }
+    .brand { margin:0; font-size:28px; font-weight:700; letter-spacing:0.4px; }
+    .subtitle { margin:6px 0 0 0; font-size:14px; color:#f5e9eb; }
+    .content { padding:28px 24px; line-height:1.55; }
+    .buttonWrap { text-align:center; margin:26px 0; }
+    .button { display:inline-block; text-decoration:none; border-radius:999px; background:#2A0F14; color:#ffffff !important; font-weight:600; padding:12px 22px; font-size:14px; }
+    .muted { color:#6b7280; font-size:13px; }
+    .footer { border-top:1px solid #e5e7eb; padding:18px 24px; color:#6b7280; font-size:12px; }
+    .linkBox { margin-top:10px; word-break:break-all; font-size:12px; color:#4b5563; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>DramNotes</h1>
-      <p>Votre carnet de dégustation de whisky</p>
-    </div>
-    <div class="content">
-      <h2>Bonjour ${pseudo} !</h2>
-      <p>Merci de vous être inscrit sur DramNotes. Pour commencer à utiliser votre compte, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous :</p>
-      
-      <p style="text-align: center; margin: 40px 0;">
-        <a href="${confirmationUrl}" class="button">Confirmer mon compte</a>
-      </p>
-      
-      <p>Ce lien expirera dans 30 minutes. Si vous ne l'avez pas demandé, vous pouvez ignorer cet email.</p>
-      
-      <p>À bientôt sur DramNotes ! 🥃</p>
-    </div>
-    <div class="footer">
-      <p>© ${new Date().getFullYear()} DramNotes. Tous droits réservés.</p>
-      <p>Si le bouton ne fonctionne pas, copiez ce lien : ${confirmationUrl}</p>
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${preheader}</div>
+  <div class="wrapper">
+    <div class="card">
+      <div class="header">
+        <h1 class="brand">DramNotes</h1>
+        <p class="subtitle">${locale === 'fr' ? 'Votre carnet de dégustation' : 'Your tasting notebook'}</p>
+      </div>
+      ${content}
     </div>
   </div>
 </body>
 </html>
-  `
+`
+}
+
+// Template d'email de confirmation
+export function getConfirmationEmailTemplate(
+  pseudo: string,
+  confirmationUrl: string,
+  locale: EmailLocale = 'fr'
+): string {
+  const content =
+    locale === 'fr'
+      ? `
+      <div class="content">
+        <h2 style="margin:0 0 10px 0; font-size:22px;">Bonjour ${pseudo},</h2>
+        <p>Merci pour votre inscription sur DramNotes.</p>
+        <p>Confirmez votre adresse email pour activer votre compte :</p>
+        <div class="buttonWrap">
+          <a href="${confirmationUrl}" class="button">Confirmer mon compte</a>
+        </div>
+        <p class="muted">Ce lien expire dans 30 minutes. Si vous n’êtes pas à l’origine de cette demande, ignorez cet email.</p>
+      </div>
+      <div class="footer">
+        <div>© ${new Date().getFullYear()} DramNotes</div>
+        <div class="linkBox">${confirmationUrl}</div>
+      </div>
+    `
+      : `
+      <div class="content">
+        <h2 style="margin:0 0 10px 0; font-size:22px;">Hi ${pseudo},</h2>
+        <p>Thanks for joining DramNotes.</p>
+        <p>Please confirm your email address to activate your account:</p>
+        <div class="buttonWrap">
+          <a href="${confirmationUrl}" class="button">Confirm my account</a>
+        </div>
+        <p class="muted">This link expires in 30 minutes. If this wasn’t you, you can ignore this email.</p>
+      </div>
+      <div class="footer">
+        <div>© ${new Date().getFullYear()} DramNotes</div>
+        <div class="linkBox">${confirmationUrl}</div>
+      </div>
+    `
+
+  return buildEmailLayout(content, locale)
+}
+
+export function getResetPasswordEmailTemplate(
+  pseudo: string,
+  resetUrl: string,
+  locale: EmailLocale = 'fr'
+): string {
+  const content =
+    locale === 'fr'
+      ? `
+      <div class="content">
+        <h2 style="margin:0 0 10px 0; font-size:22px;">Bonjour ${pseudo},</h2>
+        <p>Vous avez demandé une réinitialisation de mot de passe.</p>
+        <p>Utilisez le bouton ci-dessous pour définir un nouveau mot de passe :</p>
+        <div class="buttonWrap">
+          <a href="${resetUrl}" class="button">Réinitialiser le mot de passe</a>
+        </div>
+        <p class="muted">Ce lien expire dans 30 minutes. Si vous n’êtes pas à l’origine de cette demande, ignorez cet email.</p>
+      </div>
+      <div class="footer">
+        <div>© ${new Date().getFullYear()} DramNotes</div>
+        <div class="linkBox">${resetUrl}</div>
+      </div>
+    `
+      : `
+      <div class="content">
+        <h2 style="margin:0 0 10px 0; font-size:22px;">Hi ${pseudo},</h2>
+        <p>You requested a password reset.</p>
+        <p>Use the button below to set a new password:</p>
+        <div class="buttonWrap">
+          <a href="${resetUrl}" class="button">Reset password</a>
+        </div>
+        <p class="muted">This link expires in 30 minutes. If this wasn’t you, you can ignore this email.</p>
+      </div>
+      <div class="footer">
+        <div>© ${new Date().getFullYear()} DramNotes</div>
+        <div class="linkBox">${resetUrl}</div>
+      </div>
+    `
+
+  return buildEmailLayout(content, locale)
 }

@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    const { userId, email } = decoded
+    const { userId } = decoded
+    const locale = decoded.locale === 'en' ? 'en' : 'fr'
     
     // 2. Chercher l'utilisateur
     const userResult = await db
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
     
     // 5. Vérifier si déjà confirmé
     if (user.confirmedAt) {
-      return NextResponse.redirect(`${process.env.APP_URL}/fr/already-confirmed`)
+      return NextResponse.redirect(`${process.env.APP_URL}/${locale}/already-confirmed`)
     }
     
     // 6. Confirmer le compte - CORRECTION : utiliser Date
@@ -78,7 +79,6 @@ export async function GET(request: NextRequest) {
       .where(eq(users.id, userId))
     
     // 7. Rediriger
-    const locale = 'fr'
     return NextResponse.redirect(`${process.env.APP_URL}/${locale}/confirmed`)
     
   } catch (error: any) {
