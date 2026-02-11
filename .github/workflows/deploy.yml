@@ -46,4 +46,4 @@ jobs:
         run: |
           sshpass -p "${{ secrets.INFOMANIAK_PASSWORD }}" rsync -az --delete --partial --inplace \
             -e "ssh -p ${{ secrets.INFOMANIAK_PORT }} -o StrictHostKeyChecking=no" \
-            .next/ ${{ secrets.INFOMANIAK_USER }}@${{ secrets.INFOMANIAK_HOST }}:/srv/customer/sites/app.dramnotes.com/.next/
+            .next/ ${{ secrets.INFOMANIAK_USER }}@${{ secrets.INFOMANIAK_HOST }}:/srv/customer/sites/dramnotes.com/.next/
