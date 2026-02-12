@@ -180,12 +180,6 @@ export default function Navigation() {
               {t('navigation.explorer')}
             </Link>
             <Link 
-              href={`/${locale}/map`} 
-              className="text-primary-light hover:text-white py-2 transition-colors"
-            >
-              {t('navigation.map')}
-            </Link>
-            <Link 
               href={`/${locale}/account`} 
               className="text-primary-light hover:text-white py-2 transition-colors"
             >
@@ -220,9 +214,6 @@ export default function Navigation() {
             </Link>
             <Link href={`/${locale}/explorer`} className="block text-primary" onClick={() => setMobileOpen(false)}>
               {t('navigation.explorer')}
-            </Link>
-            <Link href={`/${locale}/map`} className="block text-primary" onClick={() => setMobileOpen(false)}>
-              {t('navigation.map')}
             </Link>
             <Link href={`/${locale}/account`} className="block text-primary" onClick={() => setMobileOpen(false)}>
               {t('navigation.myAccount')}

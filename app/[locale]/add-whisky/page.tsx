@@ -397,25 +397,30 @@ export default function AddWhiskyPage({
               {/* Étape 1: Code-barres */}
               {step === 'scan' && (
                 <div className="space-y-6">
-                  <div className="text-center">
+                  <div>
                     <h2 className="text-2xl font-bold mb-4">{t('whisky.step1Title')}</h2>
                     {barcodeExists && (
                       <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
                         {t('whisky.barcodeExists')}
                       </div>
                     )}
-                    <button
-                      onClick={() => {
-                        setImage('')
-                        setScanError('')
-                        startScanning()
-                      }}
-                      className="px-8 py-4 text-white rounded-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: 'var(--color-primary)' }}
-                      disabled={!quaggaLoaded}
-                    >
-                      {quaggaLoaded ? t('whisky.openCamera') : t('whisky.loadingScanner')}
-                    </button>
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
+                      <button
+                        onClick={() => {
+                          setImage('')
+                          setScanError('')
+                          startScanning()
+                        }}
+                        className="px-8 py-4 text-white rounded-lg text-lg disabled:opacity-50"
+                        style={{ backgroundColor: 'var(--color-primary)' }}
+                        disabled={!quaggaLoaded}
+                      >
+                        {quaggaLoaded ? t('whisky.openCamera') : t('whisky.loadingScanner')}
+                      </button>
+                      <div className="text-sm text-gray-500">
+                        {t('whisky.manualBarcodeHint')}
+                      </div>
+                    </div>
                   </div>
 
                   {isScanning && (
@@ -501,15 +506,17 @@ export default function AddWhiskyPage({
                 <div className="space-y-6">
                   <h2 className="text-2xl font-bold">{t('whisky.step2Title')}</h2>
                   <p className="text-gray-600">{t('whisky.step2Subtitle')}</p>
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('label-image')?.click()}
-                      className="px-6 py-3 text-white rounded-lg"
-                      style={{ backgroundColor: 'var(--color-primary)' }}
-                    >
-                      {t('whisky.takeLabelPhoto')}
-                    </button>
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('label-image')?.click()}
+                        className="px-6 py-3 text-white rounded-lg"
+                        style={{ backgroundColor: 'var(--color-primary)' }}
+                      >
+                        {t('whisky.takeLabelPhoto')}
+                      </button>
+                    </div>
                     <input
                       type="file"
                       accept="image/*"
@@ -521,25 +528,26 @@ export default function AddWhiskyPage({
                         if (file) onLabelSelected(file)
                       }}
                     />
+                    {labelImage ? (
+                      <img src={labelImage} className="max-w-full rounded-lg" alt="Label" />
+                    ) : (
+                      <div className="text-sm text-gray-500">
+                        {t('whisky.labelPhotoRequired')}
+                      </div>
+                    )}
                   </div>
-                  {labelImage && (
-                    <img src={labelImage} className="max-w-full rounded-lg" alt="Label" />
-                  )}
-                  {ocrError && <p className="text-red-600">{ocrError}</p>}
                   <button
                     onClick={() => {
-                      if (!labelFile) {
-                      setOcrError(t('whisky.labelPhotoRequired'))
-                      return
-                    }
-                    handleLabelProcess()
-                  }}
-                    disabled={ocrLoading}
-                    className="px-6 py-2 text-white rounded-lg disabled:cursor-not-allowed"
-                    style={{ backgroundColor: ocrLoading ? '#9ca3af' : 'var(--color-primary)' }}
+                      if (!labelFile) return
+                      handleLabelProcess()
+                    }}
+                    disabled={!labelFile || ocrLoading}
+                    className="px-6 py-3 text-white rounded-lg disabled:opacity-50"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
                   >
                     {ocrLoading ? t('whisky.ocrLoading') : t('whisky.ocrAnalyze')}
                   </button>
+                  {ocrError && <p className="text-red-600">{ocrError}</p>}
                 </div>
               )}
 
@@ -624,32 +632,36 @@ export default function AddWhiskyPage({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottlePhoto')}</label>
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('bottle-image')?.click()}
-                      className="px-6 py-3 text-white rounded-lg"
-                      style={{ backgroundColor: 'var(--color-primary)' }}
-                    >
-                      {t('whisky.takeBottlePhoto')}
-                    </button>
-                    <input
-                      id="bottle-image"
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => onBottleSelected(e.target.files?.[0] || null)}
-                    />
-                    {bottlePreview && (
-                      <img src={bottlePreview} className="mt-4 max-w-xs rounded-lg" alt="Bouteille" />
-                    )}
+                    <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('bottle-image')?.click()}
+                        className="px-6 py-3 text-white rounded-lg"
+                        style={{ backgroundColor: 'var(--color-primary)' }}
+                      >
+                        {t('whisky.takeBottlePhoto')}
+                      </button>
+                      <input
+                        id="bottle-image"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => onBottleSelected(e.target.files?.[0] || null)}
+                      />
+                      {bottlePreview ? (
+                        <img src={bottlePreview} className="max-w-xs rounded-lg" alt="Bouteille" />
+                      ) : (
+                        <div className="text-sm text-gray-500">{t('whisky.bottlePhotoRequired')}</div>
+                      )}
+                    </div>
                   </div>
                   {createError && <p className="text-red-600">{createError}</p>}
                   <button
                     type="submit"
-                    className="px-6 py-2 text-white rounded-lg disabled:cursor-not-allowed"
-                    style={{ backgroundColor: (status !== 'authenticated' || creatingWhisky) ? '#9ca3af' : 'var(--color-primary)' }}
-                    disabled={status !== 'authenticated' || creatingWhisky}
+                    className="px-6 py-2 text-white rounded-lg disabled:opacity-50"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                    disabled={status !== 'authenticated' || creatingWhisky || !bottleFile}
                   >
                     {creatingWhisky ? t('common.saving') : t('whisky.createWhisky')}
                   </button>
@@ -730,6 +742,7 @@ export default function AddWhiskyPage({
             margin-top: 8px;
             font-size: 14px;
             color: #6b7280;
+            font-family: var(--font-heading);
           }
           .step.active .step-label {
             color: var(--color-primary);
