@@ -27,6 +27,8 @@ export default function AddWhiskyPage({
     setBarcode,
     isScanning,
     isDetecting,
+    scannerAvailable,
+    scannerStatus,
     startScanning,
     stopScanning,
     captureImage,
@@ -38,7 +40,6 @@ export default function AddWhiskyPage({
 
   const [step, setStep] = useState<'scan' | 'label' | 'edit' | 'exists'>('scan')
   const [scanError, setScanError] = useState('')
-  const [quaggaLoaded, setQuaggaLoaded] = useState(false)
   const [labelImage, setLabelImage] = useState<string>('')
   const [labelFile, setLabelFile] = useState<File | null>(null)
   const [bottleFile, setBottleFile] = useState<File | null>(null)
@@ -129,29 +130,6 @@ export default function AddWhiskyPage({
     return match?.id || ''
   }
 
-  // Charge Quagga au montage
-  useEffect(() => {
-    // Vérifier si déjà chargé
-    if ((window as any).Quagga) {
-      setQuaggaLoaded(true)
-      return
-    }
-    
-    const script = document.createElement('script')
-    script.src = 'https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.7.7/dist/quagga.min.js'
-    script.async = true
-    
-    script.onload = () => {
-      setQuaggaLoaded(true)
-    }
-    
-    script.onerror = () => {
-      console.error('❌ Échec chargement Quagga')
-    }
-    
-    document.head.appendChild(script)
-  }, [])
-
   useEffect(() => {
     const loadCountries = async () => {
       try {
@@ -174,9 +152,9 @@ export default function AddWhiskyPage({
   const handleCropComplete = async (croppedImage: string) => {
     setImage(croppedImage)
     
-    if (!quaggaLoaded) {
+    if (!scannerAvailable) {
       setScanError(t('whisky.scanUnavailable'))
-      return;
+      return
     }
     
     // Affiche l'image cropée pour débogage
@@ -459,9 +437,13 @@ export default function AddWhiskyPage({
                         }}
                         className="px-8 py-4 text-white rounded-lg text-lg disabled:opacity-50"
                         style={{ backgroundColor: 'var(--color-primary)' }}
-                        disabled={!quaggaLoaded}
+                        disabled={!scannerAvailable}
                       >
-                        {quaggaLoaded ? t('whisky.openCamera') : t('whisky.loadingScanner')}
+                        {scannerAvailable
+                          ? t('whisky.openCamera')
+                          : scannerStatus === 'loading'
+                            ? t('whisky.loadingScanner')
+                            : t('whisky.scanUnavailable')}
                       </button>
                       <div className="text-sm text-gray-500">
                         {t('whisky.manualBarcodeHint')}
