@@ -10,6 +10,7 @@ import BarcodeCropper from '@/components/BarcodeCropper'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { useSession } from 'next-auth/react'
 import { trackEvent } from '@/lib/analytics-client'
+import { normalizeProducerName } from '@/lib/producer-name'
 
 export default function AddWhiskyPage({
   params
@@ -221,6 +222,12 @@ export default function AddWhiskyPage({
         throw new Error(json?.error || 'Erreur OCR')
       }
       const parsed = json.whisky_data || {}
+      if (parsed?.distiller && typeof parsed.distiller === 'string') {
+        parsed.distiller = normalizeProducerName(parsed.distiller)
+      }
+      if (parsed?.bottler && typeof parsed.bottler === 'string') {
+        parsed.bottler = normalizeProducerName(parsed.bottler)
+      }
       if (parsed?.type && typeof parsed.type === 'string') {
         parsed.type = mapTypeToOption(parsed.type)
       }
@@ -261,6 +268,12 @@ export default function AddWhiskyPage({
     formData.forEach((value, key) => {
       payload[key] = value
     })
+    if (typeof payload.distiller === 'string') {
+      payload.distiller = normalizeProducerName(payload.distiller)
+    }
+    if (typeof payload.bottler === 'string') {
+      payload.bottler = normalizeProducerName(payload.bottler)
+    }
     payload.ean13 = barcode || ''
     payload.added_by = session?.user?.id || ''
 

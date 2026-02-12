@@ -400,7 +400,7 @@ export default async function HomePage({
                       )}
                     </div>
                     <div>
-                      <div className="text-base font-semibold text-gray-900">{whisky.name}</div>
+                      <div className="text-base font-semibold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>{whisky.name}</div>
                       <div className="text-sm text-gray-500">
                         {t('home.addedRecently')}
                         {whisky.createdAt ? ` · ${new Date(whisky.createdAt).toLocaleDateString(locale)}` : ''}
@@ -416,15 +416,21 @@ export default async function HomePage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="text-2xl font-semibold text-gray-900">{Number(stats?.[0]?.totalWhiskies || 0)}</div>
-            <div className="text-sm text-gray-500 mt-1">{t('home.statsWhiskies')}</div>
+            <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
+              {t('home.statsWhiskies')}
+            </div>
           </div>
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="text-2xl font-semibold text-gray-900">{Number(noteStats?.[0]?.totalNotes || 0)}</div>
-            <div className="text-sm text-gray-500 mt-1">{t('home.statsNotes')}</div>
+            <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
+              {t('home.statsNotes')}
+            </div>
           </div>
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="text-2xl font-semibold text-gray-900">{Number(publicUsers?.[0]?.totalPublicUsers || 0)}</div>
-            <div className="text-sm text-gray-500 mt-1">{t('home.statsContributors')}</div>
+            <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
+              {t('home.statsContributors')}
+            </div>
           </div>
         </div>
 
@@ -477,7 +483,7 @@ export default async function HomePage({
                           </div>
                           <div className="min-w-0 flex-1 flex flex-col gap-1">
                             <div className="flex flex-wrap items-center gap-2 min-w-0">
-                              <div className="text-base font-semibold text-gray-900 min-w-0 flex-1 leading-tight break-words">
+                              <div className="text-base font-semibold text-gray-900 min-w-0 flex-1 leading-tight break-words" style={{ fontFamily: 'var(--font-heading)' }}>
                                 {activity.whiskyName || '—'}
                               </div>
                               {!isNewWhisky && activity.rating ? (

@@ -7,6 +7,7 @@ import fs from 'fs/promises'
 import { validateWhiskyName, validateDisplayName, sanitizeText } from '@/lib/moderation'
 import * as Sentry from '@sentry/nextjs'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
+import { normalizeProducerName } from '@/lib/producer-name'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,7 +113,8 @@ export async function POST(request: NextRequest) {
     let distillerId: string | null = null
     let distillerName: string | null = null
     if (data?.distiller && String(data.distiller).trim()) {
-      const check = await validateDisplayName(String(data.distiller), 80)
+      const normalizedDistiller = normalizeProducerName(String(data.distiller))
+      const check = await validateDisplayName(normalizedDistiller, 80)
       if (!check.ok) {
         return NextResponse.json({ error: check.message || 'Distilleur invalide' }, { status: 400 })
       }
@@ -133,7 +135,8 @@ export async function POST(request: NextRequest) {
     let bottlerId: string | null = null
     let bottlerName: string | null = null
     if (data?.bottler && String(data.bottler).trim()) {
-      const check = await validateDisplayName(String(data.bottler), 80)
+      const normalizedBottler = normalizeProducerName(String(data.bottler))
+      const check = await validateDisplayName(normalizedBottler, 80)
       if (!check.ok) {
         return NextResponse.json({ error: check.message || 'Embouteilleur invalide' }, { status: 400 })
       }
