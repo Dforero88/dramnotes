@@ -15,6 +15,8 @@ type DbSchema = {
   whiskyAnalyticsCache: any
   whiskyTagStats: any
   userAromaProfile: any
+  userTagStats: any
+  moderationTerms: any
 }
 
 const databaseUrl = process.env.DATABASE_URL || ''

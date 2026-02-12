@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const locale = (searchParams.get('lang') || 'fr').toLowerCase()
     const result = await db.select().from(countries)
-    const items = result.map((c) => ({
+    type CountryRow = { id: string; name: string; nameFr: string | null }
+    const items = (result as CountryRow[]).map((c: CountryRow) => ({
       ...c,
       displayName: locale === 'fr' ? c.nameFr || c.name : c.name,
     }))

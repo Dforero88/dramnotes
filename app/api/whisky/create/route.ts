@@ -109,8 +109,9 @@ export async function POST(request: NextRequest) {
       const uploadDir = path.join(uploadsRoot, relativePath)
       await fs.mkdir(uploadDir, { recursive: true })
       const filePath = path.join(uploadDir, filename)
-      const buffer = Buffer.from(await bottleImage.arrayBuffer())
-      let outputBuffer = buffer
+      const rawBuffer = await bottleImage.arrayBuffer()
+      const buffer = Buffer.from(new Uint8Array(rawBuffer))
+      let outputBuffer: Buffer = buffer
       try {
         const sharpModule = await import('sharp')
         const sharp = sharpModule.default || sharpModule
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
         const meta = await image.metadata()
         const maxDim = Math.max(meta.width || 0, meta.height || 0, 1200)
         const target = Math.min(1200, maxDim)
-        outputBuffer = await image
+        const processed = await image
           .resize({
             width: target,
             height: target,
@@ -127,6 +128,7 @@ export async function POST(request: NextRequest) {
           })
           .webp({ quality: 85 })
           .toBuffer()
+        outputBuffer = Buffer.from(processed)
       } catch (e) {
         // Fallback: store original if sharp is unavailable
       }

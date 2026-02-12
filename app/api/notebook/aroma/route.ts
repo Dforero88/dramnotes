@@ -70,6 +70,13 @@ export async function GET(request: NextRequest) {
     .from(userTagStats)
     .leftJoin(tagLang, and(eq(tagLang.tagId, userTagStats.tagId), eq(tagLang.lang, lang)))
     .where(isMysql ? sql`binary ${userTagStats.userId} = binary ${user.id}` : eq(userTagStats.userId, user.id))
+  type UserTagStatRow = {
+    tagId: string
+    section: 'nose' | 'palate' | 'finish'
+    avgScore: number | null
+    count: number | null
+    name: string | null
+  }
 
   const grouped = {
     nose: [] as { name: string; score: number; count: number }[],
@@ -77,7 +84,7 @@ export async function GET(request: NextRequest) {
     finish: [] as { name: string; score: number; count: number }[],
   }
 
-  statsRows.forEach((row) => {
+  ;(statsRows as UserTagStatRow[]).forEach((row: UserTagStatRow) => {
     if (!row.name) return
     if (row.section === 'nose') grouped.nose.push({ name: row.name, score: Number(row.avgScore || 0), count: Number(row.count || 0) })
     if (row.section === 'palate') grouped.palate.push({ name: row.name, score: Number(row.avgScore || 0), count: Number(row.count || 0) })
