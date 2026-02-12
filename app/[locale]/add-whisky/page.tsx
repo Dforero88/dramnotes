@@ -52,6 +52,47 @@ export default function AddWhiskyPage({
   const [barcodeExists, setBarcodeExists] = useState(false)
   const [checkingBarcode, setCheckingBarcode] = useState(false)
   const [creatingWhisky, setCreatingWhisky] = useState(false)
+
+  const getCreateWhiskyErrorMessage = (errorCode?: string, fallback?: string) => {
+    switch (errorCode) {
+      case 'RATE_LIMIT':
+        return t('whisky.errorRateLimit')
+      case 'MISSING_PAYLOAD':
+        return t('whisky.errorMissingPayload')
+      case 'NAME_REQUIRED':
+        return t('whisky.errorNameRequired')
+      case 'NAME_INVALID':
+        return t('whisky.errorNameInvalid')
+      case 'COUNTRY_REQUIRED':
+        return t('whisky.errorCountryRequired')
+      case 'BOTTLING_TYPE_REQUIRED':
+        return t('whisky.errorBottlingTypeRequired')
+      case 'BOTTLING_TYPE_INVALID':
+        return t('whisky.errorBottlingTypeInvalid')
+      case 'DISTILLER_REQUIRED_DB':
+        return t('whisky.errorDistillerRequiredDb')
+      case 'BOTTLER_REQUIRED_IB':
+        return t('whisky.errorBottlerRequiredIb')
+      case 'DISTILLER_INVALID':
+        return t('whisky.errorDistillerInvalid')
+      case 'BOTTLER_INVALID':
+        return t('whisky.errorBottlerInvalid')
+      case 'REGION_INVALID':
+        return t('whisky.errorRegionInvalid')
+      case 'TYPE_INVALID':
+        return t('whisky.errorTypeInvalid')
+      case 'BOTTLED_FOR_INVALID':
+        return t('whisky.errorBottledForInvalid')
+      case 'CASK_TYPE_INVALID':
+        return t('whisky.errorCaskTypeInvalid')
+      case 'BATCH_INVALID':
+        return t('whisky.errorBatchInvalid')
+      case 'SERVER_ERROR':
+        return t('whisky.errorServer')
+      default:
+        return fallback || t('whisky.errorServer')
+    }
+  }
   const [countries, setCountries] = useState<Array<{ id: string; name: string; nameFr?: string | null; displayName?: string | null }>>([])
 
   const typeOptions = [
@@ -256,11 +297,11 @@ export default function AddWhiskyPage({
     setCreateError('')
     setCreateStatus(null)
     if (!session?.user?.id) {
-      setCreateError('Vous devez être connecté pour ajouter un whisky')
+      setCreateError(t('whisky.errorAuthRequired'))
       return
     }
     if (!bottleFile) {
-      setCreateError('Veuillez ajouter une photo de la bouteille')
+      setCreateError(t('whisky.errorBottlePhotoRequired'))
       return
     }
 
@@ -279,23 +320,27 @@ export default function AddWhiskyPage({
     payload.added_by = session?.user?.id || ''
 
     if (!payload.name || String(payload.name).trim() === '') {
-      setCreateError('Le nom est obligatoire')
+      setCreateError(t('whisky.errorNameRequired'))
       return
     }
     if (!payload.type || String(payload.type).trim() === '') {
-      setCreateError('Le type est obligatoire')
+      setCreateError(t('whisky.errorTypeRequired'))
       return
     }
     if (!payload.country_id || String(payload.country_id).trim() === '') {
-      setCreateError('Le pays est obligatoire')
+      setCreateError(t('whisky.errorCountryRequired'))
+      return
+    }
+    if (!payload.bottling_type || String(payload.bottling_type).trim() === '') {
+      setCreateError(t('whisky.errorBottlingTypeRequired'))
       return
     }
     if (payload.bottling_type === 'DB' && (!payload.distiller || String(payload.distiller).trim() === '')) {
-      setCreateError('Le distiller est obligatoire pour un embouteillage DB')
+      setCreateError(t('whisky.errorDistillerRequiredDb'))
       return
     }
     if (payload.bottling_type === 'IB' && (!payload.bottler || String(payload.bottler).trim() === '')) {
-      setCreateError('Le bottler est obligatoire pour un embouteillage IB')
+      setCreateError(t('whisky.errorBottlerRequiredIb'))
       return
     }
 
@@ -311,12 +356,12 @@ export default function AddWhiskyPage({
       })
       const json = await res.json()
       if (!res.ok) {
-        if (json?.code === 'DUPLICATE') {
+        if (json?.errorCode === 'WHISKY_DUPLICATE') {
           setCreateStatus('duplicate')
           setStep('exists')
           return
         }
-        setCreateError(json?.error || 'Erreur serveur')
+        setCreateError(getCreateWhiskyErrorMessage(json?.errorCode, json?.error))
         return
       }
 

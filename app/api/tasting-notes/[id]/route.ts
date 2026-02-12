@@ -21,11 +21,15 @@ function normalizeTagIds(list: Array<string | { id: string }> | undefined) {
     .filter((v): v is string => typeof v === 'string' && v.trim() !== '')
 }
 
+function apiError(code: string, message: string, status: number, extra?: Record<string, unknown>) {
+  return NextResponse.json({ errorCode: code, error: message, ...(extra || {}) }, { status })
+}
+
 export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return apiError('UNAUTHORIZED', 'Unauthorized', 401)
   }
 
   const limit = rateLimit(request, {
@@ -35,7 +39,7 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
   })
   if (!limit.ok) {
     return NextResponse.json(
-      { error: 'Trop de requêtes. Réessayez plus tard.' },
+      { errorCode: 'RATE_LIMIT', error: 'Trop de requêtes. Réessayez plus tard.' },
       { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
     )
   }
@@ -53,19 +57,28 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
   const tags = (body?.tags || {}) as TagsPayload
 
   if (!tastingDate || !overallRaw) {
-    return NextResponse.json({ error: 'Données manquantes' }, { status: 400 })
+    return apiError('MISSING_REQUIRED_FIELDS', 'Données manquantes', 400)
+  }
+  if (!locationRaw) {
+    return apiError('LOCATION_REQUIRED', 'Lieu requis', 400)
   }
   if (rating < 1 || rating > 10) {
-    return NextResponse.json({ error: 'Rating invalide' }, { status: 400 })
+    return apiError('RATING_INVALID', 'Rating invalide', 400)
+  }
+  const noseTagIds = normalizeTagIds(tags.nose)
+  const palateTagIds = normalizeTagIds(tags.palate)
+  const finishTagIds = normalizeTagIds(tags.finish)
+  if (noseTagIds.length === 0 || palateTagIds.length === 0 || finishTagIds.length === 0) {
+    return apiError('TAGS_REQUIRED_ALL_SECTIONS', 'Au moins un tag par section est requis', 400)
   }
 
   const overallCheck = await validateOverall(overallRaw)
   if (!overallCheck.ok) {
-    return NextResponse.json({ error: overallCheck.message || 'Overall invalide' }, { status: 400 })
+    return apiError('OVERALL_INVALID', overallCheck.message || 'Overall invalide', 400)
   }
   const locationCheck = await validateLocation(locationRaw)
   if (!locationCheck.ok) {
-    return NextResponse.json({ error: locationCheck.message || 'Location invalide' }, { status: 400 })
+    return apiError('LOCATION_INVALID', locationCheck.message || 'Location invalide', 400)
   }
   const overall = overallCheck.value
   const location = locationCheck.value
@@ -74,7 +87,7 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
   if (countryRaw) {
     const check = await validateDisplayName(countryRaw, 80)
     if (!check.ok) {
-      return NextResponse.json({ error: check.message || 'Pays invalide' }, { status: 400 })
+      return apiError('COUNTRY_INVALID', check.message || 'Pays invalide', 400)
     }
     country = check.value
   }
@@ -83,7 +96,7 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
   if (cityRaw) {
     const check = await validateDisplayName(cityRaw, 80)
     if (!check.ok) {
-      return NextResponse.json({ error: check.message || 'Ville invalide' }, { status: 400 })
+      return apiError('CITY_INVALID', check.message || 'Ville invalide', 400)
     }
     city = check.value
   }
@@ -95,7 +108,7 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
     .limit(1)
 
   if (existing.length === 0) {
-    return NextResponse.json({ error: 'Note introuvable' }, { status: 404 })
+    return apiError('NOTE_NOT_FOUND', 'Note introuvable', 404)
   }
 
   await db.update(tastingNotes).set({
@@ -112,12 +125,9 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
 
   await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, id))
   const relations: any[] = []
-  ;['nose', 'palate', 'finish'].forEach((type) => {
-    const list = normalizeTagIds((tags as any)[type])
-    list.forEach((tagId: string) => {
-      relations.push({ noteId: id, tagId, type })
-    })
-  })
+  noseTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'nose' }))
+  palateTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'palate' }))
+  finishTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'finish' }))
   if (relations.length > 0) {
     await db.insert(tastingNoteTags).values(relations)
   }
@@ -132,7 +142,7 @@ export async function DELETE(request: NextRequest, context: { params: { id: stri
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return apiError('UNAUTHORIZED', 'Unauthorized', 401)
   }
 
   const limit = rateLimit(request, {
@@ -142,7 +152,7 @@ export async function DELETE(request: NextRequest, context: { params: { id: stri
   })
   if (!limit.ok) {
     return NextResponse.json(
-      { error: 'Trop de requêtes. Réessayez plus tard.' },
+      { errorCode: 'RATE_LIMIT', error: 'Trop de requêtes. Réessayez plus tard.' },
       { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
     )
   }
@@ -156,7 +166,7 @@ export async function DELETE(request: NextRequest, context: { params: { id: stri
     .limit(1)
 
   if (existing.length === 0) {
-    return NextResponse.json({ error: 'Note introuvable' }, { status: 404 })
+    return apiError('NOTE_NOT_FOUND', 'Note introuvable', 404)
   }
 
   await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, id))

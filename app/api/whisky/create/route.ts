@@ -17,6 +17,10 @@ function normalizeYear(value: any): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+function apiError(code: string, message: string, status: number, extra?: Record<string, unknown>) {
+  return NextResponse.json({ errorCode: code, error: message, ...(extra || {}) }, { status })
+}
+
 async function generateUniqueWhiskySlug(name: string): Promise<string> {
   const base = slugifyWhiskyName(name)
   let slug = base
@@ -42,7 +46,7 @@ export async function POST(request: NextRequest) {
     })
     if (!limit.ok) {
       return NextResponse.json(
-        { error: 'Trop de requêtes. Réessayez plus tard.' },
+        { errorCode: 'RATE_LIMIT', error: 'Trop de requêtes. Réessayez plus tard.' },
         { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
       )
     }
@@ -52,21 +56,28 @@ export async function POST(request: NextRequest) {
     const bottleImage = formData.get('bottle_image') as File | null
 
     if (!rawData) {
-      return NextResponse.json({ error: 'Données manquantes' }, { status: 400 })
+      return apiError('MISSING_PAYLOAD', 'Données manquantes', 400)
     }
 
     const data = JSON.parse(String(rawData))
     const nameRaw = String(data?.name || '').trim()
     if (!nameRaw) {
-      return NextResponse.json({ error: 'Nom requis' }, { status: 400 })
+      return apiError('NAME_REQUIRED', 'Nom requis', 400)
     }
     const nameCheck = await validateWhiskyName(nameRaw)
     if (!nameCheck.ok) {
-      return NextResponse.json({ error: nameCheck.message || 'Nom invalide' }, { status: 400 })
+      return apiError('NAME_INVALID', nameCheck.message || 'Nom invalide', 400)
     }
     const name = nameCheck.value
+    const bottlingType = String(data?.bottling_type || '').trim()
+    if (!bottlingType) {
+      return apiError('BOTTLING_TYPE_REQUIRED', 'Type d’embouteillage requis', 400)
+    }
+    if (!['DB', 'IB'].includes(bottlingType)) {
+      return apiError('BOTTLING_TYPE_INVALID', 'Type d’embouteillage invalide', 400)
+    }
     if (!data?.country_id || String(data.country_id).trim() === '') {
-      return NextResponse.json({ error: 'Pays requis' }, { status: 400 })
+      return apiError('COUNTRY_REQUIRED', 'Pays requis', 400)
     }
 
     const distilledYear = normalizeYear(data?.distilled_year)
@@ -83,7 +94,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (duplicate.length > 0) {
-      return NextResponse.json({ error: 'Un whisky avec ce nom/années existe déjà', code: 'DUPLICATE' }, { status: 409 })
+      return apiError('WHISKY_DUPLICATE', 'Un whisky avec ce nom/années existe déjà', 409)
     }
 
     let bottleImageUrl: string | null = null
@@ -128,13 +139,20 @@ export async function POST(request: NextRequest) {
     const id = generateId()
     const slug = await generateUniqueWhiskySlug(name)
 
+    if (bottlingType === 'DB' && (!data?.distiller || String(data.distiller).trim() === '')) {
+      return apiError('DISTILLER_REQUIRED_DB', 'Le distiller est obligatoire pour un embouteillage DB', 400)
+    }
+    if (bottlingType === 'IB' && (!data?.bottler || String(data.bottler).trim() === '')) {
+      return apiError('BOTTLER_REQUIRED_IB', 'Le bottler est obligatoire pour un embouteillage IB', 400)
+    }
+
     let distillerId: string | null = null
     let distillerName: string | null = null
     if (data?.distiller && String(data.distiller).trim()) {
       const normalizedDistiller = normalizeProducerName(String(data.distiller))
       const check = await validateDisplayName(normalizedDistiller, 80)
       if (!check.ok) {
-        return NextResponse.json({ error: check.message || 'Distilleur invalide' }, { status: 400 })
+        return apiError('DISTILLER_INVALID', check.message || 'Distilleur invalide', 400)
       }
       distillerName = check.value
       const existing = await db
@@ -156,7 +174,7 @@ export async function POST(request: NextRequest) {
       const normalizedBottler = normalizeProducerName(String(data.bottler))
       const check = await validateDisplayName(normalizedBottler, 80)
       if (!check.ok) {
-        return NextResponse.json({ error: check.message || 'Embouteilleur invalide' }, { status: 400 })
+        return apiError('BOTTLER_INVALID', check.message || 'Embouteilleur invalide', 400)
       }
       bottlerName = check.value
       const existing = await db
@@ -176,7 +194,7 @@ export async function POST(request: NextRequest) {
     if (data?.region && String(data.region).trim()) {
       const check = await validateDisplayName(String(data.region), 80)
       if (!check.ok) {
-        return NextResponse.json({ error: check.message || 'Région invalide' }, { status: 400 })
+        return apiError('REGION_INVALID', check.message || 'Région invalide', 400)
       }
       region = check.value
     }
@@ -185,7 +203,7 @@ export async function POST(request: NextRequest) {
     if (data?.type && String(data.type).trim()) {
       const check = await validateDisplayName(String(data.type), 80)
       if (!check.ok) {
-        return NextResponse.json({ error: check.message || 'Type invalide' }, { status: 400 })
+        return apiError('TYPE_INVALID', check.message || 'Type invalide', 400)
       }
       type = check.value
     }
@@ -194,7 +212,7 @@ export async function POST(request: NextRequest) {
     if (data?.bottled_for && String(data.bottled_for).trim()) {
       const check = await validateDisplayName(String(data.bottled_for), 80)
       if (!check.ok) {
-        return NextResponse.json({ error: check.message || 'Embouteillé pour invalide' }, { status: 400 })
+        return apiError('BOTTLED_FOR_INVALID', check.message || 'Embouteillé pour invalide', 400)
       }
       bottledFor = check.value
     }
@@ -203,7 +221,7 @@ export async function POST(request: NextRequest) {
     if (data?.cask_type && String(data.cask_type).trim()) {
       const check = await validateDisplayName(String(data.cask_type), 80)
       if (!check.ok) {
-        return NextResponse.json({ error: check.message || 'Type de fût invalide' }, { status: 400 })
+        return apiError('CASK_TYPE_INVALID', check.message || 'Type de fût invalide', 400)
       }
       caskType = check.value
     }
@@ -212,7 +230,7 @@ export async function POST(request: NextRequest) {
     if (data?.batch_id && String(data.batch_id).trim()) {
       const cleaned = sanitizeText(String(data.batch_id), 40)
       if (cleaned.length < 1) {
-        return NextResponse.json({ error: 'Batch invalide' }, { status: 400 })
+        return apiError('BATCH_INVALID', 'Batch invalide', 400)
       }
       batchId = cleaned
     }
@@ -227,7 +245,7 @@ export async function POST(request: NextRequest) {
       addedById: data?.added_by || null,
       barcode: data?.ean13 || null,
       barcodeType: data?.ean13 ? 'EAN-13' : null,
-      bottlingType: data?.bottling_type || null,
+      bottlingType,
       distilledYear,
       bottledYear,
       age: normalizeYear(data?.age),
@@ -262,6 +280,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, id, slug, bottleImageUrl })
   } catch (error) {
     console.error('❌ Erreur create whisky:', error)
-    return NextResponse.json({ error: 'Erreur serveur interne' }, { status: 500 })
+    return apiError('SERVER_ERROR', 'Erreur serveur interne', 500)
   }
 }

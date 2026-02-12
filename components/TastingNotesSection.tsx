@@ -83,6 +83,39 @@ export default function TastingNotesSection({
   const [savingNote, setSavingNote] = useState(false)
   const [deletingNote, setDeletingNote] = useState(false)
 
+  const getTastingErrorMessage = (errorCode?: string, fallback?: string) => {
+    switch (errorCode) {
+      case 'RATE_LIMIT':
+        return t('tasting.errorRateLimit')
+      case 'MISSING_REQUIRED_FIELDS':
+        return t('tasting.errorMissingRequiredFields')
+      case 'LOCATION_REQUIRED':
+        return t('tasting.errorLocationRequired')
+      case 'OVERALL_REQUIRED':
+        return t('tasting.errorOverallRequired')
+      case 'RATING_INVALID':
+        return t('tasting.errorRatingInvalid')
+      case 'TAGS_REQUIRED_ALL_SECTIONS':
+        return t('tasting.errorTagsRequiredAllSections')
+      case 'OVERALL_INVALID':
+        return t('tasting.errorOverallInvalid')
+      case 'LOCATION_INVALID':
+        return t('tasting.errorLocationInvalid')
+      case 'COUNTRY_INVALID':
+        return t('tasting.errorCountryInvalid')
+      case 'CITY_INVALID':
+        return t('tasting.errorCityInvalid')
+      case 'NOTE_ALREADY_EXISTS':
+        return t('tasting.errorNoteAlreadyExists')
+      case 'NOTE_NOT_FOUND':
+        return t('tasting.errorNoteNotFound')
+      case 'UNAUTHORIZED':
+        return t('tasting.errorUnauthorized')
+      default:
+        return fallback || t('common.errorOccurred')
+    }
+  }
+
   const locationRef = useRef<HTMLInputElement>(null)
   const [mapsReady, setMapsReady] = useState(false)
   const autocompleteRef = useRef<any>(null)
@@ -192,7 +225,7 @@ export default function TastingNotesSection({
         return
       }
       const errorJson = await res.json().catch(() => ({}))
-      setFormError(errorJson?.error || t('common.errorOccurred'))
+      setFormError(getTastingErrorMessage(errorJson?.errorCode, errorJson?.error))
     } finally {
       setSavingNote(false)
     }
@@ -235,7 +268,7 @@ export default function TastingNotesSection({
         return
       }
       const errorJson = await res.json().catch(() => ({}))
-      setFormError(errorJson?.error || t('common.errorOccurred'))
+      setFormError(getTastingErrorMessage(errorJson?.errorCode, errorJson?.error))
     } finally {
       setSavingNote(false)
     }
