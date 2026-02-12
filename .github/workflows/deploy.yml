@@ -71,5 +71,14 @@ jobs:
             git reset --hard origin/main
             git clean -fd -e public/uploads -e config/runtime.env -e .next
             chmod +x /srv/customer/sites/dramnotes.com/start.sh
-            pkill -f "next start" || true
-            nohup /srv/customer/sites/dramnotes.com/start.sh > /srv/customer/sites/dramnotes.com/.start.log 2>&1 < /dev/null &
+            PIDS="$(pgrep -f '/srv/customer/sites/dramnotes.com.*next start' || true)"
+            if [ -n "$PIDS" ]; then
+              kill $PIDS || true
+              sleep 2
+            fi
+            if command -v setsid >/dev/null 2>&1; then
+              setsid -f /srv/customer/sites/dramnotes.com/start.sh > /srv/customer/sites/dramnotes.com/.start.log 2>&1
+            else
+              nohup /srv/customer/sites/dramnotes.com/start.sh > /srv/customer/sites/dramnotes.com/.start.log 2>&1 < /dev/null &
+            fi
+            exit 0
