@@ -47,11 +47,13 @@ function buildAvatar(pseudo: string) {
 
 export default function TastingNotesSection({
   whiskyId,
+  whiskyPath,
   locale,
   googleMapsApiKey,
   filterPseudo,
 }: {
   whiskyId: string
+  whiskyPath?: string
   locale: Locale
   googleMapsApiKey?: string | null
   filterPseudo?: string | null
@@ -553,7 +555,7 @@ export default function TastingNotesSection({
           {filterPseudo && (
             <div className="mb-4 p-3 bg-gray-50 rounded-xl text-sm flex items-center justify-between">
               <span>{t('tasting.filteredBy')} {filterPseudo}</span>
-              <Link href={`/${locale}/whisky/${whiskyId}`} className="text-sm" style={{ color: 'var(--color-primary)' }}>
+              <Link href={whiskyPath || `/${locale}/whisky/${whiskyId}`} className="text-sm" style={{ color: 'var(--color-primary)' }}>
                 {t('tasting.clearFilter')}
               </Link>
             </div>

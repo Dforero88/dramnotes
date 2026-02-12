@@ -6,25 +6,31 @@ import TastingNotesSection from '@/components/TastingNotesSection'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { buildWhiskyPath, extractWhiskyUuidFromParam } from '@/lib/whisky-url'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function generateMetadata({ params }: { params: { locale: Locale; id: string } }): Promise<Metadata> {
   const baseUrl = process.env.APP_URL || 'https://dramnotes.com'
+  const maybeUuid = extractWhiskyUuidFromParam(params.id)
   const whiskyRow = await db
     .select({
+      id: whiskies.id,
+      slug: whiskies.slug,
       name: whiskies.name,
       image: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
     })
     .from(whiskies)
-    .where(eq(whiskies.id, params.id))
+    .where(maybeUuid ? eq(whiskies.id, maybeUuid) : eq(whiskies.slug, params.id))
     .limit(1)
 
   const whisky = whiskyRow?.[0]
   const title = whisky?.name ? `${whisky.name}` : 'Whisky'
   const imageUrl = whisky?.image ? (whisky.image.startsWith('http') || whisky.image.startsWith('/') ? whisky.image : `${baseUrl}/${whisky.image}`) : undefined
-  const url = `${baseUrl}/${params.locale}/whisky/${params.id}`
+  const path = whisky?.id ? buildWhiskyPath(params.locale, whisky.id, whisky.name, whisky.slug) : `/${params.locale}/whisky/${params.id}`
+  const url = `${baseUrl}${path}`
 
   return {
     title,
@@ -58,6 +64,7 @@ export default async function WhiskyDetailPage({
   searchParams: { user?: string }
 }) {
   const { locale, id } = params
+  const maybeUuid = extractWhiskyUuidFromParam(id)
   const t = getTranslations(locale)
   const session = await getServerSession(authOptions)
   const isLoggedIn = Boolean(session?.user?.id)
@@ -89,6 +96,7 @@ export default async function WhiskyDetailPage({
   const result = await db
     .select({
       id: whiskies.id,
+      slug: whiskies.slug,
       name: whiskies.name,
       bottleImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
       distillerName: distillers.name,
@@ -112,7 +120,7 @@ export default async function WhiskyDetailPage({
     .leftJoin(distillers, eq(whiskies.distillerId, distillers.id))
     .leftJoin(bottlers, eq(whiskies.bottlerId, bottlers.id))
     .leftJoin(countries, eq(whiskies.countryId, countries.id))
-    .where(eq(whiskies.id, id))
+    .where(maybeUuid ? eq(whiskies.id, maybeUuid) : eq(whiskies.slug, id))
     .limit(1)
 
   const whisky = result?.[0]
@@ -132,6 +140,12 @@ export default async function WhiskyDetailPage({
         </div>
       </div>
     )
+  }
+
+  const canonicalPath = buildWhiskyPath(locale, whisky.id, whisky.name, whisky.slug)
+  if (id !== canonicalPath.split('/').pop()) {
+    const userSuffix = filterPseudo ? `?user=${encodeURIComponent(filterPseudo)}` : ''
+    redirect(`${canonicalPath}${userSuffix}`)
   }
 
   const imageSrc = normalizeImage(whisky.bottleImageUrl)
@@ -175,11 +189,16 @@ export default async function WhiskyDetailPage({
       totalReviews: whiskyAnalyticsCache.totalReviews,
     })
     .from(whiskyAnalyticsCache)
-    .where(eq(whiskyAnalyticsCache.whiskyId, id))
+    .where(eq(whiskyAnalyticsCache.whiskyId, whisky.id))
     .limit(1)
 
   const cache = cacheRows?.[0]
   if (cache && Number(cache.totalReviews || 0) > 0) {
+    type TagStatRow = {
+      section: 'nose' | 'palate' | 'finish'
+      count: number
+      name: string | null
+    }
     const tagRows = await db
       .select({
         section: whiskyTagStats.section,
@@ -188,11 +207,11 @@ export default async function WhiskyDetailPage({
       })
       .from(whiskyTagStats)
       .leftJoin(tagLang, and(eq(tagLang.tagId, whiskyTagStats.tagId), eq(tagLang.lang, locale)))
-      .where(eq(whiskyTagStats.whiskyId, id))
-      .orderBy(sql`${whiskyTagStats.count} desc`)
+      .where(eq(whiskyTagStats.whiskyId, whisky.id))
+      .orderBy(sql`${whiskyTagStats.count} desc`) as TagStatRow[]
 
     const grouped = { nose: [] as { name: string; count: number }[], palate: [] as { name: string; count: number }[], finish: [] as { name: string; count: number }[] }
-    tagRows.forEach((row) => {
+    tagRows.forEach((row: TagStatRow) => {
       if (!row.name) return
       if (row.section === 'nose' && grouped.nose.length < 4) grouped.nose.push({ name: row.name, count: Number(row.count || 0) })
       if (row.section === 'palate' && grouped.palate.length < 4) grouped.palate.push({ name: row.name, count: Number(row.count || 0) })
@@ -345,7 +364,8 @@ export default async function WhiskyDetailPage({
         </div>
 
         <TastingNotesSection
-          whiskyId={id}
+          whiskyId={whisky.id}
+          whiskyPath={canonicalPath}
           locale={locale}
           googleMapsApiKey={process.env.GOOGLE_MAPS_API_KEY || null}
           filterPseudo={filterPseudo}

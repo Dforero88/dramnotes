@@ -11,6 +11,7 @@ import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { useSession } from 'next-auth/react'
 import { trackEvent } from '@/lib/analytics-client'
 import { normalizeProducerName } from '@/lib/producer-name'
+import { buildWhiskyPath } from '@/lib/whisky-url'
 
 export default function AddWhiskyPage({
   params
@@ -678,7 +679,7 @@ export default function AddWhiskyPage({
                       </div>
                       {createdWhisky && createdWhisky.id && (
                         <Link
-                          href={`/${locale}/whisky/${createdWhisky.id}`}
+                          href={buildWhiskyPath(locale, createdWhisky.id, createdWhisky.name)}
                           className="flex items-center gap-5 rounded-2xl border border-gray-100 bg-gray-50 p-5"
                         >
                           <div className="w-24 h-24 rounded-xl bg-white border border-gray-200 overflow-hidden flex items-center justify-center">

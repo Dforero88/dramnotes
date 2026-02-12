@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { buildWhiskyPath } from '@/lib/whisky-url'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -180,6 +181,7 @@ export default function MapPage() {
         iconAnchor: [10, 10],
       })
 
+      const whiskyPath = buildWhiskyPath(locale, marker.whiskyId, marker.whiskyName || undefined)
       const popupHtml = `
         <div style="min-width:220px;font-family:inherit;">
           <div style="font-weight:600;color:#111827;margin-bottom:4px;">
@@ -189,7 +191,7 @@ export default function MapPage() {
             ${marker.pseudo || ''} • ${marker.tastingDate || ''}
           </div>
           <a
-            href="/${locale}/whisky/${marker.whiskyId}"
+            href="${whiskyPath}"
             style="
               display:inline-flex;
               align-items:center;

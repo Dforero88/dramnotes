@@ -8,12 +8,29 @@ import { validateWhiskyName, validateDisplayName, sanitizeText } from '@/lib/mod
 import * as Sentry from '@sentry/nextjs'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { normalizeProducerName } from '@/lib/producer-name'
+import { slugifyWhiskyName } from '@/lib/whisky-url'
 
 export const dynamic = 'force-dynamic'
 
 function normalizeYear(value: any): number | null {
   const n = Number(value)
   return Number.isFinite(n) ? n : null
+}
+
+async function generateUniqueWhiskySlug(name: string): Promise<string> {
+  const base = slugifyWhiskyName(name)
+  let slug = base
+  let counter = 2
+  while (true) {
+    const existing = await db
+      .select({ id: whiskies.id })
+      .from(whiskies)
+      .where(eq(whiskies.slug, slug))
+      .limit(1)
+    if (existing.length === 0) return slug
+    slug = `${base}-${counter}`
+    counter += 1
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -109,6 +126,7 @@ export async function POST(request: NextRequest) {
 
     const now = new Date()
     const id = generateId()
+    const slug = await generateUniqueWhiskySlug(name)
 
     let distillerId: string | null = null
     let distillerName: string | null = null
@@ -201,6 +219,7 @@ export async function POST(request: NextRequest) {
 
     await db.insert(whiskies).values({
       id,
+      slug,
       name,
       distillerId,
       bottlerId,
@@ -240,7 +259,7 @@ export async function POST(request: NextRequest) {
       tags: { whiskyId: id },
     })
 
-    return NextResponse.json({ success: true, id, bottleImageUrl })
+    return NextResponse.json({ success: true, id, slug, bottleImageUrl })
   } catch (error) {
     console.error('❌ Erreur create whisky:', error)
     return NextResponse.json({ error: 'Erreur serveur interne' }, { status: 500 })

@@ -69,6 +69,7 @@ function createSqliteSchema(): DbSchema {
 
   const whiskies = sqliteTable('whiskies', {
     id: text('id').primaryKey(),
+    slug: text('slug').notNull(),
     name: text('name').notNull(),
     distillerId: text('distiller_id'),
     bottlerId: text('bottler_id'),
@@ -241,6 +242,7 @@ function createMysqlSchema(): DbSchema {
 
   const whiskies = mysqlTable('whiskies', {
     id: varchar('id', { length: 36 }).primaryKey(),
+    slug: varchar('slug', { length: 160 }).notNull(),
     name: varchar('name', { length: 255 }).notNull(),
     distillerId: varchar('distiller_id', { length: 36 }),
     bottlerId: varchar('bottler_id', { length: 36 }),
@@ -466,6 +468,7 @@ function initSqlite(sqlite: any) {
     sqlite.prepare(`
       CREATE TABLE whiskies (
         id TEXT PRIMARY KEY,
+        slug TEXT NOT NULL,
         name TEXT NOT NULL,
         distiller_id TEXT,
         bottler_id TEXT,
@@ -497,6 +500,7 @@ function initSqlite(sqlite: any) {
     const whiskyColumnNames = whiskyColumns.map((col: any) => col.name)
 
     const whiskiesColumnsToAdd = [
+      'slug',
       'barcode',
       'barcode_type',
       'barcode_image_url',
@@ -506,10 +510,15 @@ function initSqlite(sqlite: any) {
 
     whiskiesColumnsToAdd.forEach((column) => {
       if (!whiskyColumnNames.includes(column)) {
-        const type = column.includes('url') || column.includes('type') || column === 'barcode' ? 'TEXT' : 'INTEGER'
+        const type = column === 'slug' || column.includes('url') || column.includes('type') || column === 'barcode' ? 'TEXT' : 'INTEGER'
         sqlite.prepare(`ALTER TABLE whiskies ADD COLUMN ${column} ${type}`).run()
       }
     })
+  }
+  try {
+    sqlite.prepare('CREATE UNIQUE INDEX IF NOT EXISTS uniq_whiskies_slug ON whiskies(slug)').run()
+  } catch (_e) {
+    // ignore
   }
 
   sqlite.prepare(`

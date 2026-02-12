@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { buildWhiskyPath } from '@/lib/whisky-url'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -95,6 +96,7 @@ export default function NotebookNotesMap({ notes, locale, viewWhiskyLabel }: Pro
     clusterRef.current.clearLayers()
 
     geolocated.forEach((note) => {
+      const whiskyPath = buildWhiskyPath(locale, note.whiskyId, note.whiskyName || undefined)
       const icon = L.divIcon({
         className: 'custom-marker',
         html: `<div style="background-color:#3498db;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,0.4);transform: translate(-50%,-50%);"></div>`,
@@ -112,7 +114,7 @@ export default function NotebookNotesMap({ notes, locale, viewWhiskyLabel }: Pro
               : ''}
           </div>
           <a
-            href="/${locale}/whisky/${note.whiskyId}"
+            href="${whiskyPath}"
             style="
               display:inline-flex;
               align-items:center;

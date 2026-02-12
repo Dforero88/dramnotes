@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics-client'
 import NotebookNotesMap from '@/components/NotebookNotesMap'
+import { buildWhiskyPath } from '@/lib/whisky-url'
 
 type Summary = {
   user: { id: string; pseudo: string; visibility: 'public' | 'private' }
@@ -532,7 +533,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                       return (
                         <Link
                           key={note.id}
-                          href={`/${locale}/whisky/${note.whiskyId}${mode === 'public' ? `?user=${summary.user.pseudo}` : ''}`}
+                          href={`${buildWhiskyPath(locale, note.whiskyId, note.whiskyName || undefined)}${mode === 'public' ? `?user=${summary.user.pseudo}` : ''}`}
                           className="bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md transition"
                         >
                           <div className="w-full h-40 bg-white rounded-xl flex items-center justify-center overflow-hidden">

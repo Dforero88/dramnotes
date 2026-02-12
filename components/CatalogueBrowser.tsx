@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import TagInput from '@/components/TagInput'
+import { buildWhiskyPath } from '@/lib/whisky-url'
 
 type WhiskyCard = {
   id: string
@@ -440,7 +441,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
               return (
                 <Link
                   key={item.id}
-                  href={`/${locale}/whisky/${item.id}`}
+                  href={buildWhiskyPath(locale, item.id, item.name)}
                   className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow block"
                 >
                   <div className="w-full h-48 bg-white flex items-center justify-center">

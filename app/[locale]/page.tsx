@@ -6,6 +6,7 @@ import { db, tastingNotes, users, whiskies, follows, activities, countries, dist
 import { eq, inArray, sql } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import HomeHeroCarousel from '@/components/HomeHeroCarousel'
+import { buildWhiskyPath } from '@/lib/whisky-url'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -381,7 +382,7 @@ export default async function HomePage({
                 return (
                   <Link
                     key={whisky.id}
-                    href={`/${locale}/whisky/${whisky.id}`}
+                    href={buildWhiskyPath(locale, whisky.id, whisky.name)}
                     className="flex items-center gap-4"
                   >
                     <div
@@ -449,7 +450,7 @@ export default async function HomePage({
                   : `${t('home.activityNote')}`
                 const createdAt = normalizeActivityDate(activity.createdAt)
                 const activityDate = createdAt ? formatRelativeDate(createdAt, locale) : ''
-                const href = `/${locale}/whisky/${activity.targetId}?user=${encodeURIComponent(pseudo)}`
+                const href = `${buildWhiskyPath(locale, activity.targetId, activity.whiskyName || undefined)}?user=${encodeURIComponent(pseudo)}`
                 const whiskyImage = normalizeImage(activity.whiskyImageUrl)
                 const producerName = activity.bottlingType === 'DB'
                   ? activity.distillerName
