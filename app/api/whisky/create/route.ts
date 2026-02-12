@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, whiskies, distillers, bottlers } from '@/lib/db'
+import { db, whiskies, distillers, bottlers, activities } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { generateId } from '@/lib/db'
 import path from 'path'
@@ -221,6 +221,16 @@ export async function POST(request: NextRequest) {
       createdAt: now,
       updatedAt: now,
     })
+
+    if (data?.added_by) {
+      await db.insert(activities).values({
+        id: generateId(),
+        userId: String(data.added_by),
+        type: 'new_whisky',
+        targetId: id,
+        createdAt: now,
+      })
+    }
 
     Sentry.captureMessage('whisky_created', {
       level: 'info',

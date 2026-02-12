@@ -358,15 +358,6 @@ export default function AddWhiskyPage({
 
       <div className="max-w-4xl mx-auto px-4 py-12">
 
-        {/* État de Quagga */}
-        {!quaggaLoaded && step === 'scan' && (
-          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-700">
-              <span className="inline-block animate-pulse">⏳</span> {t('whisky.loadingScanner')}
-            </p>
-          </div>
-        )}
-
         {/* Étapes visuelles */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-8">
@@ -531,8 +522,8 @@ export default function AddWhiskyPage({
                     handleLabelProcess()
                   }}
                     disabled={ocrLoading}
-                    className="px-6 py-2 text-white rounded-lg"
-                    style={{ backgroundColor: 'var(--color-primary)' }}
+                    className="px-6 py-2 text-white rounded-lg disabled:cursor-not-allowed"
+                    style={{ backgroundColor: ocrLoading ? '#9ca3af' : 'var(--color-primary)' }}
                   >
                     {ocrLoading ? t('whisky.ocrLoading') : t('whisky.ocrAnalyze')}
                   </button>
@@ -643,8 +634,8 @@ export default function AddWhiskyPage({
                   {createError && <p className="text-red-600">{createError}</p>}
                   <button
                     type="submit"
-                    className="px-6 py-2 text-white rounded-lg"
-                    style={{ backgroundColor: 'var(--color-primary)' }}
+                    className="px-6 py-2 text-white rounded-lg disabled:cursor-not-allowed"
+                    style={{ backgroundColor: (status !== 'authenticated' || creatingWhisky) ? '#9ca3af' : 'var(--color-primary)' }}
                     disabled={status !== 'authenticated' || creatingWhisky}
                   >
                     {creatingWhisky ? t('common.saving') : t('whisky.createWhisky')}

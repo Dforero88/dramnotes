@@ -2,9 +2,10 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getTranslations, type Locale } from '@/lib/i18n'
-import { db, tastingNotes, users, whiskies, follows, activities, isMysql } from '@/lib/db'
+import { db, tastingNotes, users, whiskies, follows, activities, countries, distillers, bottlers, isMysql } from '@/lib/db'
 import { eq, inArray, sql } from 'drizzle-orm'
 import type { Metadata } from 'next'
+import HomeHeroCarousel from '@/components/HomeHeroCarousel'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -28,8 +29,14 @@ type ActivityItem = {
   actorPseudo: string | null
   targetId: string
   whiskyName: string | null
+  whiskyImageUrl: string | null
+  whiskyType: string | null
+  countryName: string | null
+  bottlingType: string | null
+  distillerName: string | null
+  bottlerName: string | null
+  location: string | null
   rating: number | null
-  targetPseudo: string | null
 }
 
 function buildAvatar(pseudo: string) {
@@ -96,6 +103,12 @@ function formatRelativeDate(date: Date | null, locale: string) {
   }
 
   return rtf.format(duration, 'year')
+}
+
+function normalizeImage(url?: string | null) {
+  if (!url) return ''
+  if (url.startsWith('http') || url.startsWith('/')) return url
+  return `/${url}`
 }
 
 export default async function HomePage({
@@ -181,6 +194,13 @@ export default async function HomePage({
           actorPseudo: users.pseudo,
           targetId: activities.targetId,
           whiskyName: whiskies.name,
+          whiskyImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
+          whiskyType: whiskies.type,
+          countryName: countries.name,
+          bottlingType: whiskies.bottlingType,
+          distillerName: distillers.name,
+          bottlerName: bottlers.name,
+          location: tastingNotes.location,
           rating: tastingNotes.rating,
         })
         .from(activities)
@@ -192,6 +212,9 @@ export default async function HomePage({
           whiskies,
           isMysql ? sql`binary ${whiskies.id} = binary ${activities.targetId}` : eq(whiskies.id, activities.targetId)
         )
+        .leftJoin(countries, eq(countries.id, whiskies.countryId))
+        .leftJoin(distillers, eq(distillers.id, whiskies.distillerId))
+        .leftJoin(bottlers, eq(bottlers.id, whiskies.bottlerId))
         .leftJoin(
           tastingNotes,
           isMysql
@@ -200,10 +223,10 @@ export default async function HomePage({
         )
         .where(inArray(activities.userId, followedIds))
         .orderBy(sql`${activities.createdAt} desc`)
-        .limit(5)
+        .limit(8)
     : []) as ActivityItem[]
 
-  const activityUserIds = recentActivities.flatMap((row: ActivityItem) => [row.actorId, row.targetId])
+  const activityUserIds = recentActivities.map((row: ActivityItem) => row.actorId)
   type ActivityUserRow = { id: string; pseudo: string | null; visibility: string | null }
   const activityUsers = activityUserIds.length
     ? await db
@@ -217,12 +240,8 @@ export default async function HomePage({
   }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null }>)
 
   const activitiesVisible = recentActivities
+    .filter((row) => row.type === 'new_note' || row.type === 'new_whisky')
     .filter((row) => activityUsersMap[row.actorId]?.visibility === 'public')
-    .filter((row) => row.type !== 'new_follow' || activityUsersMap[row.targetId]?.visibility === 'public')
-    .map((row) => ({
-      ...row,
-      targetPseudo: activityUsersMap[row.targetId]?.pseudo || null,
-    }))
     .sort((a, b) => {
       const aDate = normalizeActivityDate(a.createdAt)
       const bDate = normalizeActivityDate(b.createdAt)
@@ -234,41 +253,75 @@ export default async function HomePage({
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-10">
-        <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm overflow-hidden">
           <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">
             {t('home.title')}
           </h1>
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mt-6 hidden lg:block -mx-8 -mb-8">
+            <HomeHeroCarousel
+              slides={[
+                {
+                  href: `/${locale}/catalogue`,
+                  image: '/images/hero/home-hero-catalogue.png',
+                  title: t('home.actionCatalogueTitle'),
+                  description: t('home.actionCatalogueDesc'),
+                },
+                {
+                  href: `/${locale}/explorer`,
+                  image: '/images/hero/home-hero-explorer.png',
+                  title: t('home.actionExploreTitle'),
+                  description: t('home.actionExploreDesc'),
+                },
+              ]}
+            />
+          </div>
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
             <Link
               href={`/${locale}/catalogue`}
-              className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-900 p-5 min-h-[170px] flex items-end shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
+              <img
+                src="/images/hero/home-hero-catalogue.png"
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full object-cover opacity-80"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/45 to-black/25" />
+              <div className="relative z-10">
               <div className="flex items-center justify-between">
-                <div className="text-lg font-semibold text-gray-900">{t('home.actionCatalogueTitle')}</div>
+                <div className="text-lg font-semibold text-white">{t('home.actionCatalogueTitle')}</div>
                 <span
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white transition"
-                  style={{ backgroundColor: 'var(--color-primary)' }}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white bg-white/20 border border-white/40 transition"
                 >
                   →
                 </span>
               </div>
-              <div className="mt-2 text-sm text-gray-600">{t('home.actionCatalogueDesc')}</div>
+              <div className="mt-2 text-sm text-white/90">{t('home.actionCatalogueDesc')}</div>
+              </div>
             </Link>
 
             <Link
               href={`/${locale}/explorer`}
-              className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-900 p-5 min-h-[170px] flex items-end shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
+              <img
+                src="/images/hero/home-hero-explorer.png"
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full object-cover opacity-80"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/45 to-black/25" />
+              <div className="relative z-10">
               <div className="flex items-center justify-between">
-                <div className="text-lg font-semibold text-gray-900">{t('home.actionExploreTitle')}</div>
+                <div className="text-lg font-semibold text-white">{t('home.actionExploreTitle')}</div>
                 <span
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white transition"
-                  style={{ backgroundColor: 'var(--color-primary)' }}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white bg-white/20 border border-white/40 transition"
                 >
                   →
                 </span>
               </div>
-              <div className="mt-2 text-sm text-gray-600">{t('home.actionExploreDesc')}</div>
+              <div className="mt-2 text-sm text-white/90">{t('home.actionExploreDesc')}</div>
+              </div>
             </Link>
           </div>
         </div>
@@ -380,65 +433,81 @@ export default async function HomePage({
             <h2 className="text-xl font-semibold">{t('home.activityTitle')}</h2>
           </div>
           {isLoggedIn ? (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {activitiesVisible.map((activity) => {
                 const pseudo = activity.actorPseudo || 'User'
                 const avatar = buildAvatar(pseudo)
-                const isFollow = activity.type === 'new_follow'
-                const isSelfTarget = isFollow && activity.targetId === currentUserId
-                const title = isFollow
-                  ? `${t('home.activityFollow')} ${activity.targetPseudo || '—'}`
-                  : `${t('home.activityNote')} ${activity.whiskyName || '—'}`
+                const isNewWhisky = activity.type === 'new_whisky'
+                const title = isNewWhisky
+                  ? `${t('home.activityWhiskyAdded')}`
+                  : `${t('home.activityNote')}`
                 const createdAt = normalizeActivityDate(activity.createdAt)
                 const activityDate = createdAt ? formatRelativeDate(createdAt, locale) : ''
-                const href = isFollow
-                  ? `/${locale}/user/${encodeURIComponent(activity.targetPseudo || '')}`
-                  : `/${locale}/whisky/${activity.targetId}?user=${encodeURIComponent(pseudo)}`
+                const href = `/${locale}/whisky/${activity.targetId}?user=${encodeURIComponent(pseudo)}`
+                const whiskyImage = normalizeImage(activity.whiskyImageUrl)
+                const producerName = activity.bottlingType === 'DB'
+                  ? activity.distillerName
+                  : activity.bottlerName
                 const rowContent = (
                   <>
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
                         style={{ backgroundColor: avatar.color }}
                       >
                         {avatar.initial}
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-sm text-gray-500">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm text-gray-500 flex items-center gap-1">
                           <span className="font-medium text-gray-700">{pseudo}</span>
+                          <span>{title}</span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 text-base font-semibold text-gray-900">
-                          <span className="truncate">{title}</span>
-                          {!isFollow && activity.rating ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-xs font-semibold">
-                              ★ {activity.rating}/10
-                            </span>
-                          ) : null}
+                        <div className="mt-2 flex items-stretch gap-3 min-w-0">
+                          <div className="w-14 h-20 sm:w-20 sm:min-h-[96px] rounded-lg border border-gray-200 bg-white overflow-hidden flex items-center justify-center shrink-0">
+                            {whiskyImage ? (
+                              <img
+                                src={whiskyImage}
+                                alt={activity.whiskyName || ''}
+                                className="w-full h-full object-contain"
+                                style={{ backgroundColor: '#fff' }}
+                              />
+                            ) : (
+                              <span className="text-[10px] text-gray-400">—</span>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1 flex flex-col gap-1">
+                            <div className="flex flex-wrap items-center gap-2 min-w-0">
+                              <div className="text-base font-semibold text-gray-900 min-w-0 flex-1 leading-tight break-words">
+                                {activity.whiskyName || '—'}
+                              </div>
+                              {!isNewWhisky && activity.rating ? (
+                                <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-700 px-2 py-1 text-xs leading-none font-semibold shrink-0">
+                                  ★ {activity.rating}/10
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+                              {activity.whiskyType ? <span>{activity.whiskyType}</span> : null}
+                              {activity.countryName ? <span>· {activity.countryName}</span> : null}
+                            </div>
+                            <div className="text-xs text-gray-500 break-words">
+                              {isNewWhisky ? (producerName || '') : (activity.location || '—')}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-500 whitespace-nowrap">
-                      {activityDate ? <div className="text-xs text-gray-400 mb-1">{activityDate}</div> : null}
+                    <div className="text-xs text-gray-400 leading-none whitespace-nowrap shrink-0 self-end sm:self-start">
+                      {activityDate}
                     </div>
                   </>
                 )
-
-                if (isSelfTarget) {
-                  return (
-                    <div
-                      key={activity.id}
-                      className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
-                    >
-                      {rowContent}
-                    </div>
-                  )
-                }
 
                 return (
                   <Link
                     key={activity.id}
                     href={href}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-gray-200 hover:shadow-sm transition"
+                    className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-gray-200 hover:shadow-sm transition"
                   >
                     {rowContent}
                   </Link>
