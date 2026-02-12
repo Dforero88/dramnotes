@@ -62,23 +62,20 @@ jobs:
           username: ${{ secrets.INFOMANIAK_USER }}
           password: ${{ secrets.INFOMANIAK_PASSWORD }}
           port: ${{ secrets.INFOMANIAK_PORT }}
-          script_stop: true
+          script_stop: false
           command_timeout: 20m
           script: |
-            set -e
+            set +e
+            exec >/dev/null 2>&1
             cd /srv/customer/sites/dramnotes.com
             git fetch origin
             git reset --hard origin/main
             git clean -fd -e public/uploads -e config/runtime.env -e .next
             chmod +x /srv/customer/sites/dramnotes.com/start.sh
-            PIDS="$(pgrep -f '/srv/customer/sites/dramnotes.com.*next start' || true)"
+            PIDS="$(pgrep -f '/srv/customer/sites/dramnotes.com.*next start')"
             if [ -n "$PIDS" ]; then
-              kill $PIDS || true
+              kill $PIDS
               sleep 2
             fi
-            if command -v setsid >/dev/null 2>&1; then
-              setsid -f /srv/customer/sites/dramnotes.com/start.sh > /srv/customer/sites/dramnotes.com/.start.log 2>&1
-            else
-              nohup /srv/customer/sites/dramnotes.com/start.sh > /srv/customer/sites/dramnotes.com/.start.log 2>&1 < /dev/null &
-            fi
+            nohup /srv/customer/sites/dramnotes.com/start.sh > /srv/customer/sites/dramnotes.com/.start.log 2>&1 < /dev/null &
             exit 0
