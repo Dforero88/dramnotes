@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const pseudo = normalizeSearch(searchParams.get('user') || '', 40)
   const sort = (searchParams.get('sort') || 'recent').trim()
   const page = Math.max(1, Number(searchParams.get('page') || '1'))
-  const pageSize = Math.max(1, Math.min(20, Number(searchParams.get('pageSize') || '5')))
+  const pageSize = Math.max(1, Math.min(20, Number(searchParams.get('pageSize') || '6')))
   const offset = (page - 1) * pageSize
 
   if (!whiskyId) {

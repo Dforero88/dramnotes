@@ -105,7 +105,7 @@ But:
 - Catalogue: `12` items/page (`components/CatalogueBrowser.tsx` + `/api/whisky/list`)
 - Explorer: `12` users/page (`components/ExplorerPageClient.tsx` + `/api/explorer/users`)
 - Explorer query vide: top `3` profils
-- Page whisky (autres notes): `5` notes/page (`components/TastingNotesSection.tsx` + `/api/tasting-notes/public`)
+- Page whisky (autres notes): `6` notes/page (`components/TastingNotesSection.tsx` + `/api/tasting-notes/public`)
 - Notebook notes (liste): `12` notes/page (`/api/notebook/notes`)
 - Notebook followers: `12` users/page (`/api/notebook/followers`)
 - Notebook following: `12` users/page (`/api/notebook/following`)

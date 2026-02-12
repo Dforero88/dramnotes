@@ -226,20 +226,24 @@ export default async function WhiskyDetailPage({
       </div>
 
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-10">
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-            <div className="w-full h-[420px] bg-white rounded-xl flex items-center justify-center overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-8">
+          <div className="order-2 lg:order-1 lg:row-span-2 lg:self-stretch bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex items-center justify-center">
+            <div className="w-full aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden">
               {imageSrc ? (
-                <img src={imageSrc} alt={whisky.name} className="w-full h-full object-contain" />
+                <img
+                  src={imageSrc}
+                  alt={whisky.name}
+                  className="max-w-full max-h-full object-contain object-center mx-auto my-auto"
+                />
               ) : (
                 <div className="text-gray-400">{t('catalogue.noImage')}</div>
               )}
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{whisky.name}</h1>
+          <div className="order-1 lg:order-2 flex flex-col gap-5">
+            <div className="space-y-4">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">{whisky.name}</h1>
               <div className="flex flex-wrap gap-2">
                 {whisky.type && (
                   <span className="px-3 py-1 rounded-full text-sm border border-gray-200 bg-white">
@@ -257,55 +261,48 @@ export default async function WhiskyDetailPage({
                   </span>
                 )}
               </div>
-              {whisky.description && (
-                <p className="text-gray-600">{whisky.description}</p>
-              )}
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">{t('whisky.detailsTitle')}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {detailItems.map((item) => (
-                  <div key={item.label} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">{item.label}</p>
-                    <p className="text-sm font-medium text-gray-900 mt-1">{item.value}</p>
-                  </div>
-                ))}
+            {whisky.description && (
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-sm text-gray-600">{whisky.description}</p>
               </div>
-            </div>
+            )}
           </div>
-        </div>
 
-        <div className="mt-10">
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+          <div className="order-3 lg:order-3 lg:col-start-2 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
             <h2 className="text-lg font-semibold mb-4">{t('whisky.analyticsTitle')}</h2>
             {analyticsData ? (
               <>
-                <div className="flex flex-wrap items-center gap-6">
-                  <div>
-                    <div className="text-3xl font-semibold text-gray-900">{analyticsData.avgRating}/10</div>
-                    <div className="flex items-center gap-1 text-sm text-gray-300 mt-1">
-                      {Array.from({ length: 10 }).map((_, index) => {
-                        const value = index + 1
-                        const active = analyticsData.avgRating >= value - 0.5
-                        return (
-                          <span
-                            key={`avg-star-${value}`}
-                            className={active ? 'text-yellow-400' : 'text-gray-300'}
-                          >
-                            {active ? '★' : '☆'}
-                          </span>
-                        )
-                      })}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                  <div className="w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
+                    <div className="flex items-start gap-1">
+                      <div className="flex items-center gap-0.5 text-sm leading-none text-gray-300">
+                        {Array.from({ length: 10 }).map((_, index) => {
+                          const value = index + 1
+                          const active = analyticsData.avgRating >= value - 0.5
+                          return (
+                            <span
+                              key={`avg-star-${value}`}
+                              className={active ? 'text-yellow-400' : 'text-gray-300'}
+                            >
+                              {active ? '★' : '☆'}
+                            </span>
+                          )
+                        })}
+                      </div>
+                      <span className="text-[11px] text-gray-700 align-super">{analyticsData.avgRating}/10</span>
                     </div>
-                    <div className="text-sm text-gray-500">{t('whisky.analyticsAvgLabel')}</div>
+                    <div className="text-xs text-gray-500 mt-1">{t('whisky.analyticsAvgLabel')}</div>
                   </div>
-                  <div>
-                    <div className="text-3xl font-semibold text-gray-900">{analyticsData.totalReviews}</div>
-                    <div className="text-sm text-gray-500">{t('whisky.analyticsReviewsLabel')}</div>
+
+                  <div className="w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
+                    <div className="text-base font-semibold text-gray-900">{analyticsData.totalReviews}</div>
+                    <div className="text-xs text-gray-500 mt-1">{t('whisky.analyticsReviewsLabel')}</div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   {([
                     { key: 'nose', label: t('tasting.nose') },
                     { key: 'palate', label: t('tasting.palate') },
@@ -330,6 +327,20 @@ export default async function WhiskyDetailPage({
             ) : (
               <div className="text-sm text-gray-600">{t('whisky.analyticsFirstNote')}</div>
             )}
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-4">{t('whisky.detailsTitle')}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {detailItems.map((item) => (
+                <div key={item.label} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">{item.label}</p>
+                  <p className="text-sm font-medium text-gray-900 mt-1">{item.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

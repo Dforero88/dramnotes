@@ -109,7 +109,7 @@ export default function TastingNotesSection({
         whiskyId,
         lang: locale,
         page: String(page),
-        pageSize: '5',
+        pageSize: '6',
         sort,
       })
       if (filterPseudo) params.set('user', filterPseudo)
