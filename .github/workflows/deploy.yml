@@ -47,3 +47,18 @@ jobs:
           sshpass -p "${{ secrets.INFOMANIAK_PASSWORD }}" rsync -az --delete --partial --inplace \
             -e "ssh -p ${{ secrets.INFOMANIAK_PORT }} -o StrictHostKeyChecking=no" \
             .next/ ${{ secrets.INFOMANIAK_USER }}@${{ secrets.INFOMANIAK_HOST }}:/srv/customer/sites/dramnotes.com/.next/
+
+      - name: Update repo and restart app on Infomaniak
+        run: |
+          sshpass -p "${{ secrets.INFOMANIAK_PASSWORD }}" ssh \
+            -p ${{ secrets.INFOMANIAK_PORT }} \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.INFOMANIAK_USER }}@${{ secrets.INFOMANIAK_HOST }} << 'EOF'
+          set -e
+          cd /srv/customer/sites/dramnotes.com
+          git fetch origin
+          git reset --hard origin/main
+          git clean -fd -e public/uploads -e config/runtime.env -e .next
+          chmod +x /srv/customer/sites/dramnotes.com/start.sh
+          /srv/customer/sites/dramnotes.com/start.sh
+          EOF
