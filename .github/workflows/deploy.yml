@@ -56,18 +56,20 @@ jobs:
             .next/ ${{ secrets.INFOMANIAK_USER }}@${{ secrets.INFOMANIAK_HOST }}:/srv/customer/sites/dramnotes.com/.next/
 
       - name: Update repo and restart app on Infomaniak
-        run: |
-          REMOTE="${{ secrets.INFOMANIAK_USER }}@${{ secrets.INFOMANIAK_HOST }}"
-          SSH_OPTS="-n -p ${{ secrets.INFOMANIAK_PORT }} -o StrictHostKeyChecking=no -o LogLevel=ERROR"
-
-          sshpass -p "${{ secrets.INFOMANIAK_PASSWORD }}" ssh $SSH_OPTS "$REMOTE" \
-            "bash -lc 'set -e; \
-            cd /srv/customer/sites/dramnotes.com; \
-            git fetch origin; \
-            git reset --hard origin/main; \
-            git clean -fd -e public/uploads -e config/runtime.env -e .next; \
-            chmod +x /srv/customer/sites/dramnotes.com/start.sh'"
-
-          sshpass -p "${{ secrets.INFOMANIAK_PASSWORD }}" ssh $SSH_OPTS "$REMOTE" \
-            "bash -lc 'pkill -f \"next start\" || true; \
-            nohup /srv/customer/sites/dramnotes.com/start.sh > /srv/customer/sites/dramnotes.com/.start.log 2>&1 < /dev/null &'"
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.INFOMANIAK_HOST }}
+          username: ${{ secrets.INFOMANIAK_USER }}
+          password: ${{ secrets.INFOMANIAK_PASSWORD }}
+          port: ${{ secrets.INFOMANIAK_PORT }}
+          script_stop: true
+          command_timeout: 20m
+          script: |
+            set -e
+            cd /srv/customer/sites/dramnotes.com
+            git fetch origin
+            git reset --hard origin/main
+            git clean -fd -e public/uploads -e config/runtime.env -e .next
+            chmod +x /srv/customer/sites/dramnotes.com/start.sh
+            pkill -f "next start" || true
+            nohup /srv/customer/sites/dramnotes.com/start.sh > /srv/customer/sites/dramnotes.com/.start.log 2>&1 < /dev/null &
