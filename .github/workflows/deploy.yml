@@ -36,6 +36,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Set build metadata
+        run: |
+          echo "NEXT_PUBLIC_APP_VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_GIT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
       - name: Build
         run: npm run build
 
@@ -53,12 +58,12 @@ jobs:
           sshpass -p "${{ secrets.INFOMANIAK_PASSWORD }}" ssh \
             -p ${{ secrets.INFOMANIAK_PORT }} \
             -o StrictHostKeyChecking=no \
-            ${{ secrets.INFOMANIAK_USER }}@${{ secrets.INFOMANIAK_HOST }} << 'EOF'
-          set -e
-          cd /srv/customer/sites/dramnotes.com
-          git fetch origin
-          git reset --hard origin/main
-          git clean -fd -e public/uploads -e config/runtime.env -e .next
-          chmod +x /srv/customer/sites/dramnotes.com/start.sh
-          /srv/customer/sites/dramnotes.com/start.sh
-          EOF
+            ${{ secrets.INFOMANIAK_USER }}@${{ secrets.INFOMANIAK_HOST }} \
+            "set -e; \
+             cd /srv/customer/sites/dramnotes.com; \
+             git fetch origin; \
+             git reset --hard origin/main; \
+             git clean -fd -e public/uploads -e config/runtime.env -e .next; \
+             chmod +x /srv/customer/sites/dramnotes.com/start.sh; \
+             pkill -f 'next start' || true; \
+             nohup /srv/customer/sites/dramnotes.com/start.sh > /srv/customer/sites/dramnotes.com/.start.log 2>&1 < /dev/null &"

@@ -12,6 +12,9 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 const siteUrl = process.env.APP_URL || 'https://dramnotes.com'
+const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || '0.1.0'
+const gitSha = (process.env.NEXT_PUBLIC_GIT_SHA || '').trim()
+const buildLabel = gitSha ? `v${appVersion} (${gitSha})` : `v${appVersion}`
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -66,7 +69,7 @@ export default function RootLayout({
             style={{ backgroundColor: 'var(--color-primary-light)' }}
           >
             <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 text-center text-sm text-gray-600">
-              DramNotes © 2026
+              DramNotes © 2026 · {buildLabel}
             </div>
           </footer>
         </SessionProvider>
