@@ -219,235 +219,245 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           </button>
         )}
       </div>
-      <div className="space-y-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterName')}</label>
-          <input
-            value={draftFilters.name}
-            onChange={(e) => setDraftFilters({ ...draftFilters, name: e.target.value })}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-            placeholder={t('catalogue.filterNamePlaceholder')}
-            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterType')}</label>
-          <select
-            value={draftFilters.type}
-            onChange={(e) => setDraftFilters({ ...draftFilters, type: e.target.value })}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-          >
-            <option value="">{t('common.selectEmpty')}</option>
-            {typeOptions.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBottlingType')}</label>
-          <select
-            value={draftFilters.bottlingType}
-            onChange={(e) => setDraftFilters({ ...draftFilters, bottlingType: e.target.value })}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-          >
-            <option value="">{t('common.selectEmpty')}</option>
-            <option value="DB">{t('whisky.bottlingDB')}</option>
-            <option value="IB">{t('whisky.bottlingIB')}</option>
-          </select>
-        </div>
-        <div className="relative">
-          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterDistiller')}</label>
-          <input
-            value={draftFilters.distiller}
-            onFocus={() => setProducerOpen((prev) => ({ ...prev, distiller: true }))}
-            onBlur={() => setTimeout(() => setProducerOpen((prev) => ({ ...prev, distiller: false })), 120)}
-            onChange={(e) => {
-              setDraftFilters({ ...draftFilters, distiller: e.target.value })
-              setProducerOpen((prev) => ({ ...prev, distiller: true }))
-            }}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-            placeholder={t('catalogue.filterDistillerPlaceholder')}
-            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-          />
-          {producerOpen.distiller && producerSuggestions.distiller.length > 0 ? (
-            <div className="absolute z-20 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
-              {producerSuggestions.distiller.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setDraftFilters((prev) => ({ ...prev, distiller: name }))
-                    setProducerOpen((prev) => ({ ...prev, distiller: false }))
-                  }}
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-                >
-                  {name}
-                </button>
+      <div className="space-y-5">
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterName')}</label>
+            <input
+              value={draftFilters.name}
+              onChange={(e) => setDraftFilters({ ...draftFilters, name: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              placeholder={t('catalogue.filterNamePlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterType')}</label>
+            <select
+              value={draftFilters.type}
+              onChange={(e) => setDraftFilters({ ...draftFilters, type: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            >
+              <option value="">{t('common.selectEmpty')}</option>
+              {typeOptions.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
               ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBottlingType')}</label>
+            <select
+              value={draftFilters.bottlingType}
+              onChange={(e) => setDraftFilters({ ...draftFilters, bottlingType: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            >
+              <option value="">{t('common.selectEmpty')}</option>
+              <option value="DB">{t('whisky.bottlingDB')}</option>
+              <option value="IB">{t('whisky.bottlingIB')}</option>
+            </select>
+          </div>
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterDistiller')}</label>
+            <input
+              value={draftFilters.distiller}
+              onFocus={() => setProducerOpen((prev) => ({ ...prev, distiller: true }))}
+              onBlur={() => setTimeout(() => setProducerOpen((prev) => ({ ...prev, distiller: false })), 120)}
+              onChange={(e) => {
+                setDraftFilters({ ...draftFilters, distiller: e.target.value })
+                setProducerOpen((prev) => ({ ...prev, distiller: true }))
+              }}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              placeholder={t('catalogue.filterDistillerPlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            />
+            {producerOpen.distiller && producerSuggestions.distiller.length > 0 ? (
+              <div className="absolute z-20 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+                {producerSuggestions.distiller.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setDraftFilters((prev) => ({ ...prev, distiller: name }))
+                      setProducerOpen((prev) => ({ ...prev, distiller: false }))
+                    }}
+                    className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {draftFilters.bottlingType !== 'DB' ? (
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBottler')}</label>
+              <input
+                value={draftFilters.bottler}
+                onFocus={() => setProducerOpen((prev) => ({ ...prev, bottler: true }))}
+                onBlur={() => setTimeout(() => setProducerOpen((prev) => ({ ...prev, bottler: false })), 120)}
+                onChange={(e) => {
+                  setDraftFilters({ ...draftFilters, bottler: e.target.value })
+                  setProducerOpen((prev) => ({ ...prev, bottler: true }))
+                }}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+                placeholder={t('catalogue.filterBottlerPlaceholder')}
+                style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+              />
+              {producerOpen.bottler && producerSuggestions.bottler.length > 0 ? (
+                <div className="absolute z-20 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+                  {producerSuggestions.bottler.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setDraftFilters((prev) => ({ ...prev, bottler: name }))
+                        setProducerOpen((prev) => ({ ...prev, bottler: false }))
+                      }}
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
-        </div>
-        <div className="relative">
-          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBottler')}</label>
-          <input
-            value={draftFilters.bottler}
-            onFocus={() => setProducerOpen((prev) => ({ ...prev, bottler: true }))}
-            onBlur={() => setTimeout(() => setProducerOpen((prev) => ({ ...prev, bottler: false })), 120)}
-            onChange={(e) => {
-              setDraftFilters({ ...draftFilters, bottler: e.target.value })
-              setProducerOpen((prev) => ({ ...prev, bottler: true }))
-            }}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-            placeholder={t('catalogue.filterBottlerPlaceholder')}
-            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-          />
-          {producerOpen.bottler && producerSuggestions.bottler.length > 0 ? (
-            <div className="absolute z-20 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
-              {producerSuggestions.bottler.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setDraftFilters((prev) => ({ ...prev, bottler: name }))
-                    setProducerOpen((prev) => ({ ...prev, bottler: false }))
-                  }}
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-                >
-                  {name}
-                </button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterCountry')}</label>
+            <select
+              value={draftFilters.countryId}
+              onChange={(e) => setDraftFilters({ ...draftFilters, countryId: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            >
+              <option value="">{t('common.selectEmpty')}</option>
+              {countries.map((c) => (
+                <option key={c.id} value={c.id}>{c.displayName || c.nameFr || c.name}</option>
               ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterRegion')}</label>
+            <input
+              value={draftFilters.region}
+              onChange={(e) => setDraftFilters({ ...draftFilters, region: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              placeholder={t('catalogue.filterRegionPlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBarcode')}</label>
+            <input
+              value={draftFilters.barcode}
+              onChange={(e) => setDraftFilters({ ...draftFilters, barcode: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              placeholder={t('catalogue.filterBarcodePlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterDistilledYear')}</label>
+              <input
+                value={draftFilters.distilledYear}
+                onChange={(e) => setDraftFilters({ ...draftFilters, distilledYear: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+                placeholder={t('catalogue.filterDistilledYearPlaceholder')}
+                style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+              />
             </div>
-          ) : null}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBottledYear')}</label>
+              <input
+                value={draftFilters.bottledYear}
+                onChange={(e) => setDraftFilters({ ...draftFilters, bottledYear: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+                placeholder={t('catalogue.filterBottledYearPlaceholder')}
+                style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterAge')}</label>
+              <input
+                value={draftFilters.age}
+                onChange={(e) => setDraftFilters({ ...draftFilters, age: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+                placeholder={t('catalogue.filterAgePlaceholder')}
+                style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterAlcohol')}</label>
+              <input
+                value={draftFilters.alcoholVolume}
+                onChange={(e) => setDraftFilters({ ...draftFilters, alcoholVolume: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+                placeholder={t('catalogue.filterAlcoholPlaceholder')}
+                style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+              />
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBarcode')}</label>
-          <input
-            value={draftFilters.barcode}
-            onChange={(e) => setDraftFilters({ ...draftFilters, barcode: e.target.value })}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-            placeholder={t('catalogue.filterBarcodePlaceholder')}
-            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterRatingMin')}</label>
+              <input
+                value={draftFilters.ratingMin}
+                onChange={(e) => setDraftFilters({ ...draftFilters, ratingMin: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+                placeholder={t('catalogue.filterRatingMinPlaceholder')}
+                style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterRatingMax')}</label>
+              <input
+                value={draftFilters.ratingMax}
+                onChange={(e) => setDraftFilters({ ...draftFilters, ratingMax: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+                placeholder={t('catalogue.filterRatingMaxPlaceholder')}
+                style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+              />
+            </div>
+          </div>
+          <TagInput
+            label={t('catalogue.filterNoseTags')}
+            value={noseTags}
+            onChange={setNoseTags}
+            lang={locale}
+            placeholder={t('catalogue.filterNoseTagsPlaceholder')}
+            createLabel={t('tasting.createTag')}
+            allowCreate={false}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterDistilledYear')}</label>
-            <input
-              value={draftFilters.distilledYear}
-              onChange={(e) => setDraftFilters({ ...draftFilters, distilledYear: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-              placeholder={t('catalogue.filterDistilledYearPlaceholder')}
-              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBottledYear')}</label>
-            <input
-              value={draftFilters.bottledYear}
-              onChange={(e) => setDraftFilters({ ...draftFilters, bottledYear: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-              placeholder={t('catalogue.filterBottledYearPlaceholder')}
-              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterAge')}</label>
-            <input
-              value={draftFilters.age}
-              onChange={(e) => setDraftFilters({ ...draftFilters, age: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-              placeholder={t('catalogue.filterAgePlaceholder')}
-              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterAlcohol')}</label>
-            <input
-              value={draftFilters.alcoholVolume}
-              onChange={(e) => setDraftFilters({ ...draftFilters, alcoholVolume: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-              placeholder={t('catalogue.filterAlcoholPlaceholder')}
-              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterRatingMin')}</label>
-            <input
-              value={draftFilters.ratingMin}
-              onChange={(e) => setDraftFilters({ ...draftFilters, ratingMin: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-              placeholder={t('catalogue.filterRatingMinPlaceholder')}
-              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterRatingMax')}</label>
-            <input
-              value={draftFilters.ratingMax}
-              onChange={(e) => setDraftFilters({ ...draftFilters, ratingMax: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-              placeholder={t('catalogue.filterRatingMaxPlaceholder')}
-              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-            />
-          </div>
-        </div>
-        <TagInput
-          label={t('catalogue.filterNoseTags')}
-          value={noseTags}
-          onChange={setNoseTags}
-          lang={locale}
-          placeholder={t('catalogue.filterNoseTagsPlaceholder')}
-          createLabel={t('tasting.createTag')}
-          allowCreate={false}
-        />
-        <TagInput
-          label={t('catalogue.filterPalateTags')}
-          value={palateTags}
-          onChange={setPalateTags}
-          lang={locale}
-          placeholder={t('catalogue.filterPalateTagsPlaceholder')}
-          createLabel={t('tasting.createTag')}
-          allowCreate={false}
-        />
-        <TagInput
-          label={t('catalogue.filterFinishTags')}
-          value={finishTags}
-          onChange={setFinishTags}
-          lang={locale}
-          placeholder={t('catalogue.filterFinishTagsPlaceholder')}
-          createLabel={t('tasting.createTag')}
-          allowCreate={false}
-        />
-        <div>
-          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterCountry')}</label>
-          <select
-            value={draftFilters.countryId}
-            onChange={(e) => setDraftFilters({ ...draftFilters, countryId: e.target.value })}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-          >
-            <option value="">{t('common.selectEmpty')}</option>
-            {countries.map((c) => (
-              <option key={c.id} value={c.id}>{c.displayName || c.nameFr || c.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterRegion')}</label>
-          <input
-            value={draftFilters.region}
-            onChange={(e) => setDraftFilters({ ...draftFilters, region: e.target.value })}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
-            placeholder={t('catalogue.filterRegionPlaceholder')}
-            style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+          <TagInput
+            label={t('catalogue.filterPalateTags')}
+            value={palateTags}
+            onChange={setPalateTags}
+            lang={locale}
+            placeholder={t('catalogue.filterPalateTagsPlaceholder')}
+            createLabel={t('tasting.createTag')}
+            allowCreate={false}
+          />
+          <TagInput
+            label={t('catalogue.filterFinishTags')}
+            value={finishTags}
+            onChange={setFinishTags}
+            lang={locale}
+            placeholder={t('catalogue.filterFinishTagsPlaceholder')}
+            createLabel={t('tasting.createTag')}
+            allowCreate={false}
           />
         </div>
       </div>
