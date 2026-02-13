@@ -853,18 +853,36 @@ export default function AddWhiskyPage() {
                       {createdWhisky && createdWhisky.id && (
                         <Link
                           href={buildWhiskyPath(locale, createdWhisky.id, createdWhisky.name)}
-                          className="flex items-center gap-5 rounded-2xl border border-gray-100 bg-gray-50 p-5"
+                          className="group block rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5 hover:shadow-md transition"
                         >
-                          <div className="w-24 h-24 rounded-xl bg-white border border-gray-200 overflow-hidden flex items-center justify-center">
-                            {createdWhisky.imageUrl ? (
-                              <img src={createdWhisky.imageUrl} alt={createdWhisky.name} className="w-full h-full object-contain" />
-                            ) : (
-                              <span className="text-xs text-gray-400">{t('catalogue.noImage')}</span>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-lg font-semibold text-gray-900 truncate">{createdWhisky.name}</div>
-                            <div className="text-sm text-gray-500">{t('whisky.createdCardLabel')}</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-4 sm:gap-5 items-center">
+                            <div className="w-full aspect-square rounded-xl bg-white border border-gray-200 overflow-hidden flex items-center justify-center">
+                              {createdWhisky.imageUrl ? (
+                                <img
+                                  src={createdWhisky.imageUrl}
+                                  alt={createdWhisky.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              ) : (
+                                <span className="text-xs text-gray-400">{t('catalogue.noImage')}</span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div
+                                className="text-lg sm:text-xl font-semibold text-gray-900 leading-snug line-clamp-3"
+                                style={{ fontFamily: 'var(--font-heading)' }}
+                              >
+                                {createdWhisky.name}
+                              </div>
+                              <p className="text-sm text-gray-600 mt-2">{t('whisky.createdCardLabel')}</p>
+                              <div
+                                className="mt-4 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white transition group-hover:opacity-90"
+                                style={{ backgroundColor: 'var(--color-primary)' }}
+                              >
+                                <span>{t('map.viewWhisky')}</span>
+                                <span aria-hidden>→</span>
+                              </div>
+                            </div>
                           </div>
                         </Link>
                       )}
