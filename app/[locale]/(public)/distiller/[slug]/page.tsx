@@ -204,8 +204,9 @@ export default async function DistillerPage({ params, searchParams }: Props) {
                 {total} {t('catalogue.whiskiesCount')}
               </span>
             </div>
-            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-              <p className="text-sm text-gray-700">
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <h2 className="text-lg font-semibold mb-3">{t('catalogue.producerDescriptionTitle')}</h2>
+              <p className="text-sm text-gray-600">
                 {localizedDescription || `${header.name} — ${total} ${t('catalogue.whiskiesCount')}.`}
               </p>
             </div>
