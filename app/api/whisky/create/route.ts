@@ -8,6 +8,7 @@ import { validateWhiskyName, validateDisplayName, sanitizeText } from '@/lib/mod
 import * as Sentry from '@sentry/nextjs'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { normalizeProducerName } from '@/lib/producer-name'
+import { resolveBottlerName, resolveDistillerName } from '@/lib/producer-resolver'
 import { slugifyWhiskyName } from '@/lib/whisky-url'
 
 export const dynamic = 'force-dynamic'
@@ -148,9 +149,23 @@ export async function POST(request: NextRequest) {
       return apiError('BOTTLER_REQUIRED_IB', 'Le bottler est obligatoire pour un embouteillage IB', 400)
     }
 
+    if (typeof data?.distiller === 'string' && data.distiller.trim()) {
+      const resolved = await resolveDistillerName(data.distiller)
+      if (resolved.confidence === 'high' && resolved.resolvedName) {
+        data.distiller = resolved.resolvedName
+      }
+    }
+    if (bottlingType === 'IB' && typeof data?.bottler === 'string' && data.bottler.trim()) {
+      const resolved = await resolveBottlerName(data.bottler)
+      if (resolved.confidence === 'high' && resolved.resolvedName) {
+        data.bottler = resolved.resolvedName
+      }
+    }
+
     let distillerId: string | null = null
     let distillerName: string | null = null
-    if (data?.distiller && String(data.distiller).trim()) {
+    const shouldHandleDistiller = bottlingType === 'DB' || bottlingType === 'IB'
+    if (shouldHandleDistiller && data?.distiller && String(data.distiller).trim()) {
       const normalizedDistiller = normalizeProducerName(String(data.distiller))
       const check = await validateDisplayName(normalizedDistiller, 80)
       if (!check.ok) {
@@ -172,7 +187,7 @@ export async function POST(request: NextRequest) {
 
     let bottlerId: string | null = null
     let bottlerName: string | null = null
-    if (data?.bottler && String(data.bottler).trim()) {
+    if (bottlingType === 'IB' && data?.bottler && String(data.bottler).trim()) {
       const normalizedBottler = normalizeProducerName(String(data.bottler))
       const check = await validateDisplayName(normalizedBottler, 80)
       if (!check.ok) {

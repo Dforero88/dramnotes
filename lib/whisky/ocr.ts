@@ -2,6 +2,7 @@ import crypto from 'crypto'
 
 export interface WhiskyOcrResult {
   name: string
+  bottling_type?: 'DB' | 'IB' | null
   distiller: string | null
   bottler: string | null
   distilled_year: number | null
@@ -109,8 +110,9 @@ Extrait les informations suivantes du texte OCR d'une étiquette de whisky:
 RETOURNE UNIQUEMENT UN JSON VALIDE avec ces champs (alignés avec la table whiskies):
 {
   "name": "string",                // Nom complet du whisky (obligatoire), ex: "Laphroaig 20 Years Old", "Ardbeg Wee Beastie", "Daftmill 2012 – Summer Batch (2025)"
+  "bottling_type": "DB|IB|null",   // DB = Distillery Bottling, IB = Independent Bottling
   "distiller": "string|null",      // Nom de la distillerie si connu, ex: "Laphroaig"
-  "bottler": "string|null",        // Nom de l'embouteilleur si différent de la distillerie ou si la distillerie est inconnue, mettre "Distillery Bottling" si c'est la distillerie qui a embouteillé
+  "bottler": "string|null",        // Nom de l'embouteilleur indépendant si connu
   "distilled_year": "integer|null",// Année distillation, ex: 2012
   "bottled_year": "integer|null",  // Année mise en bouteille, ex: 2025
   "age": "integer|null",           // Âge en années, ex: 20
@@ -128,6 +130,8 @@ Règles:
 - Ne pas inventer
 - Format JSON uniquement
 - Le champ "type" DOIT être exactement l'une des valeurs listées ci-dessus (ou null si incertain)
+- Si c'est une distillery bottling: bottling_type="DB", distiller rempli si possible, bottler=null
+- Si c'est une independent bottling: bottling_type="IB", bottler rempli si possible, distiller optionnel
 
 Texte OCR:
 ${ocrText}`

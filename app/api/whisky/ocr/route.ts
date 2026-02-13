@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGoogleVision, parseWithOpenAI } from '@/lib/whisky/ocr'
+import { resolveBottlerName, resolveDistillerName } from '@/lib/producer-resolver'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,10 +22,28 @@ export async function POST(request: NextRequest) {
 
     const whiskyData = await parseWithOpenAI(ocrText)
 
+    const distillerResolution = whiskyData?.distiller
+      ? await resolveDistillerName(String(whiskyData.distiller))
+      : null
+    const bottlerResolution = whiskyData?.bottler
+      ? await resolveBottlerName(String(whiskyData.bottler))
+      : null
+
+    if (distillerResolution?.confidence === 'high' && distillerResolution.resolvedName) {
+      whiskyData.distiller = distillerResolution.resolvedName
+    }
+    if (bottlerResolution?.confidence === 'high' && bottlerResolution.resolvedName) {
+      whiskyData.bottler = bottlerResolution.resolvedName
+    }
+
     return NextResponse.json({
       success: true,
       ocr_text: ocrText,
       whisky_data: whiskyData,
+      producer_resolution: {
+        distiller: distillerResolution,
+        bottler: bottlerResolution,
+      },
     })
   } catch (error) {
     console.error('❌ Erreur OCR:', error)

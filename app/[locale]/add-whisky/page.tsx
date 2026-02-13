@@ -51,6 +51,13 @@ export default function AddWhiskyPage() {
   const [barcodeExists, setBarcodeExists] = useState(false)
   const [checkingBarcode, setCheckingBarcode] = useState(false)
   const [creatingWhisky, setCreatingWhisky] = useState(false)
+  const [producerHints, setProducerHints] = useState<{ distiller: string | null; bottler: string | null }>({
+    distiller: null,
+    bottler: null,
+  })
+  const selectedBottlingType = String(whiskyData?.bottling_type || '').trim()
+  const isDb = selectedBottlingType === 'DB'
+  const isIb = selectedBottlingType === 'IB'
 
   const getCreateWhiskyErrorMessage = (errorCode?: string, fallback?: string) => {
     switch (errorCode) {
@@ -255,9 +262,27 @@ export default function AddWhiskyPage() {
           parsed.bottling_type = 'DB'
         }
       }
+      if (!parsed?.bottling_type && parsed?.distiller && !parsed?.bottler) {
+        parsed.bottling_type = 'DB'
+      }
+      if (parsed?.bottling_type === 'DB') {
+        parsed.bottler = ''
+      }
       if (parsed?.country && typeof parsed.country === 'string') {
         parsed.country_id = mapCountryToId(parsed.country)
       }
+      const distillerSuggestion =
+        json?.producer_resolution?.distiller?.confidence === 'medium'
+          ? String(json?.producer_resolution?.distiller?.resolvedName || '')
+          : ''
+      const bottlerSuggestion =
+        json?.producer_resolution?.bottler?.confidence === 'medium'
+          ? String(json?.producer_resolution?.bottler?.resolvedName || '')
+          : ''
+      setProducerHints({
+        distiller: distillerSuggestion && distillerSuggestion !== parsed?.distiller ? distillerSuggestion : null,
+        bottler: bottlerSuggestion && bottlerSuggestion !== parsed?.bottler ? bottlerSuggestion : null,
+      })
       setWhiskyData(parsed)
       setStep('edit')
     } catch (err: any) {
@@ -319,6 +344,9 @@ export default function AddWhiskyPage() {
       setCreateError(t('whisky.errorBottlerRequiredIb'))
       return
     }
+    if (payload.bottling_type === 'DB') {
+      payload.bottler = ''
+    }
 
     const upload = new FormData()
     upload.append('whisky_data', JSON.stringify(payload))
@@ -351,6 +379,37 @@ export default function AddWhiskyPage() {
       setStep('exists')
     } finally {
       setCreatingWhisky(false)
+    }
+  }
+
+  const resolveProducerField = async (kind: 'distiller' | 'bottler', value: string) => {
+    const input = String(value || '').trim()
+    if (input.length < 3) {
+      setProducerHints((prev) => ({ ...prev, [kind]: null }))
+      return
+    }
+    try {
+      const res = await fetch('/api/producers/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, value: input }),
+      })
+      const json = await res.json()
+      const resolution = json?.resolution
+      if (!res.ok || !resolution) return
+
+      if (resolution.confidence === 'high' && resolution.resolvedName) {
+        setWhiskyData((prev: any) => ({ ...prev, [kind]: resolution.resolvedName }))
+        setProducerHints((prev) => ({ ...prev, [kind]: null }))
+        return
+      }
+      if (resolution.confidence === 'medium' && resolution.resolvedName && resolution.resolvedName !== input) {
+        setProducerHints((prev) => ({ ...prev, [kind]: resolution.resolvedName }))
+        return
+      }
+      setProducerHints((prev) => ({ ...prev, [kind]: null }))
+    } catch {
+      // no-op
     }
   }
 
@@ -580,80 +639,163 @@ export default function AddWhiskyPage() {
               {step === 'edit' && (
                 <form className="space-y-4" onSubmit={handleCreateWhisky}>
                   <h2 className="text-2xl font-bold">{t('whisky.step3Title')}</h2>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldName')}</label>
-                    <input name="name" defaultValue={whiskyData.name || ''} className="w-full border rounded px-3 py-2" />
+                  <div className="rounded-xl border border-gray-200 p-4 space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                      {t('whisky.sectionIdentity')}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldName')}</label>
+                        <input name="name" defaultValue={whiskyData.name || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottlingType')}</label>
+                        <select
+                          name="bottling_type"
+                          value={whiskyData.bottling_type || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setWhiskyData((prev: any) => ({
+                              ...prev,
+                              bottling_type: value,
+                              bottler: value === 'DB' ? '' : prev?.bottler || '',
+                            }))
+                            if (value === 'DB') {
+                              setProducerHints((prev) => ({ ...prev, bottler: null }))
+                            }
+                          }}
+                          className="w-full border border-gray-300 rounded px-3 py-2"
+                        >
+                          <option value="">{t('common.selectEmpty')}</option>
+                          <option value="DB">{t('whisky.bottlingDB')}</option>
+                          <option value="IB">{t('whisky.bottlingIB')}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldType')}</label>
+                        <select name="type" defaultValue={whiskyData.type || ''} className="w-full border rounded px-3 py-2">
+                          <option value="">{t('common.selectEmpty')}</option>
+                          {typeOptions.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          {t('whisky.fieldDistiller')}
+                          {isDb ? ' *' : ''}
+                        </label>
+                        <input
+                          name="distiller"
+                          value={whiskyData.distiller || ''}
+                          onChange={(e) => {
+                            setWhiskyData((prev: any) => ({ ...prev, distiller: e.target.value }))
+                            setProducerHints((prev) => ({ ...prev, distiller: null }))
+                          }}
+                          onBlur={(e) => void resolveProducerField('distiller', e.target.value)}
+                        className="w-full border border-gray-300 rounded px-3 py-2"
+                      />
+                        {producerHints.distiller ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setWhiskyData((prev: any) => ({ ...prev, distiller: producerHints.distiller || '' }))
+                              setProducerHints((prev) => ({ ...prev, distiller: null }))
+                            }}
+                            className="mt-2 text-xs text-primary hover:underline"
+                          >
+                            {t('whisky.didYouMean')} {producerHints.distiller}?
+                          </button>
+                        ) : null}
+                      </div>
+                      {isIb ? (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottler')} *</label>
+                          <input
+                            name="bottler"
+                            value={whiskyData.bottler || ''}
+                            onChange={(e) => {
+                              setWhiskyData((prev: any) => ({ ...prev, bottler: e.target.value }))
+                              setProducerHints((prev) => ({ ...prev, bottler: null }))
+                            }}
+                            onBlur={(e) => void resolveProducerField('bottler', e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-2"
+                          />
+                          {producerHints.bottler ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setWhiskyData((prev: any) => ({ ...prev, bottler: producerHints.bottler || '' }))
+                                setProducerHints((prev) => ({ ...prev, bottler: null }))
+                              }}
+                              className="mt-2 text-xs text-primary hover:underline"
+                            >
+                              {t('whisky.didYouMean')} {producerHints.bottler}?
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldCountry')}</label>
+                        <select name="country_id" defaultValue={whiskyData.country_id || ''} className="w-full border border-gray-300 rounded px-3 py-2">
+                          <option value="">{t('common.selectEmpty')}</option>
+                          {countries.map((c) => (
+                            <option key={c.id} value={c.id}>{c.displayName || c.nameFr || c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldRegion')}</label>
+                        <input name="region" defaultValue={whiskyData.region || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBarcode')}</label>
+                        <input name="ean13" value={barcode || ''} readOnly disabled className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-50" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldDistiller')}</label>
-                      <input name="distiller" defaultValue={whiskyData.distiller || ''} className="w-full border rounded px-3 py-2" />
+
+                  <div className="rounded-xl border border-gray-200 p-4 space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                      {t('whisky.sectionCharacter')}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldDistilledYear')}</label>
+                        <input name="distilled_year" defaultValue={whiskyData.distilled_year || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottledYear')}</label>
+                        <input name="bottled_year" defaultValue={whiskyData.bottled_year || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldAge')}</label>
+                        <input name="age" defaultValue={whiskyData.age || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldAlcoholVolume')}</label>
+                        <input name="alcohol_volume" defaultValue={whiskyData.alcohol_volume || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottler')}</label>
-                      <input name="bottler" defaultValue={whiskyData.bottler || ''} className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldCountry')}</label>
-                      <select name="country_id" defaultValue={whiskyData.country_id || ''} className="w-full border rounded px-3 py-2">
-                        <option value="">{t('common.selectEmpty')}</option>
-                        {countries.map((c) => (
-                          <option key={c.id} value={c.id}>{c.displayName || c.nameFr || c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBarcode')}</label>
-                      <input name="ean13" value={barcode || ''} readOnly disabled className="w-full border rounded px-3 py-2 bg-gray-50" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottlingType')}</label>
-                      <select name="bottling_type" defaultValue={whiskyData.bottling_type || ''} className="w-full border rounded px-3 py-2">
-                        <option value="">{t('common.selectEmpty')}</option>
-                        <option value="DB">{t('whisky.bottlingDB')}</option>
-                        <option value="IB">{t('whisky.bottlingIB')}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldType')}</label>
-                      <select name="type" defaultValue={whiskyData.type || ''} className="w-full border rounded px-3 py-2">
-                        <option value="">{t('common.selectEmpty')}</option>
-                        {typeOptions.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldDistilledYear')}</label>
-                      <input name="distilled_year" defaultValue={whiskyData.distilled_year || ''} className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottledYear')}</label>
-                      <input name="bottled_year" defaultValue={whiskyData.bottled_year || ''} className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldAge')}</label>
-                      <input name="age" defaultValue={whiskyData.age || ''} className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldCaskType')}</label>
-                      <input name="cask_type" defaultValue={whiskyData.cask_type || ''} className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBatchId')}</label>
-                      <input name="batch_id" defaultValue={whiskyData.batch_id || ''} className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldAlcoholVolume')}</label>
-                      <input name="alcohol_volume" defaultValue={whiskyData.alcohol_volume || ''} className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottledFor')}</label>
-                      <input name="bottled_for" defaultValue={whiskyData.bottled_for || ''} className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldRegion')}</label>
-                      <input name="region" defaultValue={whiskyData.region || ''} className="w-full border rounded px-3 py-2" />
+                  </div>
+
+                  <div className="rounded-xl border border-gray-200 p-4 space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                      {t('whisky.sectionDetails')}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldCaskType')}</label>
+                        <input name="cask_type" defaultValue={whiskyData.cask_type || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBatchId')}</label>
+                        <input name="batch_id" defaultValue={whiskyData.batch_id || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottledFor')}</label>
+                        <input name="bottled_for" defaultValue={whiskyData.bottled_for || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                      </div>
                     </div>
                   </div>
                   <div>
