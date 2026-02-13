@@ -178,12 +178,20 @@ export default async function DistillerPage({ params, searchParams }: Props) {
       </div>
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-          <div className="order-2 lg:order-1 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <div className="rounded-xl bg-white overflow-hidden flex items-center justify-center min-h-[220px]">
+          <div className="order-2 lg:order-1 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm lg:h-full flex items-center">
+            <div className="w-full aspect-square rounded-xl bg-white overflow-hidden">
               {imageSrc ? (
-                <img src={imageSrc} alt={header.name} className="w-full h-full object-contain" />
+                <div className="w-full h-full grid place-items-center">
+                  <img
+                    src={imageSrc}
+                    alt={header.name}
+                    className="block max-w-full max-h-full object-contain object-center"
+                  />
+                </div>
               ) : (
-                <span className="text-xs text-gray-400">{t('catalogue.noImage')}</span>
+                <div className="w-full h-full grid place-items-center">
+                  <span className="text-xs text-gray-400">{t('catalogue.noImage')}</span>
+                </div>
               )}
             </div>
           </div>
