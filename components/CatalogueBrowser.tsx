@@ -43,6 +43,7 @@ type Filters = {
 }
 
 type Tag = { id: string; name: string }
+type ProducerKind = 'distiller' | 'bottler'
 
 const typeOptions = [
   'American whiskey',
@@ -95,6 +96,14 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   const [noseTags, setNoseTags] = useState<Tag[]>([])
   const [palateTags, setPalateTags] = useState<Tag[]>([])
   const [finishTags, setFinishTags] = useState<Tag[]>([])
+  const [producerSuggestions, setProducerSuggestions] = useState<{ distiller: string[]; bottler: string[] }>({
+    distiller: [],
+    bottler: [],
+  })
+  const [producerOpen, setProducerOpen] = useState<{ distiller: boolean; bottler: boolean }>({
+    distiller: false,
+    bottler: false,
+  })
 
   const pageSize = 12
 
@@ -142,6 +151,38 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
     }
     loadCountries()
   }, [])
+
+  useEffect(() => {
+    const entries: Array<{ kind: ProducerKind; query: string }> = [
+      { kind: 'distiller', query: draftFilters.distiller.trim() },
+      { kind: 'bottler', query: draftFilters.bottler.trim() },
+    ]
+
+    const controllers = entries.map(() => new AbortController())
+    const timers = entries.map(({ kind, query }, idx) =>
+      setTimeout(async () => {
+        if (query.length < 2) {
+          setProducerSuggestions((prev) => ({ ...prev, [kind]: [] }))
+          return
+        }
+        try {
+          const res = await fetch(
+            `/api/producers/suggest?kind=${kind}&q=${encodeURIComponent(query)}&limit=8`,
+            { signal: controllers[idx].signal }
+          )
+          const json = await res.json()
+          setProducerSuggestions((prev) => ({ ...prev, [kind]: json?.items || [] }))
+        } catch (_e) {
+          // ignore abort/network and keep UX responsive
+        }
+      }, 250)
+    )
+
+    return () => {
+      timers.forEach((t) => clearTimeout(t))
+      controllers.forEach((c) => c.abort())
+    }
+  }, [draftFilters.distiller, draftFilters.bottler])
 
   const applyFilters = () => {
     setAppliedFilters({
@@ -216,25 +257,71 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <option value="IB">{t('whisky.bottlingIB')}</option>
           </select>
         </div>
-        <div>
+        <div className="relative">
           <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterDistiller')}</label>
           <input
             value={draftFilters.distiller}
-            onChange={(e) => setDraftFilters({ ...draftFilters, distiller: e.target.value })}
+            onFocus={() => setProducerOpen((prev) => ({ ...prev, distiller: true }))}
+            onBlur={() => setTimeout(() => setProducerOpen((prev) => ({ ...prev, distiller: false })), 120)}
+            onChange={(e) => {
+              setDraftFilters({ ...draftFilters, distiller: e.target.value })
+              setProducerOpen((prev) => ({ ...prev, distiller: true }))
+            }}
             className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
             placeholder={t('catalogue.filterDistillerPlaceholder')}
             style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
           />
+          {producerOpen.distiller && producerSuggestions.distiller.length > 0 ? (
+            <div className="absolute z-20 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+              {producerSuggestions.distiller.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setDraftFilters((prev) => ({ ...prev, distiller: name }))
+                    setProducerOpen((prev) => ({ ...prev, distiller: false }))
+                  }}
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
-        <div>
+        <div className="relative">
           <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBottler')}</label>
           <input
             value={draftFilters.bottler}
-            onChange={(e) => setDraftFilters({ ...draftFilters, bottler: e.target.value })}
+            onFocus={() => setProducerOpen((prev) => ({ ...prev, bottler: true }))}
+            onBlur={() => setTimeout(() => setProducerOpen((prev) => ({ ...prev, bottler: false })), 120)}
+            onChange={(e) => {
+              setDraftFilters({ ...draftFilters, bottler: e.target.value })
+              setProducerOpen((prev) => ({ ...prev, bottler: true }))
+            }}
             className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
             placeholder={t('catalogue.filterBottlerPlaceholder')}
             style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
           />
+          {producerOpen.bottler && producerSuggestions.bottler.length > 0 ? (
+            <div className="absolute z-20 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+              {producerSuggestions.bottler.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setDraftFilters((prev) => ({ ...prev, bottler: name }))
+                    setProducerOpen((prev) => ({ ...prev, bottler: false }))
+                  }}
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterBarcode')}</label>
