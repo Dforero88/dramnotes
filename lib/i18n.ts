@@ -5,10 +5,10 @@ export const translations = {
   fr: {
     account: {
       'adminProducersCta': 'Admin distillers/embouteilleurs',
-      'addressHelp': 'Définir votre adresse pour les statistiques, ...',
+      'addressHelp': 'Renseignez votre pays et votre ville (optionnel).',
       'addressPlaceholder': 'Rue et numéro',
       'addressSaved': 'Adresse sauvée',
-      'addressTitle': 'Adresse',
+      'addressTitle': 'Localisation',
       'currentPseudo': 'Pseudo actuel',
       'pageTitle': 'Compte',
       'pseudoHelp': 'Définir sur quel pseudo les autres utilisateurs vous voient',
@@ -517,10 +517,10 @@ export const translations = {
   en: {
     account: {
       'adminProducersCta': 'Admin distillers/bottlers',
-      'addressHelp': 'Update your location to improve map suggestions.',
+      'addressHelp': 'Set your country and city (optional).',
       'addressPlaceholder': 'Street and number',
       'addressSaved': 'Address saved',
-      'addressTitle': 'Address',
+      'addressTitle': 'Location',
       'currentPseudo': 'Current pseudo',
       'pageTitle': 'Account',
       'pseudoHelp': 'Your public name visible to other users.',

@@ -11,8 +11,6 @@ type AccountData = {
   pseudo: string
   visibility: 'private' | 'public'
   shelfVisibility: 'private' | 'public'
-  address: string
-  zipCode: string
   town: string
   countryId: string
 }
@@ -36,8 +34,6 @@ export default function AccountPageClient() {
   const [newPseudo, setNewPseudo] = useState('')
   const [visibility, setVisibility] = useState<'private' | 'public'>('private')
   const [shelfVisibility, setShelfVisibility] = useState<'private' | 'public'>('private')
-  const [address, setAddress] = useState('')
-  const [zipCode, setZipCode] = useState('')
   const [town, setTown] = useState('')
   const [countryId, setCountryId] = useState('')
 
@@ -64,8 +60,6 @@ export default function AccountPageClient() {
         setNewPseudo('')
         setVisibility(json.visibility || 'private')
         setShelfVisibility(json.shelfVisibility || 'private')
-        setAddress(json.address || '')
-        setZipCode(json.zipCode || '')
         setTown(json.town || '')
         setCountryId(json.countryId || '')
       } catch (e) {
@@ -135,7 +129,7 @@ export default function AccountPageClient() {
       const res = await fetch('/api/account/address', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, zipCode, town, countryId }),
+        body: JSON.stringify({ town, countryId }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Erreur')
@@ -271,23 +265,9 @@ export default function AccountPageClient() {
           <p className="text-sm text-gray-600 mt-1">{t('account.addressHelp')}</p>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-2 md:col-span-2 focus:outline-none focus:ring-2"
-              placeholder={t('account.addressPlaceholder')}
-              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-            />
-            <input
-              value={zipCode}
-              onChange={(e) => setZipCode(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2"
-              placeholder={t('account.zipPlaceholder')}
-              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-            />
-            <input
               value={town}
               onChange={(e) => setTown(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2"
+              className="border border-gray-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 md:col-span-1"
               placeholder={t('account.townPlaceholder')}
               style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
             />
