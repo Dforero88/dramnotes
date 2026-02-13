@@ -5,6 +5,7 @@ import AuthBlock from '@/components/AuthBlock'
 import { useParams } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 type AccountData = {
   pseudo: string
@@ -26,7 +27,7 @@ export default function AccountPageClient() {
   const params = useParams()
   const locale = params.locale as Locale
   const t = getTranslations(locale)
-  const { isLoggedIn, isLoading } = useAuth()
+  const { user, isLoggedIn, isLoading } = useAuth()
   const [data, setData] = useState<AccountData | null>(null)
   const [countries, setCountries] = useState<Country[]>([])
 
@@ -45,6 +46,7 @@ export default function AccountPageClient() {
   const [pseudoMessage, setPseudoMessage] = useState('')
   const [visibilityMessage, setVisibilityMessage] = useState('')
   const [addressMessage, setAddressMessage] = useState('')
+  const isAdmin = (user?.email || '').toLowerCase() === 'forerodavid88@gmail.com'
 
   useEffect(() => {
     if (!isLoggedIn) return
@@ -151,6 +153,17 @@ export default function AccountPageClient() {
         <div>
           <h1 className="text-3xl font-bold">{t('account.title')}</h1>
           <p className="text-gray-600 mt-2">{t('account.subtitle')}</p>
+          {isAdmin ? (
+            <div className="mt-4">
+              <Link
+                href={`/${locale}/admin/producers`}
+                className="inline-flex items-center px-4 py-2 rounded-xl text-white"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
+                {t('account.adminProducersCta')}
+              </Link>
+            </div>
+          ) : null}
         </div>
 
         {/* Section Pseudo */}

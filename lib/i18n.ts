@@ -4,6 +4,7 @@
 export const translations = {
   fr: {
     account: {
+      'adminProducersCta': 'Admin distillers/embouteilleurs',
       'addressHelp': 'Définir votre adresse pour les statistiques, ...',
       'addressPlaceholder': 'Rue et numéro',
       'addressSaved': 'Adresse sauvée',
@@ -24,6 +25,18 @@ export const translations = {
       'visibilitySaved': 'Visibilité sauvée',
       'visibilityTitle': 'Visibilité',
       'zipPlaceholder': 'Votre zip'
+    },
+    adminProducers: {
+      'descriptionEn': 'Description (EN)',
+      'descriptionFr': 'Description (FR)',
+      'forbidden': 'Accès refusé.',
+      'missingDescriptionBadge': 'Sans description',
+      'missingImageBadge': 'Sans photo',
+      'onlyMissingDescription': 'Sans description',
+      'onlyMissingImage': 'Sans photo',
+      'searchPlaceholder': 'Rechercher un nom...',
+      'selectItem': 'Sélectionnez un item à éditer',
+      'title': 'Admin producteurs'
     },
     aromatic: {
       'title': 'Profil aromatique'
@@ -451,6 +464,7 @@ export const translations = {
   },
   en: {
     account: {
+      'adminProducersCta': 'Admin distillers/bottlers',
       'addressHelp': 'Update your location to improve map suggestions.',
       'addressPlaceholder': 'Street and number',
       'addressSaved': 'Address saved',
@@ -471,6 +485,18 @@ export const translations = {
       'visibilitySaved': 'Visibility updated',
       'visibilityTitle': 'Visibility',
       'zipPlaceholder': 'ZIP code'
+    },
+    adminProducers: {
+      'descriptionEn': 'Description (EN)',
+      'descriptionFr': 'Description (FR)',
+      'forbidden': 'Access denied.',
+      'missingDescriptionBadge': 'No description',
+      'missingImageBadge': 'No image',
+      'onlyMissingDescription': 'Only missing description',
+      'onlyMissingImage': 'Only missing image',
+      'searchPlaceholder': 'Search by name...',
+      'selectItem': 'Select an item to edit',
+      'title': 'Producer admin'
     },
     aromatic: {
       'title': 'Whisky catalogue'
