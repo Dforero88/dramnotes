@@ -69,7 +69,7 @@ export const translations = {
       'invalidCredentials': 'Identifiants invalides',
       'invalidLink': 'Lien invalide',
       'linkExpiredOrInvalid': 'Lien expiré ou invalide',
-      'loginButton': 'Valider',
+      'loginButton': 'Se connecter',
       'loginLoading': 'Connexion en cours...',
       'loginTitle': 'Se connecter',
       'newPassword': 'Nouveau mot de passe',
