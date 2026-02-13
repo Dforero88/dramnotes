@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, users, tastingNotes, follows, isMysql } from '@/lib/db'
+import { db, users, tastingNotes, follows, userShelf, isMysql } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { normalizeSearch } from '@/lib/moderation'
 
@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
 
   const isOwner = user.id === viewerId
   const isPublic = user.visibility === 'public'
+  const shelfIsPublic = user.shelfVisibility === 'public'
   if (!isOwner && !isPublic) {
     return NextResponse.json({ private: true, user: { id: user.id, pseudo: user.pseudo } })
   }
@@ -59,6 +60,11 @@ export async function GET(request: NextRequest) {
       isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public')
     ))
 
+  const shelfCountRes = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(userShelf)
+    .where(eq(userShelf.userId, user.id))
+
   let isFollowing = false
   if (!isOwner) {
     const followRes = await db
@@ -70,11 +76,17 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    user: { id: user.id, pseudo: user.pseudo, visibility: user.visibility },
+    user: {
+      id: user.id,
+      pseudo: user.pseudo,
+      visibility: user.visibility,
+      shelfVisibility: user.shelfVisibility || 'private',
+    },
     isOwner,
     isFollowing,
     counts: {
       notes: Number(notesCountRes?.[0]?.count || 0),
+      shelf: isOwner || shelfIsPublic ? Number(shelfCountRes?.[0]?.count || 0) : 0,
       followers: Number(followersCountRes?.[0]?.count || 0),
       following: Number(followingCountRes?.[0]?.count || 0),
     },

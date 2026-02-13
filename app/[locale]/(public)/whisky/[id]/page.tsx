@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache, whiskyTagStats, tagLang } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 import TastingNotesSection from '@/components/TastingNotesSection'
+import WhiskyShelfControl from '@/components/WhiskyShelfControl'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import type { Metadata } from 'next'
@@ -284,6 +285,14 @@ export default async function WhiskyDetailPage({
               </div>
             </div>
 
+            <div className="hidden lg:block">
+              <WhiskyShelfControl
+                locale={locale}
+                whiskyId={whisky.id}
+                isLoggedIn={isLoggedIn}
+              />
+            </div>
+
             {whisky.description && (
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="text-sm text-gray-600">{whisky.description}</p>
@@ -291,7 +300,15 @@ export default async function WhiskyDetailPage({
             )}
           </div>
 
-          <div className="order-3 lg:order-3 lg:col-start-2 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <div className="order-3 lg:hidden">
+            <WhiskyShelfControl
+              locale={locale}
+              whiskyId={whisky.id}
+              isLoggedIn={isLoggedIn}
+            />
+          </div>
+
+          <div className="order-4 lg:order-3 lg:col-start-2 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
             <h2 className="text-lg font-semibold mb-4">{t('whisky.analyticsTitle')}</h2>
             {analyticsData ? (
               <>

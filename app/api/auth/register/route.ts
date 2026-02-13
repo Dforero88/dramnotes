@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const { pseudo, email, password, acceptedTerms } = validationResult.data
+    const { pseudo, email, password, acceptedTerms, visibility, shelfVisibility } = validationResult.data
     const locale = body?.locale === 'en' ? 'en' : 'fr'
     if (!acceptedTerms) {
       return NextResponse.json({ error: 'Veuillez accepter la politique de confidentialité.' }, { status: 400 })
@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
       email: safeEmail,
       password: passwordHash,
       pseudo: safePseudo,
+      visibility,
+      shelfVisibility,
       confirmationToken,
       tokenExpiry,
       confirmedAt: null, // Pas encore confirmé

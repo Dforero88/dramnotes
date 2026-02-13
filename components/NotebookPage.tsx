@@ -10,8 +10,8 @@ import NotebookNotesMap from '@/components/NotebookNotesMap'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 
 type Summary = {
-  user: { id: string; pseudo: string; visibility: 'public' | 'private' }
-  counts: { notes: number; followers: number; following: number }
+  user: { id: string; pseudo: string; visibility: 'public' | 'private'; shelfVisibility?: 'public' | 'private' }
+  counts: { notes: number; shelf?: number; followers: number; following: number }
   isOwner: boolean
   isFollowing: boolean
   private?: boolean
@@ -33,6 +33,21 @@ type NoteCard = {
   longitude: number | null
   tags: string[]
   extraTagsCount: number
+}
+
+type ShelfCard = {
+  id: string
+  status: 'wishlist' | 'owned_unopened' | 'owned_opened' | 'finished'
+  updatedAt: string | number | Date | null
+  whiskyId: string
+  whiskySlug: string | null
+  whiskyName: string | null
+  distillerName: string | null
+  bottlerName: string | null
+  bottlingType: string | null
+  type: string | null
+  countryName: string | null
+  bottleImageUrl: string | null
 }
 
 type UserCard = {
@@ -77,7 +92,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
 
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loadingSummary, setLoadingSummary] = useState(true)
-  const [activeTab, setActiveTab] = useState<'notes' | 'followers' | 'following' | 'aroma'>('notes')
+  const [activeTab, setActiveTab] = useState<'notes' | 'followers' | 'following' | 'aroma' | 'shelf'>('notes')
   const [notesView, setNotesView] = useState<'list' | 'map'>('list')
   const [notesSort, setNotesSort] = useState<'created_desc' | 'created_asc' | 'rating_desc' | 'rating_asc'>('created_desc')
   const [shareNotice, setShareNotice] = useState<string | null>(null)
@@ -107,6 +122,11 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     worst: Record<string, { name: string; score: number; count: number }[]>
   } | null>(null)
   const [loadingAroma, setLoadingAroma] = useState(false)
+  const [shelfItems, setShelfItems] = useState<ShelfCard[]>([])
+  const [shelfPage, setShelfPage] = useState(1)
+  const [shelfPages, setShelfPages] = useState(1)
+  const [shelfSort, setShelfSort] = useState<'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc'>('updated_desc')
+  const [loadingShelf, setLoadingShelf] = useState(false)
 
   const hideSocialTabs = useMemo(() => {
     if (!summary) return false
@@ -114,6 +134,19 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   }, [summary])
 
   const canShare = Boolean(summary && summary.user.visibility === 'public')
+
+  const isShelfVisible = useMemo(() => {
+    if (!summary) return false
+    if (summary.isOwner) return true
+    return summary.user.visibility === 'public' && summary.user.shelfVisibility === 'public'
+  }, [summary])
+
+  const statusLabel = (status: ShelfCard['status']) => {
+    if (status === 'wishlist') return t('notebook.shelfWishlist')
+    if (status === 'owned_unopened') return t('notebook.shelfOwnedNew')
+    if (status === 'owned_opened') return t('notebook.shelfOwnedOpen')
+    return t('notebook.shelfFinished')
+  }
 
   const handleShare = async () => {
     if (!summary) return
@@ -215,6 +248,25 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     setLoadingAroma(false)
   }
 
+  const loadShelf = async (
+    page = shelfPage,
+    sort: 'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc' = shelfSort
+  ) => {
+    if (!summary?.user?.id) return
+    setLoadingShelf(true)
+    const params = new URLSearchParams()
+    params.set('userId', summary.user.id)
+    params.set('page', String(page))
+    params.set('pageSize', '12')
+    params.set('lang', locale)
+    params.set('sort', sort)
+    const res = await fetch(`/api/notebook/shelf?${params.toString()}`, { cache: 'no-store' })
+    const json = await res.json()
+    setShelfItems(json.items || [])
+    setShelfPages(json.totalPages || 1)
+    setLoadingShelf(false)
+  }
+
   useEffect(() => {
     if (isLoggedIn) loadSummary()
   }, [isLoggedIn])
@@ -237,6 +289,14 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     if (activeTab !== 'notes' || notesView !== 'map') return
     loadMapNotes()
   }, [summary?.user?.id, activeTab, notesView, locale])
+
+  useEffect(() => {
+    if (!summary || summary.private) return
+    if (activeTab !== 'shelf') return
+    if (!isShelfVisible) return
+    setShelfPage(1)
+    loadShelf(1)
+  }, [summary?.user?.id, activeTab, shelfSort, isShelfVisible])
 
   useEffect(() => {
     if (!summary || summary.private) return
@@ -421,7 +481,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
               onClick={() => setActiveTab('notes')}
               className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'notes' ? 'border-transparent' : 'border-gray-200'}`}
@@ -440,27 +500,38 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
               <div className="text-sm text-gray-600">{t('notebook.aromaTitle')}</div>
             </button>
 
-            {!hideSocialTabs && (
-              <>
-                <button
-                  onClick={() => setActiveTab('followers')}
-                  className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'followers' ? 'border-transparent' : 'border-gray-200'}`}
-                  style={activeTab === 'followers' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
-                >
-                  <div className="text-2xl font-semibold text-gray-900">{summary.counts.followers}</div>
-                  <div className="text-sm text-gray-600">{t('notebook.followersCount')}</div>
-                </button>
-                <button
-                  onClick={() => setActiveTab('following')}
-                  className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'following' ? 'border-transparent' : 'border-gray-200'}`}
-                  style={activeTab === 'following' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
-                >
-                  <div className="text-2xl font-semibold text-gray-900">{summary.counts.following}</div>
-                  <div className="text-sm text-gray-600">{t('notebook.followingCount')}</div>
-                </button>
-              </>
+            {isShelfVisible && (
+              <button
+                onClick={() => setActiveTab('shelf')}
+                className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'shelf' ? 'border-transparent' : 'border-gray-200'}`}
+                style={activeTab === 'shelf' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
+              >
+                <div className="text-2xl font-semibold text-gray-900">{summary.counts.shelf || 0}</div>
+                <div className="text-sm text-gray-600">{t('notebook.shelfTitle')}</div>
+              </button>
             )}
           </div>
+
+          {!hideSocialTabs && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => setActiveTab('followers')}
+                className={`rounded-xl px-4 py-2.5 text-left border transition ${activeTab === 'followers' ? 'border-transparent' : 'border-gray-200'}`}
+                style={activeTab === 'followers' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
+              >
+                <div className="text-lg font-semibold text-gray-900">{summary.counts.followers}</div>
+                <div className="text-xs text-gray-600">{t('notebook.followersCount')}</div>
+              </button>
+              <button
+                onClick={() => setActiveTab('following')}
+                className={`rounded-xl px-4 py-2.5 text-left border transition ${activeTab === 'following' ? 'border-transparent' : 'border-gray-200'}`}
+                style={activeTab === 'following' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
+              >
+                <div className="text-lg font-semibold text-gray-900">{summary.counts.following}</div>
+                <div className="text-xs text-gray-600">{t('notebook.followingCount')}</div>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mt-8">
@@ -602,6 +673,104 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                           loadNotes(next)
                         }}
                         disabled={notesPage === notesPages}
+                        className="px-3 py-1.5 rounded-lg border text-sm disabled:opacity-50"
+                      >
+                        {t('catalogue.next')}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'shelf' && isShelfVisible && (
+            <div>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-gray-700">{t('notebook.shelfTitle')}</div>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="shelf-sort" className="text-sm text-gray-600">
+                    {t('notebook.notesSortLabel')}
+                  </label>
+                  <select
+                    id="shelf-sort"
+                    value={shelfSort}
+                    onChange={(e) => {
+                      setShelfPage(1)
+                      setShelfSort(e.target.value as typeof shelfSort)
+                    }}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="updated_desc">{t('notebook.shelfSortUpdatedDesc')}</option>
+                    <option value="updated_asc">{t('notebook.shelfSortUpdatedAsc')}</option>
+                    <option value="name_asc">{t('catalogue.sortNameAsc')}</option>
+                    <option value="name_desc">{t('catalogue.sortNameDesc')}</option>
+                  </select>
+                </div>
+              </div>
+
+              {loadingShelf ? (
+                <div className="text-sm text-gray-500">{t('common.loading')}</div>
+              ) : shelfItems.length === 0 ? (
+                <div className="text-sm text-gray-600">{t('notebook.shelfEmpty')}</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {shelfItems.map((item) => {
+                      const imageSrc = normalizeImage(item.bottleImageUrl)
+                      const producer =
+                        item.bottlingType === 'DB' ? item.distillerName : item.bottlerName
+                      const typeLine = [item.type, item.countryName].filter(Boolean).join(' • ')
+                      return (
+                        <Link
+                          key={item.id}
+                          href={`${buildWhiskyPath(locale, item.whiskyId, item.whiskyName || undefined, item.whiskySlug || undefined)}${mode === 'public' ? `?user=${summary.user.pseudo}` : ''}`}
+                          className="bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md transition"
+                        >
+                          <div className="w-full h-40 bg-white rounded-xl flex items-center justify-center overflow-hidden">
+                            {imageSrc ? (
+                              <img src={imageSrc} alt={item.whiskyName || ''} className="w-full h-full object-contain" />
+                            ) : (
+                              <div className="text-gray-400">{t('catalogue.noImage')}</div>
+                            )}
+                          </div>
+                          <div className="mt-4 space-y-1">
+                            <div className="text-base font-semibold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>
+                              {item.whiskyName}
+                            </div>
+                            {producer && <div className="text-sm text-gray-600 line-clamp-1">{producer}</div>}
+                            {typeLine && <div className="text-xs text-gray-500">{typeLine}</div>}
+                            <div>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-xs font-semibold">
+                                {statusLabel(item.status)}
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                  {shelfPages > 1 && (
+                    <div className="flex items-center justify-center gap-3 mt-8">
+                      <button
+                        onClick={() => {
+                          const next = Math.max(1, shelfPage - 1)
+                          setShelfPage(next)
+                          loadShelf(next)
+                        }}
+                        disabled={shelfPage === 1}
+                        className="px-3 py-1.5 rounded-lg border text-sm disabled:opacity-50"
+                      >
+                        {t('catalogue.prev')}
+                      </button>
+                      <span className="text-sm text-gray-500">{shelfPage} / {shelfPages}</span>
+                      <button
+                        onClick={() => {
+                          const next = Math.min(shelfPages, shelfPage + 1)
+                          setShelfPage(next)
+                          loadShelf(next)
+                        }}
+                        disabled={shelfPage === shelfPages}
                         className="px-3 py-1.5 rounded-lg border text-sm disabled:opacity-50"
                       >
                         {t('catalogue.next')}

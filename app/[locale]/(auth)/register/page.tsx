@@ -33,6 +33,8 @@ const registerSchema = z.object({
   acceptedTerms: z.boolean().refine((value) => value === true, {
     message: 'validation.acceptTerms',
   }),
+  visibility: z.enum(['private', 'public']),
+  shelfVisibility: z.enum(['private', 'public']),
 })
 
 type RegisterForm = z.infer<typeof registerSchema>
@@ -49,6 +51,7 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
     watch,
   } = useForm<RegisterForm>({
@@ -58,10 +61,14 @@ export default function RegisterPage() {
       email: '',
       password: '',
       acceptedTerms: false,
+      visibility: 'private',
+      shelfVisibility: 'private',
     }
   })
   
   const password = watch('password')
+  const visibility = watch('visibility')
+  const shelfVisibility = watch('shelfVisibility')
   
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true)
@@ -128,9 +135,9 @@ export default function RegisterPage() {
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+      <div className="max-w-md w-full rounded-2xl border border-gray-200 bg-white shadow-sm p-6 sm:p-8">
+        <div className="mb-8">
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
             {t('auth.register')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
@@ -144,7 +151,7 @@ export default function RegisterPage() {
           </p>
         </div>
         
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
@@ -225,6 +232,62 @@ export default function RegisterPage() {
                   </ul>
                 </div>
               )}
+            </div>
+
+            {/* Visibilité */}
+            <div className="rounded-md border border-gray-200 p-3 bg-white">
+              <p className="text-sm font-medium text-gray-800">{t('auth.registerVisibilityTitle')}</p>
+              <p className="text-xs text-gray-500 mt-1">{t('auth.registerVisibilityHelp')}</p>
+              <div className="mt-3 space-y-4">
+                <input type="hidden" {...register('visibility')} />
+                <input type="hidden" {...register('shelfVisibility')} />
+                <div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setValue('visibility', visibility === 'public' ? 'private' : 'public', { shouldDirty: true })}
+                      className={`w-12 h-6 rounded-full p-1 transition-colors overflow-hidden shrink-0 inline-flex items-center ${visibility === 'public' ? 'bg-green-500' : 'bg-gray-300'}`}
+                      aria-label="toggle-register-visibility"
+                    >
+                      <div
+                        className={`w-4 h-4 bg-white rounded-full transform transition-transform ${visibility === 'public' ? 'translate-x-6' : 'translate-x-0'}`}
+                      />
+                    </button>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium text-gray-800">{t('account.visibilityProfileLabel')}</div>
+                        <span className="text-xs text-gray-700">
+                          ({visibility === 'public' ? t('account.visibilityPublic') : t('account.visibilityPrivate')})
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">{t('account.visibilityProfileHint')}</div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setValue('shelfVisibility', shelfVisibility === 'public' ? 'private' : 'public', { shouldDirty: true })}
+                      className={`w-12 h-6 rounded-full p-1 transition-colors overflow-hidden shrink-0 inline-flex items-center ${shelfVisibility === 'public' ? 'bg-green-500' : 'bg-gray-300'}`}
+                      aria-label="toggle-register-shelf-visibility"
+                    >
+                      <div
+                        className={`w-4 h-4 bg-white rounded-full transform transition-transform ${shelfVisibility === 'public' ? 'translate-x-6' : 'translate-x-0'}`}
+                      />
+                    </button>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium text-gray-800">{t('account.shelfVisibilityLabel')}</div>
+                        <span className="text-xs text-gray-700">
+                          ({shelfVisibility === 'public' ? t('account.shelfVisibilityPublic') : t('account.shelfVisibilityPrivate')})
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">{t('account.shelfVisibilityHint')}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           

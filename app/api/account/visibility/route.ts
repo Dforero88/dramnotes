@@ -13,7 +13,11 @@ export async function PATCH(request: NextRequest) {
 
   const body = await request.json()
   const visibility = body?.visibility === 'public' ? 'public' : 'private'
+  const shelfVisibility = body?.shelfVisibility === 'public' ? 'public' : 'private'
 
-  await db.update(users).set({ visibility, updatedAt: new Date() }).where(eq(users.id, userId))
+  await db
+    .update(users)
+    .set({ visibility, shelfVisibility, updatedAt: new Date() })
+    .where(eq(users.id, userId))
   return NextResponse.json({ success: true })
 }

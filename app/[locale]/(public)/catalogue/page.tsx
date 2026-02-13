@@ -51,9 +51,9 @@ export default async function CataloguePage({
     <div>
       <CatalogueBrowser locale={locale} />
       
-      <div className="mt-12 border-t">
+      <div className="mt-4 md:mt-12 border-t">
         <div className="bg-primary-light">
-          <div className="max-w-4xl mx-auto px-4 md:px-8 py-10">
+          <div className="max-w-4xl mx-auto px-4 md:px-8 pt-8 pb-3 md:py-10">
           {session?.user ? (
             <div className="text-center">
               <h3 className="text-2xl font-bold text-primary mb-4">

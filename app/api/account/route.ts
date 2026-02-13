@@ -15,6 +15,7 @@ export async function GET(_request: NextRequest) {
     .select({
       pseudo: users.pseudo,
       visibility: users.visibility,
+      shelfVisibility: users.shelfVisibility,
       address: users.address,
       zipCode: users.zipCode,
       town: users.town,

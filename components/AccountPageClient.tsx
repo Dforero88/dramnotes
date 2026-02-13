@@ -10,6 +10,7 @@ import Link from 'next/link'
 type AccountData = {
   pseudo: string
   visibility: 'private' | 'public'
+  shelfVisibility: 'private' | 'public'
   address: string
   zipCode: string
   town: string
@@ -34,6 +35,7 @@ export default function AccountPageClient() {
   const [pseudo, setPseudo] = useState('')
   const [newPseudo, setNewPseudo] = useState('')
   const [visibility, setVisibility] = useState<'private' | 'public'>('private')
+  const [shelfVisibility, setShelfVisibility] = useState<'private' | 'public'>('private')
   const [address, setAddress] = useState('')
   const [zipCode, setZipCode] = useState('')
   const [town, setTown] = useState('')
@@ -61,6 +63,7 @@ export default function AccountPageClient() {
         setPseudo(json.pseudo || '')
         setNewPseudo('')
         setVisibility(json.visibility || 'private')
+        setShelfVisibility(json.shelfVisibility || 'private')
         setAddress(json.address || '')
         setZipCode(json.zipCode || '')
         setTown(json.town || '')
@@ -113,7 +116,7 @@ export default function AccountPageClient() {
       const res = await fetch('/api/account/visibility', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visibility }),
+        body: JSON.stringify({ visibility, shelfVisibility }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Erreur')
@@ -211,25 +214,47 @@ export default function AccountPageClient() {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <h2 className="text-xl font-semibold">{t('account.visibilityTitle')}</h2>
           <p className="text-sm text-gray-600 mt-1">{t('account.visibilityHelp')}</p>
-          <div className="mt-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-700">
-                {visibility === 'public' ? t('account.visibilityPublic') : t('account.visibilityPrivate')}
-              </span>
-              <button
-                onClick={() => setVisibility(visibility === 'public' ? 'private' : 'public')}
-                className={`w-12 h-6 rounded-full p-1 transition-colors ${visibility === 'public' ? 'bg-green-500' : 'bg-gray-300'}`}
-                aria-label="toggle-visibility"
-              >
-                <div
-                  className={`w-4 h-4 bg-white rounded-full transition-transform ${visibility === 'public' ? 'translate-x-6' : 'translate-x-0'}`}
-                />
-              </button>
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <div className="space-y-4 w-full">
+              <div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setVisibility(visibility === 'public' ? 'private' : 'public')}
+                    className={`w-12 h-6 rounded-full p-1 transition-colors ${visibility === 'public' ? 'bg-green-500' : 'bg-gray-300'}`}
+                    aria-label="toggle-visibility"
+                  >
+                    <div
+                      className={`w-4 h-4 bg-white rounded-full transition-transform ${visibility === 'public' ? 'translate-x-6' : 'translate-x-0'}`}
+                    />
+                  </button>
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">{t('account.visibilityProfileLabel')}</div>
+                    <div className="text-xs text-gray-500">{t('account.visibilityProfileHint')}</div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShelfVisibility(shelfVisibility === 'public' ? 'private' : 'public')}
+                    className={`w-12 h-6 rounded-full p-1 transition-colors ${shelfVisibility === 'public' ? 'bg-green-500' : 'bg-gray-300'}`}
+                    aria-label="toggle-shelf-visibility"
+                  >
+                    <div
+                      className={`w-4 h-4 bg-white rounded-full transition-transform ${shelfVisibility === 'public' ? 'translate-x-6' : 'translate-x-0'}`}
+                    />
+                  </button>
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">{t('account.shelfVisibilityLabel')}</div>
+                    <div className="text-xs text-gray-500">{t('account.shelfVisibilityHint')}</div>
+                  </div>
+                </div>
+              </div>
             </div>
             <button
               onClick={saveVisibility}
               disabled={loadingVisibility}
-              className="px-5 py-2 rounded-xl text-white"
+              className="px-5 py-2 rounded-xl text-white shrink-0 self-start"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {loadingVisibility ? t('common.saving') : t('account.save')}
@@ -239,7 +264,7 @@ export default function AccountPageClient() {
             <p className="text-sm mt-2 text-gray-700">{visibilityMessage}</p>
           )}
         </div>
-
+        
         {/* Section Adresse */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <h2 className="text-xl font-semibold">{t('account.addressTitle')}</h2>

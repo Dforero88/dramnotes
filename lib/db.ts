@@ -3,6 +3,7 @@ import crypto from 'crypto'
 type DbSchema = {
   countries: any
   users: any
+  userShelf: any
   distillers: any
   bottlers: any
   whiskies: any
@@ -47,6 +48,7 @@ function createSqliteSchema(): DbSchema {
     password: text('password').notNull(),
     pseudo: text('pseudo').notNull().unique(),
     visibility: text('visibility').default('private'),
+    shelfVisibility: text('shelf_visibility').default('private'),
     address: text('address'),
     zipCode: text('zip_code'),
     town: text('town'),
@@ -150,6 +152,15 @@ function createSqliteSchema(): DbSchema {
     createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
   })
 
+  const userShelf = sqliteTable('user_shelf', {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    whiskyId: text('whisky_id').notNull(),
+    status: text('status').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(() => new Date()),
+  })
+
   const activities = sqliteTable('activities', {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
@@ -198,6 +209,7 @@ function createSqliteSchema(): DbSchema {
   return {
     countries,
     users,
+    userShelf,
     distillers,
     bottlers,
     whiskies,
@@ -231,6 +243,7 @@ function createMysqlSchema(): DbSchema {
     password: varchar('password', { length: 255 }).notNull(),
     pseudo: varchar('pseudo', { length: 50 }).notNull().unique(),
     visibility: varchar('visibility', { length: 20 }).default('private'),
+    shelfVisibility: varchar('shelf_visibility', { length: 20 }).default('private'),
     address: varchar('address', { length: 255 }),
     zipCode: varchar('zip_code', { length: 20 }),
     town: varchar('town', { length: 100 }),
@@ -334,6 +347,15 @@ function createMysqlSchema(): DbSchema {
     createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
   })
 
+  const userShelf = mysqlTable('user_shelf', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    userId: varchar('user_id', { length: 36 }).notNull(),
+    whiskyId: varchar('whisky_id', { length: 36 }).notNull(),
+    status: varchar('status', { length: 32 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: datetime('updated_at', { mode: 'date' }).$onUpdate(() => new Date()),
+  })
+
   const activities = mysqlTable('activities', {
     id: varchar('id', { length: 36 }).primaryKey(),
     userId: varchar('user_id', { length: 36 }).notNull(),
@@ -382,6 +404,7 @@ function createMysqlSchema(): DbSchema {
   return {
     countries,
     users,
+    userShelf,
     distillers,
     bottlers,
     whiskies,
@@ -403,6 +426,7 @@ const schema: DbSchema = useMysql ? createMysqlSchema() : createSqliteSchema()
 export const {
   countries,
   users,
+  userShelf,
   distillers,
   bottlers,
   whiskies,
@@ -471,6 +495,7 @@ function initSqlite(sqlite: any) {
     const userColumnNames = userColumns.map((col: any) => col.name)
 
     const usersColumnsToAdd = [
+      'shelf_visibility',
       'confirmed_at',
       'confirmation_token',
       'token_expiry',
@@ -480,7 +505,12 @@ function initSqlite(sqlite: any) {
 
     usersColumnsToAdd.forEach((column) => {
       if (!userColumnNames.includes(column)) {
-        const type = column.includes('token') ? 'TEXT' : 'INTEGER'
+        const type =
+          column === 'shelf_visibility'
+            ? "TEXT DEFAULT 'private'"
+            : column.includes('token')
+              ? 'TEXT'
+              : 'INTEGER'
         sqlite.prepare(`ALTER TABLE users ADD COLUMN ${column} ${type}`).run()
       }
     })
@@ -622,6 +652,25 @@ function initSqlite(sqlite: any) {
     sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_bottlers_country ON bottlers(country_id)').run()
     sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_distillers_region ON distillers(region)').run()
     sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_bottlers_region ON bottlers(region)').run()
+  } catch (_e) {
+    // ignore
+  }
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS user_shelf (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      whisky_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+  `).run()
+
+  try {
+    sqlite.prepare('CREATE UNIQUE INDEX IF NOT EXISTS uniq_user_shelf ON user_shelf(user_id, whisky_id)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_user_shelf_user_updated ON user_shelf(user_id, updated_at)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_user_shelf_status ON user_shelf(status)').run()
   } catch (_e) {
     // ignore
   }
