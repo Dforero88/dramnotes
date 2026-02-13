@@ -63,12 +63,23 @@ function createSqliteSchema(): DbSchema {
   const distillers = sqliteTable('distillers', {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    descriptionFr: text('description_fr'),
+    descriptionEn: text('description_en'),
+    imageUrl: text('image_url'),
     countryId: text('country_id'),
+    region: text('region'),
   })
 
   const bottlers = sqliteTable('bottlers', {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    descriptionFr: text('description_fr'),
+    descriptionEn: text('description_en'),
+    imageUrl: text('image_url'),
+    countryId: text('country_id'),
+    region: text('region'),
   })
 
   const whiskies = sqliteTable('whiskies', {
@@ -236,12 +247,23 @@ function createMysqlSchema(): DbSchema {
   const distillers = mysqlTable('distillers', {
     id: varchar('id', { length: 36 }).primaryKey(),
     name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 160 }).notNull(),
+    descriptionFr: text('description_fr'),
+    descriptionEn: text('description_en'),
+    imageUrl: text('image_url'),
     countryId: varchar('country_id', { length: 36 }),
+    region: varchar('region', { length: 100 }),
   })
 
   const bottlers = mysqlTable('bottlers', {
     id: varchar('id', { length: 36 }).primaryKey(),
     name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 160 }).notNull(),
+    descriptionFr: text('description_fr'),
+    descriptionEn: text('description_en'),
+    imageUrl: text('image_url'),
+    countryId: varchar('country_id', { length: 36 }),
+    region: varchar('region', { length: 100 }),
   })
 
   const whiskies = mysqlTable('whiskies', {
@@ -537,16 +559,72 @@ function initSqlite(sqlite: any) {
     CREATE TABLE IF NOT EXISTS distillers (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
-      country_id TEXT
+      slug TEXT,
+      description_fr TEXT,
+      description_en TEXT,
+      image_url TEXT,
+      country_id TEXT,
+      region TEXT
     )
   `).run()
 
   sqlite.prepare(`
     CREATE TABLE IF NOT EXISTS bottlers (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL
+      name TEXT NOT NULL,
+      slug TEXT,
+      description_fr TEXT,
+      description_en TEXT,
+      image_url TEXT,
+      country_id TEXT,
+      region TEXT
     )
   `).run()
+
+  const distillerColumns = sqlite.prepare("PRAGMA table_info(distillers)").all()
+  const distillerColumnNames = distillerColumns.map((col: any) => col.name)
+  const distillerColumnsToAdd = [
+    { name: 'slug', type: 'TEXT' },
+    { name: 'description_fr', type: 'TEXT' },
+    { name: 'description_en', type: 'TEXT' },
+    { name: 'image_url', type: 'TEXT' },
+    { name: 'country_id', type: 'TEXT' },
+    { name: 'region', type: 'TEXT' },
+  ]
+  distillerColumnsToAdd.forEach((column) => {
+    if (!distillerColumnNames.includes(column.name)) {
+      sqlite.prepare(`ALTER TABLE distillers ADD COLUMN ${column.name} ${column.type}`).run()
+    }
+  })
+
+  const bottlerColumns = sqlite.prepare("PRAGMA table_info(bottlers)").all()
+  const bottlerColumnNames = bottlerColumns.map((col: any) => col.name)
+  const bottlerColumnsToAdd = [
+    { name: 'slug', type: 'TEXT' },
+    { name: 'description_fr', type: 'TEXT' },
+    { name: 'description_en', type: 'TEXT' },
+    { name: 'image_url', type: 'TEXT' },
+    { name: 'country_id', type: 'TEXT' },
+    { name: 'region', type: 'TEXT' },
+  ]
+  bottlerColumnsToAdd.forEach((column) => {
+    if (!bottlerColumnNames.includes(column.name)) {
+      sqlite.prepare(`ALTER TABLE bottlers ADD COLUMN ${column.name} ${column.type}`).run()
+    }
+  })
+
+  try {
+    sqlite.prepare('CREATE UNIQUE INDEX IF NOT EXISTS uniq_distillers_slug ON distillers(slug)').run()
+    sqlite.prepare('CREATE UNIQUE INDEX IF NOT EXISTS uniq_bottlers_slug ON bottlers(slug)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_distillers_name ON distillers(name)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_bottlers_name ON bottlers(name)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_distillers_country ON distillers(country_id)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_bottlers_country ON bottlers(country_id)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_distillers_region ON distillers(region)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_bottlers_region ON bottlers(region)').run()
+  } catch (_e) {
+    // ignore
+  }
 
   sqlite.prepare(`
     CREATE TABLE IF NOT EXISTS tasting_notes (

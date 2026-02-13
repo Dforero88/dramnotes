@@ -130,8 +130,14 @@ export const translations = {
       'sortNotesDesc': 'Nombre de notes (desc)',
       'sortRatingAsc': 'Note moyenne (asc)',
       'sortRatingDesc': 'Note moyenne (desc)',
+      'sortWhiskiesCountAsc': 'Nb whiskies (asc)',
+      'sortWhiskiesCountDesc': 'Nb whiskies (desc)',
       'subtitle': 'Trouvez des whiskies et filtrez rapidement',
-      'title': 'Catalogue des whiskies'
+      'title': 'Catalogue des whiskies',
+      'viewWhiskies': 'Whiskies',
+      'viewDistillers': 'Distillers',
+      'viewBottlers': 'Embouteilleurs',
+      'whiskiesCount': 'whiskies'
     },
     common: {
       'backEdit': 'Retour à l\'édition',
@@ -571,8 +577,14 @@ export const translations = {
       'sortNotesDesc': 'Most notes',
       'sortRatingAsc': 'Lowest rating',
       'sortRatingDesc': 'Highest rating',
+      'sortWhiskiesCountAsc': 'Whisky count (asc)',
+      'sortWhiskiesCountDesc': 'Whisky count (desc)',
       'subtitle': 'Find whiskies and filter quickly',
-      'title': 'Whisky catalogue'
+      'title': 'Whisky catalogue',
+      'viewWhiskies': 'Whiskies',
+      'viewDistillers': 'Distillers',
+      'viewBottlers': 'Bottlers',
+      'whiskiesCount': 'whiskies'
     },
     common: {
       'backEdit': 'Back to edit',

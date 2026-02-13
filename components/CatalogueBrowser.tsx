@@ -5,6 +5,7 @@ import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import TagInput from '@/components/TagInput'
 import { buildWhiskyPath } from '@/lib/whisky-url'
+import { buildBottlerPath, buildDistillerPath } from '@/lib/producer-url'
 
 type WhiskyCard = {
   id: string
@@ -19,6 +20,16 @@ type WhiskyCard = {
   age?: number | null
   region?: string | null
   alcoholVolume?: number | null
+}
+
+type ProducerCard = {
+  id: string
+  slug?: string | null
+  name: string
+  imageUrl?: string | null
+  countryName?: string | null
+  region?: string | null
+  whiskyCount?: number
 }
 
 type Filters = {
@@ -44,6 +55,7 @@ type Filters = {
 
 type Tag = { id: string; name: string }
 type ProducerKind = 'distiller' | 'bottler'
+type CatalogueView = 'whiskies' | 'distillers' | 'bottlers'
 
 const typeOptions = [
   'American whiskey',
@@ -85,9 +97,10 @@ const emptyFilters: Filters = {
 
 export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   const t = getTranslations(locale)
+  const [view, setView] = useState<CatalogueView>('whiskies')
   const [draftFilters, setDraftFilters] = useState<Filters>(emptyFilters)
   const [appliedFilters, setAppliedFilters] = useState<Filters>(emptyFilters)
-  const [items, setItems] = useState<WhiskyCard[]>([])
+  const [items, setItems] = useState<Array<WhiskyCard | ProducerCard>>([])
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -109,22 +122,50 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams()
-    Object.entries(appliedFilters).forEach(([key, value]) => {
-      if (value && String(value).trim() !== '') {
-        params.set(key, String(value).trim())
-      }
+    const includeKeys =
+      view === 'whiskies'
+        ? [
+            'name',
+            'countryId',
+            'distiller',
+            'bottler',
+            'barcode',
+            'distilledYear',
+            'bottledYear',
+            'age',
+            'alcoholVolume',
+            'ratingMin',
+            'ratingMax',
+            'noseTags',
+            'palateTags',
+            'finishTags',
+            'region',
+            'type',
+            'bottlingType',
+            'sort',
+          ]
+        : ['name', 'countryId', 'region', 'sort']
+    includeKeys.forEach((key) => {
+      const value = (appliedFilters as any)[key]
+      if (value && String(value).trim() !== '') params.set(key, String(value).trim())
     })
     if (!params.has('sort')) params.set('sort', 'name_asc')
     params.set('page', String(page))
     params.set('pageSize', String(pageSize))
     return params.toString()
-  }, [appliedFilters, page])
+  }, [appliedFilters, page, view])
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`/api/whisky/list?lang=${locale}&${queryString}`)
+        const endpoint =
+          view === 'whiskies'
+            ? '/api/whisky/list'
+            : view === 'distillers'
+              ? '/api/distillers/list'
+              : '/api/bottlers/list'
+        const res = await fetch(`${endpoint}?lang=${locale}&${queryString}`)
         const json = await res.json()
         setItems(json?.items || [])
         setTotalPages(json?.totalPages || 1)
@@ -137,7 +178,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
       }
     }
     fetchData()
-  }, [queryString])
+  }, [queryString, locale, view])
 
   useEffect(() => {
     const loadCountries = async () => {
@@ -153,6 +194,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   }, [])
 
   useEffect(() => {
+    if (view !== 'whiskies') return
     const entries: Array<{ kind: ProducerKind; query: string }> = [
       { kind: 'distiller', query: draftFilters.distiller.trim() },
       { kind: 'bottler', query: draftFilters.bottler.trim() },
@@ -182,15 +224,16 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
       timers.forEach((t) => clearTimeout(t))
       controllers.forEach((c) => c.abort())
     }
-  }, [draftFilters.distiller, draftFilters.bottler])
+  }, [draftFilters.distiller, draftFilters.bottler, view])
 
   const applyFilters = () => {
-    setAppliedFilters({
+    setAppliedFilters((prev) => ({
+      ...prev,
       ...draftFilters,
-      noseTags: noseTags.map((t) => t.id).join(','),
-      palateTags: palateTags.map((t) => t.id).join(','),
-      finishTags: finishTags.map((t) => t.id).join(','),
-    })
+      noseTags: view === 'whiskies' ? noseTags.map((t) => t.id).join(',') : '',
+      palateTags: view === 'whiskies' ? palateTags.map((t) => t.id).join(',') : '',
+      finishTags: view === 'whiskies' ? finishTags.map((t) => t.id).join(',') : '',
+    }))
     setPage(1)
     setFiltersOpen(false)
   }
@@ -205,7 +248,96 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
     setFiltersOpen(false)
   }
 
+  useEffect(() => {
+    setPage(1)
+    setDraftFilters((prev) => {
+      const whiskySorts = new Set(['name_asc', 'name_desc', 'created_desc', 'created_asc', 'notes_desc', 'notes_asc', 'rating_desc', 'rating_asc'])
+      const producerSorts = new Set(['name_asc', 'name_desc', 'count_desc', 'count_asc'])
+      const nextSort = view === 'whiskies'
+        ? (whiskySorts.has(prev.sort) ? prev.sort : 'name_asc')
+        : (producerSorts.has(prev.sort) ? prev.sort : 'name_asc')
+      if (nextSort === prev.sort) return prev
+      return { ...prev, sort: nextSort }
+    })
+    setAppliedFilters((prev) => {
+      const whiskySorts = new Set(['name_asc', 'name_desc', 'created_desc', 'created_asc', 'notes_desc', 'notes_asc', 'rating_desc', 'rating_asc'])
+      const producerSorts = new Set(['name_asc', 'name_desc', 'count_desc', 'count_asc'])
+      const nextSort = view === 'whiskies'
+        ? (whiskySorts.has(prev.sort) ? prev.sort : 'name_asc')
+        : (producerSorts.has(prev.sort) ? prev.sort : 'name_asc')
+      if (nextSort === prev.sort) return prev
+      return { ...prev, sort: nextSort }
+    })
+  }, [view])
+
   const renderFilters = (isMobile = false) => (
+    view !== 'whiskies' ? (
+      <div className={isMobile ? 'space-y-4' : 'space-y-5'}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{t('catalogue.filtersTitle')}</h2>
+          {!isMobile && (
+            <button
+              onClick={resetFilters}
+              className="text-sm"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              {t('catalogue.resetFilters')}
+            </button>
+          )}
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              {view === 'distillers' ? t('catalogue.filterDistiller') : t('catalogue.filterBottler')}
+            </label>
+            <input
+              value={draftFilters.name}
+              onChange={(e) => setDraftFilters({ ...draftFilters, name: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              placeholder={
+                view === 'distillers'
+                  ? t('catalogue.filterDistillerPlaceholder')
+                  : t('catalogue.filterBottlerPlaceholder')
+              }
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterCountry')}</label>
+            <select
+              value={draftFilters.countryId}
+              onChange={(e) => setDraftFilters({ ...draftFilters, countryId: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            >
+              <option value="">{t('common.selectEmpty')}</option>
+              {countries.map((c) => (
+                <option key={c.id} value={c.id}>{c.displayName || c.nameFr || c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('catalogue.filterRegion')}</label>
+            <input
+              value={draftFilters.region}
+              onChange={(e) => setDraftFilters({ ...draftFilters, region: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2"
+              placeholder={t('catalogue.filterRegionPlaceholder')}
+              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+            />
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={applyFilters}
+            className="px-4 py-2 text-white rounded-lg flex-1"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            {t('catalogue.applyFilters')}
+          </button>
+        </div>
+      </div>
+    ) : (
     <div className={isMobile ? 'space-y-4' : 'space-y-5'}>
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">{t('catalogue.filtersTitle')}</h2>
@@ -471,20 +603,45 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
         </button>
       </div>
     </div>
+    )
   )
 
   return (
     <div className="px-4 md:px-8 py-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">{t('catalogue.title')}</h1>
-        <button
-          onClick={() => setFiltersOpen(true)}
-          className="lg:hidden px-4 py-2 border rounded-lg"
-          style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-        >
-          {t('catalogue.openFilters')}
-        </button>
+          <h1 className="text-3xl font-bold">{t('catalogue.title')}</h1>
+          <button
+            onClick={() => setFiltersOpen(true)}
+            className="lg:hidden px-4 py-2 border rounded-lg"
+            style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+          >
+            {t('catalogue.openFilters')}
+          </button>
+        </div>
+
+        <div className="mb-6 inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
+          <button
+            onClick={() => setView('whiskies')}
+            className={`px-4 py-2 rounded-full text-sm ${view === 'whiskies' ? 'text-white' : 'text-gray-600'}`}
+            style={{ backgroundColor: view === 'whiskies' ? 'var(--color-primary)' : 'transparent' }}
+          >
+            {t('catalogue.viewWhiskies')}
+          </button>
+          <button
+            onClick={() => setView('distillers')}
+            className={`px-4 py-2 rounded-full text-sm ${view === 'distillers' ? 'text-white' : 'text-gray-600'}`}
+            style={{ backgroundColor: view === 'distillers' ? 'var(--color-primary)' : 'transparent' }}
+          >
+            {t('catalogue.viewDistillers')}
+          </button>
+          <button
+            onClick={() => setView('bottlers')}
+            className={`px-4 py-2 rounded-full text-sm ${view === 'bottlers' ? 'text-white' : 'text-gray-600'}`}
+            style={{ backgroundColor: view === 'bottlers' ? 'var(--color-primary)' : 'transparent' }}
+          >
+            {t('catalogue.viewBottlers')}
+          </button>
         </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
@@ -508,12 +665,21 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             >
               <option value="name_asc">{t('catalogue.sortNameAsc')}</option>
               <option value="name_desc">{t('catalogue.sortNameDesc')}</option>
-              <option value="created_desc">{t('catalogue.sortCreatedDesc')}</option>
-              <option value="created_asc">{t('catalogue.sortCreatedAsc')}</option>
-              <option value="notes_desc">{t('catalogue.sortNotesDesc')}</option>
-              <option value="notes_asc">{t('catalogue.sortNotesAsc')}</option>
-              <option value="rating_desc">{t('catalogue.sortRatingDesc')}</option>
-              <option value="rating_asc">{t('catalogue.sortRatingAsc')}</option>
+              {view === 'whiskies' ? (
+                <>
+                  <option value="created_desc">{t('catalogue.sortCreatedDesc')}</option>
+                  <option value="created_asc">{t('catalogue.sortCreatedAsc')}</option>
+                  <option value="notes_desc">{t('catalogue.sortNotesDesc')}</option>
+                  <option value="notes_asc">{t('catalogue.sortNotesAsc')}</option>
+                  <option value="rating_desc">{t('catalogue.sortRatingDesc')}</option>
+                  <option value="rating_asc">{t('catalogue.sortRatingAsc')}</option>
+                </>
+              ) : (
+                <>
+                  <option value="count_desc">{t('catalogue.sortWhiskiesCountDesc')}</option>
+                  <option value="count_asc">{t('catalogue.sortWhiskiesCountAsc')}</option>
+                </>
+              )}
             </select>
           </div>
           {loading && (
@@ -527,25 +693,26 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             </div>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-            {items.map((item) => {
+            {view === 'whiskies' && items.map((item) => {
+              const whisky = item as WhiskyCard
               const imageSrc =
-                typeof item.bottleImageUrl === 'string' && item.bottleImageUrl.trim() !== ''
-                  ? item.bottleImageUrl.startsWith('http') || item.bottleImageUrl.startsWith('/')
-                    ? item.bottleImageUrl
-                    : `/${item.bottleImageUrl}`
+                typeof whisky.bottleImageUrl === 'string' && whisky.bottleImageUrl.trim() !== ''
+                  ? whisky.bottleImageUrl.startsWith('http') || whisky.bottleImageUrl.startsWith('/')
+                    ? whisky.bottleImageUrl
+                    : `/${whisky.bottleImageUrl}`
                   : ''
 
               return (
                 <Link
-                  key={item.id}
-                  href={buildWhiskyPath(locale, item.id, item.name)}
+                  key={whisky.id}
+                  href={buildWhiskyPath(locale, whisky.id, whisky.name)}
                   className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow block"
                 >
                   <div className="w-full h-48 bg-white flex items-center justify-center">
                     {imageSrc ? (
                       <img
                         src={imageSrc}
-                        alt={item.name}
+                        alt={whisky.name}
                         className="w-full h-full object-contain"
                       />
                     ) : (
@@ -555,25 +722,65 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
                     )}
                   </div>
                   <div className="p-3 space-y-1">
-                    <h3 className="text-base font-semibold line-clamp-2">{item.name}</h3>
+                    <h3 className="text-base font-semibold line-clamp-2">{whisky.name}</h3>
                     <div className="text-sm text-gray-600 line-clamp-1">
-                      {item.distillerName || item.bottlerName || item.region || item.type || ''}
+                      {whisky.distillerName || whisky.bottlerName || whisky.region || whisky.type || ''}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {[item.type, item.countryName].filter(Boolean).join(' • ')}
+                      {[whisky.type, whisky.countryName].filter(Boolean).join(' • ')}
                     </div>
-                    {(typeof item.avgRating === 'number' || Number(item.totalReviews || 0) > 0) && (
+                    {(typeof whisky.avgRating === 'number' || Number(whisky.totalReviews || 0) > 0) && (
                       <div className="pt-1 flex flex-wrap items-center gap-2">
-                        {typeof item.avgRating === 'number' && (
+                        {typeof whisky.avgRating === 'number' && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-xs font-semibold">
-                            ★ {item.avgRating.toFixed(1)}/10
+                            ★ {whisky.avgRating.toFixed(1)}/10
                           </span>
                         )}
                         <span className="text-xs text-gray-500">
-                          {Number(item.totalReviews || 0)} {t('catalogue.notesCount')}
+                          {Number(whisky.totalReviews || 0)} {t('catalogue.notesCount')}
                         </span>
                       </div>
                     )}
+                  </div>
+                </Link>
+              )
+            })}
+            {view !== 'whiskies' && items.map((item) => {
+              const producer = item as ProducerCard
+              const imageSrc =
+                typeof producer.imageUrl === 'string' && producer.imageUrl.trim() !== ''
+                  ? producer.imageUrl.startsWith('http') || producer.imageUrl.startsWith('/')
+                    ? producer.imageUrl
+                    : `/${producer.imageUrl}`
+                  : ''
+              const href = view === 'distillers'
+                ? buildDistillerPath(locale, producer.slug || producer.id)
+                : buildBottlerPath(locale, producer.slug || producer.id)
+              return (
+                <Link
+                  key={`${view}-${producer.id}`}
+                  href={href}
+                  className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow block"
+                >
+                  <div className="w-full h-48 bg-white flex items-center justify-center">
+                    {imageSrc ? (
+                      <img src={imageSrc} alt={producer.name} className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        {t('catalogue.noImage')}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 space-y-1">
+                    <h3 className="text-base font-semibold line-clamp-2">{producer.name}</h3>
+                    <div className="text-xs text-gray-500">
+                      {[producer.countryName, producer.region].filter(Boolean).join(' • ')}
+                    </div>
+                    <div className="pt-1">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-700 px-2 py-0.5 text-xs font-semibold">
+                        {Number(producer.whiskyCount || 0)} {t('catalogue.whiskiesCount')}
+                      </span>
+                    </div>
                   </div>
                 </Link>
               )

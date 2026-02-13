@@ -9,6 +9,7 @@ import * as Sentry from '@sentry/nextjs'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { normalizeProducerName } from '@/lib/producer-name'
 import { resolveBottlerName, resolveDistillerName } from '@/lib/producer-resolver'
+import { slugifyProducerName } from '@/lib/producer-url'
 import { slugifyWhiskyName } from '@/lib/whisky-url'
 
 export const dynamic = 'force-dynamic'
@@ -31,6 +32,38 @@ async function generateUniqueWhiskySlug(name: string): Promise<string> {
       .select({ id: whiskies.id })
       .from(whiskies)
       .where(eq(whiskies.slug, slug))
+      .limit(1)
+    if (existing.length === 0) return slug
+    slug = `${base}-${counter}`
+    counter += 1
+  }
+}
+
+async function generateUniqueDistillerSlug(name: string): Promise<string> {
+  const base = slugifyProducerName(name)
+  let slug = base
+  let counter = 2
+  while (true) {
+    const existing = await db
+      .select({ id: distillers.id })
+      .from(distillers)
+      .where(eq(distillers.slug, slug))
+      .limit(1)
+    if (existing.length === 0) return slug
+    slug = `${base}-${counter}`
+    counter += 1
+  }
+}
+
+async function generateUniqueBottlerSlug(name: string): Promise<string> {
+  const base = slugifyProducerName(name)
+  let slug = base
+  let counter = 2
+  while (true) {
+    const existing = await db
+      .select({ id: bottlers.id })
+      .from(bottlers)
+      .where(eq(bottlers.slug, slug))
       .limit(1)
     if (existing.length === 0) return slug
     slug = `${base}-${counter}`
@@ -173,15 +206,39 @@ export async function POST(request: NextRequest) {
       }
       distillerName = check.value
       const existing = await db
-        .select({ id: distillers.id })
+        .select({ id: distillers.id, countryId: distillers.countryId })
         .from(distillers)
         .where(sql`lower(${distillers.name}) = ${distillerName.toLowerCase()}`)
         .limit(1)
       if (existing.length > 0) {
         distillerId = existing[0].id
+        // Country ownership:
+        // - DB: distiller country can be inferred from bottle country
+        // - IB: distiller country is unknown by default, keep null
+        if (
+          bottlingType === 'DB' &&
+          data?.country_id &&
+          String(data.country_id).trim() &&
+          !existing[0].countryId
+        ) {
+          await db
+            .update(distillers)
+            .set({ countryId: String(data.country_id).trim() })
+            .where(eq(distillers.id, existing[0].id))
+        }
       } else {
         distillerId = generateId()
-        await db.insert(distillers).values({ id: distillerId, name: distillerName, countryId: data?.country_id || null })
+        const distillerSlug = await generateUniqueDistillerSlug(distillerName)
+        await db.insert(distillers).values({
+          id: distillerId,
+          name: distillerName,
+          slug: distillerSlug,
+          descriptionFr: null,
+          descriptionEn: null,
+          imageUrl: null,
+          countryId: bottlingType === 'DB' ? (data?.country_id || null) : null,
+          region: data?.region ? String(data.region).trim() : null,
+        })
       }
     }
 
@@ -195,15 +252,33 @@ export async function POST(request: NextRequest) {
       }
       bottlerName = check.value
       const existing = await db
-        .select({ id: bottlers.id })
+        .select({ id: bottlers.id, countryId: bottlers.countryId })
         .from(bottlers)
         .where(sql`lower(${bottlers.name}) = ${bottlerName.toLowerCase()}`)
         .limit(1)
       if (existing.length > 0) {
         bottlerId = existing[0].id
+        // Country ownership:
+        // - IB: bottler country can be inferred from bottle country
+        if (data?.country_id && String(data.country_id).trim() && !existing[0].countryId) {
+          await db
+            .update(bottlers)
+            .set({ countryId: String(data.country_id).trim() })
+            .where(eq(bottlers.id, existing[0].id))
+        }
       } else {
         bottlerId = generateId()
-        await db.insert(bottlers).values({ id: bottlerId, name: bottlerName })
+        const bottlerSlug = await generateUniqueBottlerSlug(bottlerName)
+        await db.insert(bottlers).values({
+          id: bottlerId,
+          name: bottlerName,
+          slug: bottlerSlug,
+          descriptionFr: null,
+          descriptionEn: null,
+          imageUrl: null,
+          countryId: data?.country_id || null,
+          region: data?.region ? String(data.region).trim() : null,
+        })
       }
     }
 
