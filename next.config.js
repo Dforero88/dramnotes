@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: false,
   images: {
+    // Disable Next image optimizer endpoint (_next/image) to reduce DoS exposure on self-hosting.
+    unoptimized: true,
     domains: [],
   },
   experimental: {

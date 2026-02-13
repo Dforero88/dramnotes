@@ -12,9 +12,10 @@ import { buildWhiskyPath, extractWhiskyUuidFromParam } from '@/lib/whisky-url'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export async function generateMetadata({ params }: { params: { locale: Locale; id: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale; id: string }> }): Promise<Metadata> {
+  const { locale, id } = await params
   const baseUrl = process.env.APP_URL || 'https://dramnotes.com'
-  const maybeUuid = extractWhiskyUuidFromParam(params.id)
+  const maybeUuid = extractWhiskyUuidFromParam(id)
   const whiskyRow = await db
     .select({
       id: whiskies.id,
@@ -23,13 +24,13 @@ export async function generateMetadata({ params }: { params: { locale: Locale; i
       image: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
     })
     .from(whiskies)
-    .where(maybeUuid ? eq(whiskies.id, maybeUuid) : eq(whiskies.slug, params.id))
+    .where(maybeUuid ? eq(whiskies.id, maybeUuid) : eq(whiskies.slug, id))
     .limit(1)
 
   const whisky = whiskyRow?.[0]
   const title = whisky?.name ? `${whisky.name}` : 'Whisky'
   const imageUrl = whisky?.image ? (whisky.image.startsWith('http') || whisky.image.startsWith('/') ? whisky.image : `${baseUrl}/${whisky.image}`) : undefined
-  const path = whisky?.id ? buildWhiskyPath(params.locale, whisky.id, whisky.name, whisky.slug) : `/${params.locale}/whisky/${params.id}`
+  const path = whisky?.id ? buildWhiskyPath(locale, whisky.id, whisky.name, whisky.slug) : `/${locale}/whisky/${id}`
   const url = `${baseUrl}${path}`
 
   return {
@@ -60,10 +61,11 @@ export default async function WhiskyDetailPage({
   params,
   searchParams,
 }: {
-  params: { locale: Locale; id: string }
-  searchParams: { user?: string }
+  params: Promise<{ locale: Locale; id: string }>
+  searchParams: Promise<{ user?: string }>
 }) {
-  const { locale, id } = params
+  const { locale, id } = await params
+  const resolvedSearchParams = await searchParams
   const maybeUuid = extractWhiskyUuidFromParam(id)
   const t = getTranslations(locale)
   const session = await getServerSession(authOptions)
@@ -91,7 +93,7 @@ export default async function WhiskyDetailPage({
       </div>
     )
   }
-  const filterPseudo = searchParams?.user || null
+  const filterPseudo = resolvedSearchParams?.user || null
 
   const result = await db
     .select({

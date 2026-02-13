@@ -9,16 +9,14 @@ import Camera from '@/components/Camera'
 import BarcodeCropper from '@/components/BarcodeCropper'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { useSession } from 'next-auth/react'
+import { useParams } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics-client'
 import { normalizeProducerName } from '@/lib/producer-name'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 
-export default function AddWhiskyPage({
-  params
-}: {
-  params: { locale: Locale }
-}) {
-  const { locale } = params
+export default function AddWhiskyPage() {
+  const routeParams = useParams<{ locale?: string }>()
+  const locale = (routeParams?.locale === 'en' ? 'en' : 'fr') as Locale
   const t = getTranslations(locale)
   const { data: session, status } = useSession()
   

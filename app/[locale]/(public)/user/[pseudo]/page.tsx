@@ -5,13 +5,14 @@ import { getTranslations, type Locale } from '@/lib/i18n'
 export async function generateMetadata({
   params,
 }: {
-  params: { locale: Locale; pseudo: string }
+  params: Promise<{ locale: Locale; pseudo: string }>
 }): Promise<Metadata> {
-  const t = getTranslations(params.locale)
+  const { locale, pseudo } = await params
+  const t = getTranslations(locale)
   const baseUrl = process.env.APP_URL || 'https://dramnotes.com'
-  const title = `${params.pseudo} — ${t('notebook.pageTitle')}`
-  const url = `${baseUrl}/${params.locale}/user/${params.pseudo}`
-  const description = `${params.pseudo} — ${t('notebook.pageTitle')}`
+  const title = `${pseudo} — ${t('notebook.pageTitle')}`
+  const url = `${baseUrl}/${locale}/user/${pseudo}`
+  const description = `${pseudo} — ${t('notebook.pageTitle')}`
   return {
     title,
     description,
@@ -24,6 +25,7 @@ export async function generateMetadata({
   }
 }
 
-export default function UserNotebookPage({ params }: { params: { pseudo: string } }) {
-  return <NotebookPage mode="public" pseudo={params.pseudo} />
+export default async function UserNotebookPage({ params }: { params: Promise<{ locale: Locale; pseudo: string }> }) {
+  const { pseudo } = await params
+  return <NotebookPage mode="public" pseudo={pseudo} />
 }

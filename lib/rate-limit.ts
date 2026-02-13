@@ -12,8 +12,7 @@ function getClientIp(request: NextRequest): string {
   }
   const realIp = request.headers.get('x-real-ip')
   if (realIp) return realIp.trim()
-  const ip = request.ip
-  return ip || 'unknown'
+  return 'unknown'
 }
 
 export function buildRateLimitKey(

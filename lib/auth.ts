@@ -14,53 +14,47 @@ export const authOptions: AuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials: any) {
-        try {
-          // Validation
-          const validated = loginSchema.safeParse(credentials)
-          if (!validated.success) {
-            console.log('❌ Validation échouée:', validated.error.format())
-            return null
-          }
-          
-          const { email, password } = validated.data
-          
-          // Chercher l'utilisateur
-          const userResult = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email))
-            .limit(1)
-          
-          if (userResult.length === 0) {
-            console.log('❌ Utilisateur non trouvé:', email)
-            return null
-          }
-          
-          const user = userResult[0]
-          
-          // Vérifier si le compte est confirmé
-          if (!user.confirmedAt) {
-            console.log('❌ Compte non confirmé:', email)
-            throw new Error('Veuillez confirmer votre email avant de vous connecter')
-          }
-          
-          // Vérifier le mot de passe
-          const passwordValid = await bcrypt.compare(password, user.password)
-          if (!passwordValid) {
-            console.log('❌ Mot de passe invalide pour:', email)
-            return null
-          }
-          
-          // Retourner l'utilisateur (sans le mot de passe)
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.pseudo,
-          }
-          
-        } catch (error) {
-          console.error('❌ Erreur authorize:', error)
+        // Validation
+        const validated = loginSchema.safeParse(credentials)
+        if (!validated.success) {
+          console.log('❌ Validation échouée:', validated.error.format())
           return null
+        }
+
+        const { email, password } = validated.data
+
+        // Chercher l'utilisateur
+        const userResult = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1)
+
+        if (userResult.length === 0) {
+          console.log('❌ Utilisateur non trouvé:', email)
+          return null
+        }
+
+        const user = userResult[0]
+
+        // Vérifier si le compte est confirmé
+        if (!user.confirmedAt) {
+          console.log('❌ Compte non confirmé:', email)
+          throw new Error('EMAIL_NOT_CONFIRMED')
+        }
+
+        // Vérifier le mot de passe
+        const passwordValid = await bcrypt.compare(password, user.password)
+        if (!passwordValid) {
+          console.log('❌ Mot de passe invalide pour:', email)
+          return null
+        }
+
+        // Retourner l'utilisateur (sans le mot de passe)
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.pseudo,
         }
       }
     })

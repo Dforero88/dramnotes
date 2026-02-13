@@ -3,15 +3,16 @@ import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-export function generateMetadata({ params }: { params: { locale: Locale } }): Metadata {
-  const t = getTranslations(params.locale)
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params
+  const t = getTranslations(locale)
   return {
     title: `${t('privacy.title')} · DramNotes`,
   }
 }
 
-export default function PrivacyPage({ params }: { params: { locale: Locale } }) {
-  const { locale } = params
+export default async function PrivacyPage({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
   const t = getTranslations(locale)
   const updated = new Date().toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', {
     year: 'numeric',
