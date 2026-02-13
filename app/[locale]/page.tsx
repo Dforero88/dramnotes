@@ -243,6 +243,7 @@ export default async function HomePage({
 
   const activitiesVisible = recentActivities
     .filter((row) => row.type === 'new_note' || row.type === 'new_whisky')
+    .filter((row) => (row.type === 'new_note' ? row.rating !== null : true))
     .filter((row) => activityUsersMap[row.actorId]?.visibility === 'public')
     .sort((a, b) => {
       const aDate = normalizeActivityDate(a.createdAt)
@@ -453,9 +454,19 @@ export default async function HomePage({
                 const activityDate = createdAt ? formatRelativeDate(createdAt, locale) : ''
                 const href = `${buildWhiskyPath(locale, activity.targetId, activity.whiskyName || undefined)}?user=${encodeURIComponent(pseudo)}`
                 const whiskyImage = normalizeImage(activity.whiskyImageUrl)
-                const producerName = activity.bottlingType === 'DB'
+                const rawProducerName = activity.bottlingType === 'DB'
                   ? activity.distillerName
                   : activity.bottlerName
+                const producerName = (() => {
+                  const cleaned = rawProducerName?.trim()
+                  if (cleaned && cleaned !== '-') return cleaned
+                  const fallback = (activity.distillerName || activity.bottlerName || '').trim()
+                  return fallback && fallback !== '-' ? fallback : ''
+                })()
+                const noteLocation = (() => {
+                  const cleaned = (activity.location || '').trim()
+                  return cleaned && cleaned !== '-' ? cleaned : ''
+                })()
                 const rowContent = (
                   <>
                     <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -498,9 +509,13 @@ export default async function HomePage({
                               {activity.whiskyType ? <span>{activity.whiskyType}</span> : null}
                               {activity.countryName ? <span>· {activity.countryName}</span> : null}
                             </div>
-                            <div className="text-xs text-gray-500 break-words">
-                              {isNewWhisky ? (producerName || '') : (activity.location || '—')}
-                            </div>
+                            {isNewWhisky ? (
+                              producerName ? (
+                                <div className="text-xs text-gray-500 break-words">{producerName}</div>
+                              ) : null
+                            ) : noteLocation ? (
+                              <div className="text-xs text-gray-500 break-words">{noteLocation}</div>
+                            ) : null}
                           </div>
                         </div>
                       </div>

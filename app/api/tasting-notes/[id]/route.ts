@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, tastingNotes, tastingNoteTags } from '@/lib/db'
+import { db, tastingNotes, tastingNoteTags, activities } from '@/lib/db'
 import { and, eq } from 'drizzle-orm'
 import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { recomputeUserAroma } from '@/lib/user-aroma'
@@ -177,6 +177,15 @@ export async function DELETE(
 
   await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, id))
   await db.delete(tastingNotes).where(eq(tastingNotes.id, id))
+  await db
+    .delete(activities)
+    .where(
+      and(
+        eq(activities.userId, userId),
+        eq(activities.targetId, existing[0].whiskyId),
+        eq(activities.type, 'new_note')
+      )
+    )
 
   await recomputeWhiskyAnalytics(existing[0].whiskyId)
   await recomputeUserAroma(userId)
