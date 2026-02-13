@@ -214,20 +214,20 @@ export default function AccountPageClient() {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <h2 className="text-xl font-semibold">{t('account.visibilityTitle')}</h2>
           <p className="text-sm text-gray-600 mt-1">{t('account.visibilityHelp')}</p>
-          <div className="mt-4 flex items-center justify-between gap-4">
+          <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-4 w-full">
               <div>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setVisibility(visibility === 'public' ? 'private' : 'public')}
-                    className={`w-12 h-6 rounded-full p-1 transition-colors ${visibility === 'public' ? 'bg-green-500' : 'bg-gray-300'}`}
+                    className={`w-12 h-6 rounded-full p-1 transition-colors overflow-hidden shrink-0 inline-flex items-center ${visibility === 'public' ? 'bg-green-500' : 'bg-gray-300'}`}
                     aria-label="toggle-visibility"
                   >
                     <div
-                      className={`w-4 h-4 bg-white rounded-full transition-transform ${visibility === 'public' ? 'translate-x-6' : 'translate-x-0'}`}
+                      className={`w-4 h-4 bg-white rounded-full transform transition-transform ${visibility === 'public' ? 'translate-x-6' : 'translate-x-0'}`}
                     />
                   </button>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-sm font-medium text-gray-800">{t('account.visibilityProfileLabel')}</div>
                     <div className="text-xs text-gray-500">{t('account.visibilityProfileHint')}</div>
                   </div>
@@ -237,14 +237,14 @@ export default function AccountPageClient() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShelfVisibility(shelfVisibility === 'public' ? 'private' : 'public')}
-                    className={`w-12 h-6 rounded-full p-1 transition-colors ${shelfVisibility === 'public' ? 'bg-green-500' : 'bg-gray-300'}`}
+                    className={`w-12 h-6 rounded-full p-1 transition-colors overflow-hidden shrink-0 inline-flex items-center ${shelfVisibility === 'public' ? 'bg-green-500' : 'bg-gray-300'}`}
                     aria-label="toggle-shelf-visibility"
                   >
                     <div
-                      className={`w-4 h-4 bg-white rounded-full transition-transform ${shelfVisibility === 'public' ? 'translate-x-6' : 'translate-x-0'}`}
+                      className={`w-4 h-4 bg-white rounded-full transform transition-transform ${shelfVisibility === 'public' ? 'translate-x-6' : 'translate-x-0'}`}
                     />
                   </button>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-sm font-medium text-gray-800">{t('account.shelfVisibilityLabel')}</div>
                     <div className="text-xs text-gray-500">{t('account.shelfVisibilityHint')}</div>
                   </div>
@@ -254,7 +254,7 @@ export default function AccountPageClient() {
             <button
               onClick={saveVisibility}
               disabled={loadingVisibility}
-              className="px-5 py-2 rounded-xl text-white shrink-0 self-start"
+              className="px-5 py-2 rounded-xl text-white shrink-0 self-end md:self-start"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {loadingVisibility ? t('common.saving') : t('account.save')}

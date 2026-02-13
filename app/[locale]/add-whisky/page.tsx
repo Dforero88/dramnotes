@@ -818,7 +818,13 @@ export default function AddWhiskyPage() {
                         onChange={(e) => onBottleSelected(e.target.files?.[0] || null)}
                       />
                       {bottlePreview ? (
-                        <img src={bottlePreview} className="max-w-xs rounded-lg" alt="Bouteille" />
+                        <div className="w-full rounded-xl border border-gray-200 bg-white p-2 overflow-hidden">
+                          <img
+                            src={bottlePreview}
+                            className="w-full max-h-72 object-contain rounded-lg mx-auto"
+                            alt="Bouteille"
+                          />
+                        </div>
                       ) : (
                         <div className="text-sm text-gray-500">{t('whisky.bottlePhotoRequired')}</div>
                       )}
