@@ -48,12 +48,14 @@ export default async function CataloguePage({
   const session = await getServerSession(authOptions) // <-- Passe authOptions
   
   return (
-    <div>
-      <CatalogueBrowser locale={locale} />
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1">
+        <CatalogueBrowser locale={locale} />
+      </div>
       
-      <div className="mt-4 md:mt-12 border-t">
+      <div className="mt-4 border-t">
         <div className="bg-primary-light">
-          <div className="max-w-4xl mx-auto px-4 md:px-8 pt-8 pb-3 md:py-10">
+          <div className="max-w-4xl mx-auto px-4 md:px-8 pt-10 pb-3 md:pt-12 md:pb-3">
           {session?.user ? (
             <div className="text-center">
               <h3 className="text-2xl font-bold text-primary mb-4">

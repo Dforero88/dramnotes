@@ -607,7 +607,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   )
 
   return (
-    <div className="px-4 md:px-8 py-8">
+    <div className="px-4 md:px-8 pt-8 pb-0">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">{t('catalogue.title')}</h1>
