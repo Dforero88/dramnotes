@@ -2,10 +2,11 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getTranslations, type Locale } from '@/lib/i18n'
-import { db, tastingNotes, users, whiskies, follows, activities, countries, distillers, bottlers, isMysql } from '@/lib/db'
+import { db, tastingNotes, users, whiskies, follows, activities, countries, distillers, bottlers, isMysql, userShelf } from '@/lib/db'
 import { eq, inArray, sql } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import HomeHeroCarousel from '@/components/HomeHeroCarousel'
+import HomeActivitiesFeed from '@/components/HomeActivitiesFeed'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 
 export const dynamic = 'force-dynamic'
@@ -13,7 +14,8 @@ export const revalidate = 0
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
   const { locale } = await params
-  const t = getTranslations(locale)
+  const safeLocale: Locale = locale === 'en' ? 'en' : 'fr'
+  const t = getTranslations(safeLocale)
   return { title: t('home.pageTitle') }
 }
 
@@ -39,6 +41,7 @@ type ActivityItem = {
   bottlerName: string | null
   location: string | null
   rating: number | null
+  shelfStatus: string | null
 }
 
 function buildAvatar(pseudo: string) {
@@ -119,7 +122,8 @@ export default async function HomePage({
   params: Promise<{ locale: Locale }>
 }) {
   const { locale } = await params
-  const t = getTranslations(locale)
+  const safeLocale: Locale = locale === 'en' ? 'en' : 'fr'
+  const t = getTranslations(safeLocale)
   const session = await getServerSession(authOptions)
   const isLoggedIn = Boolean(session?.user?.id)
   const currentUserId = session?.user?.id || null
@@ -204,6 +208,7 @@ export default async function HomePage({
           bottlerName: bottlers.name,
           location: tastingNotes.location,
           rating: tastingNotes.rating,
+          shelfStatus: userShelf.status,
         })
         .from(activities)
         .leftJoin(
@@ -223,28 +228,35 @@ export default async function HomePage({
             ? sql`binary ${tastingNotes.userId} = binary ${activities.userId} and binary ${tastingNotes.whiskyId} = binary ${activities.targetId}`
             : sql`${tastingNotes.userId} = ${activities.userId} and ${tastingNotes.whiskyId} = ${activities.targetId}`
         )
+        .leftJoin(
+          userShelf,
+          isMysql
+            ? sql`binary ${userShelf.userId} = binary ${activities.userId} and binary ${userShelf.whiskyId} = binary ${activities.targetId}`
+            : sql`${userShelf.userId} = ${activities.userId} and ${userShelf.whiskyId} = ${activities.targetId}`
+        )
         .where(inArray(activities.userId, followedIds))
         .orderBy(sql`${activities.createdAt} desc`)
         .limit(8)
     : []) as ActivityItem[]
 
   const activityUserIds = recentActivities.map((row: ActivityItem) => row.actorId)
-  type ActivityUserRow = { id: string; pseudo: string | null; visibility: string | null }
+  type ActivityUserRow = { id: string; pseudo: string | null; visibility: string | null; shelfVisibility: string | null }
   const activityUsers = activityUserIds.length
     ? await db
-        .select({ id: users.id, pseudo: users.pseudo, visibility: users.visibility })
+        .select({ id: users.id, pseudo: users.pseudo, visibility: users.visibility, shelfVisibility: users.shelfVisibility })
         .from(users)
         .where(inArray(users.id, activityUserIds))
     : [] as ActivityUserRow[]
   const activityUsersMap = (activityUsers as ActivityUserRow[]).reduce((acc, row: ActivityUserRow) => {
     acc[row.id] = row
     return acc
-  }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null }>)
+  }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null; shelfVisibility: string | null }>)
 
   const activitiesVisible = recentActivities
-    .filter((row) => row.type === 'new_note' || row.type === 'new_whisky')
+    .filter((row) => row.type === 'new_note' || row.type === 'new_whisky' || row.type === 'shelf_add')
     .filter((row) => (row.type === 'new_note' ? row.rating !== null : true))
     .filter((row) => activityUsersMap[row.actorId]?.visibility === 'public')
+    .filter((row) => (row.type === 'shelf_add' ? activityUsersMap[row.actorId]?.shelfVisibility === 'public' : true))
     .sort((a, b) => {
       const aDate = normalizeActivityDate(a.createdAt)
       const bDate = normalizeActivityDate(b.createdAt)
@@ -357,7 +369,7 @@ export default async function HomePage({
                       <div>{content}</div>
                     ) : (
                       <Link
-                        href={`/${locale}/user/${encodeURIComponent(user.pseudo)}`}
+                        href={`/${safeLocale}/user/${encodeURIComponent(user.pseudo)}`}
                         className="block"
                       >
                         {content}
@@ -384,7 +396,7 @@ export default async function HomePage({
                 return (
                   <Link
                     key={whisky.id}
-                    href={buildWhiskyPath(locale, whisky.id, whisky.name)}
+                    href={buildWhiskyPath(safeLocale, whisky.id, whisky.name)}
                     className="flex items-center gap-4"
                   >
                     <div
@@ -406,7 +418,7 @@ export default async function HomePage({
                       <div className="text-base font-semibold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>{whisky.name}</div>
                       <div className="text-sm text-gray-500">
                         {t('home.addedRecently')}
-                        {whisky.createdAt ? ` · ${new Date(whisky.createdAt).toLocaleDateString(locale)}` : ''}
+                        {whisky.createdAt ? ` · ${new Date(whisky.createdAt).toLocaleDateString(safeLocale === 'fr' ? 'fr-FR' : 'en-US')}` : ''}
                       </div>
                     </div>
                   </Link>
@@ -443,116 +455,31 @@ export default async function HomePage({
           </div>
           {isLoggedIn ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {activitiesVisible.map((activity) => {
-                const pseudo = activity.actorPseudo || 'User'
-                const avatar = buildAvatar(pseudo)
-                const isNewWhisky = activity.type === 'new_whisky'
-                const title = isNewWhisky
-                  ? `${t('home.activityWhiskyAdded')}`
-                  : `${t('home.activityNote')}`
-                const createdAt = normalizeActivityDate(activity.createdAt)
-                const activityDate = createdAt ? formatRelativeDate(createdAt, locale) : ''
-                const href = `${buildWhiskyPath(locale, activity.targetId, activity.whiskyName || undefined)}?user=${encodeURIComponent(pseudo)}`
-                const whiskyImage = normalizeImage(activity.whiskyImageUrl)
-                const rawProducerName = activity.bottlingType === 'DB'
-                  ? activity.distillerName
-                  : activity.bottlerName
-                const producerName = (() => {
-                  const cleaned = rawProducerName?.trim()
-                  if (cleaned && cleaned !== '-') return cleaned
-                  const fallback = (activity.distillerName || activity.bottlerName || '').trim()
-                  return fallback && fallback !== '-' ? fallback : ''
-                })()
-                const noteLocation = (() => {
-                  const cleaned = (activity.location || '').trim()
-                  return cleaned && cleaned !== '-' ? cleaned : ''
-                })()
-                const rowContent = (
-                  <>
-                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
-                        style={{ backgroundColor: avatar.color }}
-                      >
-                        {avatar.initial}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm text-gray-500 flex items-center gap-1">
-                          <span className="font-medium text-gray-700">{pseudo}</span>
-                          <span>{title}</span>
-                        </div>
-                        <div className="mt-2 flex items-stretch gap-3 min-w-0">
-                          <div className="w-14 h-20 sm:w-20 sm:min-h-[96px] rounded-lg border border-gray-200 bg-white overflow-hidden flex items-center justify-center shrink-0">
-                            {whiskyImage ? (
-                              <img
-                                src={whiskyImage}
-                                alt={activity.whiskyName || ''}
-                                className="w-full h-full object-contain"
-                                style={{ backgroundColor: '#fff' }}
-                              />
-                            ) : (
-                              <span className="text-[10px] text-gray-400">—</span>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1 flex flex-col gap-1">
-                            <div className="flex flex-wrap items-center gap-2 min-w-0">
-                              <div className="text-base font-semibold text-gray-900 min-w-0 flex-1 leading-tight break-words" style={{ fontFamily: 'var(--font-heading)' }}>
-                                {activity.whiskyName || '—'}
-                              </div>
-                              {!isNewWhisky && activity.rating ? (
-                                <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-700 px-2 py-1 text-xs leading-none font-semibold shrink-0">
-                                  ★ {activity.rating}/10
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-1">
-                              {activity.whiskyType ? <span>{activity.whiskyType}</span> : null}
-                              {activity.countryName ? <span>· {activity.countryName}</span> : null}
-                            </div>
-                            {isNewWhisky ? (
-                              producerName ? (
-                                <div className="text-xs text-gray-500 break-words">{producerName}</div>
-                              ) : null
-                            ) : noteLocation ? (
-                              <div className="text-xs text-gray-500 break-words">{noteLocation}</div>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-400 leading-none whitespace-nowrap shrink-0 self-end sm:self-start">
-                      {activityDate}
-                    </div>
-                  </>
-                )
-
-                return (
-                  <Link
-                    key={activity.id}
-                    href={href}
-                    className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-gray-200 hover:shadow-sm transition"
-                  >
-                    {rowContent}
-                  </Link>
-                )
-              })}
-              {activitiesVisible.length === 0 && (
-                <div className="text-sm text-gray-500">{t('home.noActivity')}</div>
-              )}
+              <HomeActivitiesFeed
+                locale={safeLocale}
+                activities={activitiesVisible}
+                labels={{
+                  noActivity: t('home.noActivity'),
+                  activityNote: t('home.activityNote'),
+                  activityWhiskyAdded: t('home.activityWhiskyAdded'),
+                  activityShelfAdded: t('home.activityShelfAdded'),
+                  activityShelfWishlist: t('home.activityShelfWishlist'),
+                }}
+              />
             </div>
           ) : (
             <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-5 text-center">
               <div className="text-sm text-gray-600">{t('home.activityLoginSubtitle')}</div>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <Link
-                  href={`/${locale}/login`}
+                  href={`/${safeLocale}/login`}
                   className="px-4 py-2 rounded-full text-white text-sm font-medium transition"
                   style={{ backgroundColor: 'var(--color-primary)' }}
                 >
                   {t('auth.loginButton')}
                 </Link>
                 <Link
-                  href={`/${locale}/register`}
+                  href={`/${safeLocale}/register`}
                   className="px-4 py-2 rounded-full border text-sm font-medium transition"
                   style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                 >

@@ -58,19 +58,20 @@ export async function GET(request: NextRequest) {
   const targetUserIds = typedRows.filter((row: ActivityRow) => row.type === 'new_follow').map((row: ActivityRow) => row.targetId)
   const idsToFetch = Array.from(new Set([...userIds, ...targetUserIds]))
 
-  type UserRow = { id: string; pseudo: string | null; visibility: string | null }
+  type UserRow = { id: string; pseudo: string | null; visibility: string | null; shelfVisibility: string | null }
   const usersRows = idsToFetch.length
-    ? await db.select({ id: users.id, pseudo: users.pseudo, visibility: users.visibility }).from(users)
+    ? await db.select({ id: users.id, pseudo: users.pseudo, visibility: users.visibility, shelfVisibility: users.shelfVisibility }).from(users)
       .where(inArray(users.id, idsToFetch))
     : [] as UserRow[]
 
   const usersMap = (usersRows as UserRow[]).reduce((acc, row: UserRow) => {
     acc[row.id] = row
     return acc
-  }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null }>)
+  }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null; shelfVisibility: string | null }>)
 
   const items = typedRows
     .filter((row: ActivityRow) => usersMap[row.userId]?.visibility === 'public')
+    .filter((row: ActivityRow) => row.type === 'shelf_add' ? usersMap[row.userId]?.shelfVisibility === 'public' : true)
     .filter((row: ActivityRow) => {
       if (row.type !== 'new_follow') return true
       return usersMap[row.targetId]?.visibility === 'public'
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
       targetUser: row.type === 'new_follow'
         ? { id: row.targetId, pseudo: usersMap[row.targetId]?.pseudo || '—' }
         : null,
-      whisky: row.type === 'new_note'
+      whisky: row.type === 'new_note' || row.type === 'new_whisky' || row.type === 'shelf_add'
         ? { id: row.targetId, name: row.whiskyName || '—' }
         : null,
     }))

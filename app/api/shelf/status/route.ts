@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, gt } from 'drizzle-orm'
 import { authOptions } from '@/lib/auth'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
-import { db, generateId, userShelf } from '@/lib/db'
+import { activities, db, generateId, userShelf } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -81,8 +81,32 @@ export async function POST(request: NextRequest) {
       createdAt: new Date(),
       updatedAt: new Date(),
     })
+
+    // Activity only when whisky is added to shelf (none -> status), deduped over last 24h.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const recent = await db
+      .select({ id: activities.id })
+      .from(activities)
+      .where(
+        and(
+          eq(activities.userId, session.user.id),
+          eq(activities.type, 'shelf_add'),
+          eq(activities.targetId, whiskyId),
+          gt(activities.createdAt, since),
+        )
+      )
+      .limit(1)
+
+    if (recent.length === 0) {
+      await db.insert(activities).values({
+        id: generateId(),
+        userId: session.user.id,
+        type: 'shelf_add',
+        targetId: whiskyId,
+        createdAt: new Date(),
+      })
+    }
   }
 
   return NextResponse.json({ success: true, status })
 }
-
