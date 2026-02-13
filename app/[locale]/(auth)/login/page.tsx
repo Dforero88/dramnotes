@@ -35,7 +35,11 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError(t('auth.invalidCredentials'))
+        if (result.error.includes('EMAIL_NOT_CONFIRMED')) {
+          setError(t('auth.emailNotConfirmed'))
+        } else {
+          setError(t('auth.invalidCredentials'))
+        }
       } else {
         const redirectUrl = result?.url?.includes('callbackUrl=') 
           ? result.url 

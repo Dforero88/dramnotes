@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { trackEvent } from '@/lib/analytics-client'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
 
 // Schéma de validation
@@ -36,17 +37,13 @@ const registerSchema = z.object({
 
 type RegisterForm = z.infer<typeof registerSchema>
 
-export default function RegisterPage({
-  params
-}: {
-  params: { locale: Locale }  // <-- PAS une Promise !
-}) {
+export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   
-  // params est déjà un objet, pas besoin de .then()
-  const { locale } = params
+  const routeParams = useParams<{ locale?: string }>()
+  const locale = (routeParams?.locale === 'en' ? 'en' : 'fr') as Locale
   const t = getTranslations(locale)
   
   const {

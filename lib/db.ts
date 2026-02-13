@@ -22,12 +22,14 @@ type DbSchema = {
 const databaseUrl = process.env.DATABASE_URL || ''
 const isMysqlUrl = databaseUrl.startsWith('mysql://') || databaseUrl.startsWith('mariadb://')
 const isProduction = process.env.NODE_ENV === 'production'
+const isBuildPhase =
+  process.env.DRAMNOTES_BUILD === '1' || process.env.NEXT_PHASE === 'phase-production-build'
 
-if (isProduction && !isMysqlUrl) {
+if (isProduction && !isMysqlUrl && !isBuildPhase) {
   throw new Error('DATABASE_URL doit être une URL MySQL/MariaDB en production')
 }
 
-const useMysql = isMysqlUrl || isProduction
+const useMysql = isMysqlUrl
 export const isMysql = useMysql
 
 function createSqliteSchema(): DbSchema {

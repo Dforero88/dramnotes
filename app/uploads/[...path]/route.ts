@@ -11,9 +11,13 @@ const MIME_TYPES: Record<string, string> = {
   '.webp': 'image/webp',
 }
 
-export async function GET(_request: NextRequest, context: { params: { path: string[] } }) {
+export async function GET(
+  _request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }
+) {
   try {
-    const segments = context.params.path || []
+    const { path: requestPath } = await context.params
+    const segments = requestPath || []
     const baseDir = process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads')
     const requestedPath = path.join(baseDir, ...segments)
     const resolvedBase = path.resolve(baseDir)

@@ -39,7 +39,7 @@ const getStore = () => {
 function getClientIp(req: NextRequest) {
   const forwarded = req.headers.get('x-forwarded-for')
   if (forwarded) return forwarded.split(',')[0].trim()
-  return req.ip || 'unknown'
+  return 'unknown'
 }
 
 function applyRateLimit(req: NextRequest) {
@@ -88,6 +88,10 @@ function withSecurityHeaders(res: NextResponse) {
 }
 
 export function middleware(req: NextRequest) {
+  if (req.nextUrl.pathname.startsWith('/_next/image')) {
+    return new NextResponse('Not Found', { status: 404 })
+  }
+
   const rateLimited = applyRateLimit(req)
   if (rateLimited) return rateLimited
 
@@ -96,5 +100,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|favicon.ico).*)'],
 }

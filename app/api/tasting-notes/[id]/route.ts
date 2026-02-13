@@ -25,7 +25,10 @@ function apiError(code: string, message: string, status: number, extra?: Record<
   return NextResponse.json({ errorCode: code, error: message, ...(extra || {}) }, { status })
 }
 
-export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id
   if (!userId) {
@@ -44,7 +47,7 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
     )
   }
 
-  const id = context.params.id
+  const { id } = await context.params
   const body = await request.json()
   const tastingDate = String(body?.tastingDate || '').trim()
   const overallRaw = String(body?.overall || '').trim()
@@ -138,7 +141,10 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
   return NextResponse.json({ success: true })
 }
 
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id
   if (!userId) {
@@ -157,7 +163,7 @@ export async function DELETE(request: NextRequest, context: { params: { id: stri
     )
   }
 
-  const id = context.params.id
+  const { id } = await context.params
 
   const existing = await db
     .select({ id: tastingNotes.id, whiskyId: tastingNotes.whiskyId })

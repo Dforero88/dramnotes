@@ -11,8 +11,9 @@ import { buildWhiskyPath } from '@/lib/whisky-url'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export async function generateMetadata({ params }: { params: { locale: Locale } }): Promise<Metadata> {
-  const t = getTranslations(params.locale)
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params
+  const t = getTranslations(locale)
   return { title: t('home.pageTitle') }
 }
 
@@ -115,9 +116,9 @@ function normalizeImage(url?: string | null) {
 export default async function HomePage({
   params,
 }: {
-  params: { locale: Locale }
+  params: Promise<{ locale: Locale }>
 }) {
-  const { locale } = params
+  const { locale } = await params
   const t = getTranslations(locale)
   const session = await getServerSession(authOptions)
   const isLoggedIn = Boolean(session?.user?.id)

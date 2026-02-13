@@ -9,10 +9,11 @@ import type { Metadata } from 'next'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export async function generateMetadata({ params }: { params: { locale: Locale } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params
   const baseUrl = process.env.APP_URL || 'https://dramnotes.com'
   const title = 'Catalogue des whiskies'
-  const url = `${baseUrl}/${params.locale}/catalogue`
+  const url = `${baseUrl}/${locale}/catalogue`
   return {
     title,
     description: 'Explorez et recherchez des whiskies par nom, type, pays et notes.',
