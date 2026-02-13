@@ -9,7 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.APP_URL || 'https://dramnotes.com'
   const locales = ['fr', 'en']
 
-  const staticPaths = ['/', '/catalogue', '/explorer', '/map', '/login', '/register', '/privacy']
+  const staticPaths = ['/', '/catalogue', '/explorer', '/map', '/login', '/register', '/privacy', '/about', '/contact']
   const staticEntries = locales.flatMap((locale) =>
     staticPaths.map((path) => ({
       url: `${baseUrl}/${locale}${path === '/' ? '' : path}`,

@@ -1,6 +1,6 @@
 # DramNotes
 
-Application web Next.js pour la découverte de whiskies, la saisie de tasting notes, l’exploration sociale (follow/notebooks), la carte des dégustations et les profils aromatiques.
+Application web Next.js pour la découverte de whiskies, la saisie de tasting notes, l’exploration sociale (follow/notebooks), les profils aromatiques et la gestion catalogue (whiskies/distillers/bottlers).
 
 ## 1) Vue métier (MVP)
 
@@ -11,16 +11,18 @@ Un utilisateur peut :
 - voir les tasting notes publiques
 - suivre/désuivre des profils publics
 - consulter son notebook et celui des autres profils publics
-- visualiser ses notes (et celles suivies) sur carte
+- visualiser ses notes en mode liste / map depuis notebook
 - utiliser le catalogue avec filtres, tris et pagination
+- naviguer le catalogue en vue `Whiskies`, `Distillers`, `Bottlers`
+- consulter une page publique distiller/bottler (description + whiskies liés)
 
 Objectif produit actuel :
 - maximiser la création de tasting notes
-- améliorer la découverte de whiskies via activité/catalogue/explorer
+- améliorer la découverte de whiskies via activité/catalogue/explorer/notebook
 
 ## 2) Stack technique
 
-- Next.js 14 (App Router)
+- Next.js 15 (App Router)
 - TypeScript
 - Drizzle ORM
 - SQLite en dev, MariaDB en prod
@@ -46,6 +48,7 @@ URL locale:
 - `NEXTAUTH_URL`
 - `APP_URL`
 - `JWT_SECRET`
+- `ADMIN_EMAILS` (optionnel, CSV, fallback: `forerodavid88@gmail.com`)
 - `SENTRY_DSN`
 - `NEXT_PUBLIC_SENTRY_DSN` (optionnel, conseillé)
 - `NEXT_PUBLIC_GA_ID`
@@ -100,9 +103,17 @@ But:
 - CSP + headers sécurité gérés dans `middleware.ts`
 - rate limiting léger sur routes sensibles
 
+### 5.4 Règles légales minimales
+
+- case à cocher politique de confidentialité obligatoire à l’inscription
+- page de politique de confidentialité
+- profils publics/privés (contrôle visibilité utilisateur)
+
 ## 6) Pagination et limites (où c’est appliqué)
 
 - Catalogue: `12` items/page (`components/CatalogueBrowser.tsx` + `/api/whisky/list`)
+- Catalogue distillers: `12` items/page (`/api/distillers/list`)
+- Catalogue bottlers: `12` items/page (`/api/bottlers/list`)
 - Explorer: `12` users/page (`components/ExplorerPageClient.tsx` + `/api/explorer/users`)
 - Explorer query vide: top `3` profils
 - Page whisky (autres notes): `6` notes/page (`components/TastingNotesSection.tsx` + `/api/tasting-notes/public`)
@@ -110,6 +121,8 @@ But:
 - Notebook followers: `12` users/page (`/api/notebook/followers`)
 - Notebook following: `12` users/page (`/api/notebook/following`)
 - Home activités: limit `8` (`app/[locale]/page.tsx`)
+- Page distiller: `12` whiskies/page
+- Page bottler: `12` whiskies/page
 
 ## 7) Google Analytics (détail tracking)
 
@@ -181,6 +194,7 @@ Usage UptimeRobot recommandé:
 ## 10) Données conservées / uploads
 
 - Images utilisateurs (bouteilles) stockées dans `public/uploads/...`
+- Images distillers/bottlers stockées dans `public/uploads/producers/...`
 - Les uploads sont exclus de Git
 - Le dossier est conservé via `.gitkeep`
 
@@ -195,16 +209,51 @@ Flux actuel:
 - CI build/deploy
 - restart app géré manuellement sur serveur
 
-## 12) État “ready for prod”
+Serveur cible principal:
+- `dramnotes.com`
+
+Commandes serveur usuelles:
+```bash
+cd /srv/customer/sites/dramnotes.com
+git fetch origin
+git reset --hard origin/main
+git clean -fd -e public/uploads -e config/runtime.env -e .next
+chmod +x /srv/customer/sites/dramnotes.com/start.sh
+```
+
+## 12) Admin producteurs (distillers/bottlers)
+
+Page:
+- `/<locale>/admin/producers`
+
+Accès:
+- restreint à la whitelist email admin (`ADMIN_EMAILS`)
+- fallback si variable absente: `forerodavid88@gmail.com`
+
+Fonctions:
+- filtre par nom
+- filtre rapide `sans description` et/ou `sans photo`
+- édition: nom, pays, région, description FR/EN
+- upload image (normalisée carrée WebP)
+
+APIs:
+- `GET /api/admin/producers/list`
+- `PATCH /api/admin/producers/[id]`
+- `POST /api/admin/producers/[id]/image`
+
+## 13) État “ready for prod”
 
 ### Fait
 
 - base sécurité/modération en place
+- validation front + backend sur flux critiques
 - analytics GA + events métier
 - monitoring Sentry
 - endpoint health + monitoring uptime
 - pagination/limites sur écrans et APIs critiques
 - normalisation distiller/bottler pour réduire la dette de données
+- admin minimal opérationnel pour enrichissement producteur
+- SEO de base (sitemap, robots, metadata pages clés)
 
 ### Backlog non bloquant
 
@@ -212,3 +261,4 @@ Flux actuel:
 - anti-bot avancé (captcha/WAF) si montée de spam
 - playbook incident plus formalisé
 - migrations outillées si fréquence de changements schéma augmente
+- catégorisation des tags (familles aromatiques)

@@ -299,6 +299,38 @@ export const translations = {
       'usageBody': 'Fournir le service, sécuriser la plateforme, améliorer l\'expérience, statistiques anonymisées.',
       'usageTitle': 'Utilisation des données'
     },
+    site: {
+      'footerAbout': 'À propos',
+      'footerContact': 'Contact',
+      'footerPrivacy': 'Politique de confidentialité'
+    },
+    about: {
+      'ctaCatalogue': 'Explorer le catalogue',
+      'ctaExplorer': 'Explorer les passionnés',
+      'hero': 'Le carnet digital pour noter, retrouver et partager vos dégustations de whisky.',
+      'pageTitle': 'À propos',
+      'step1Body': 'Créez ou trouvez un whisky, puis notez votre expérience.',
+      'step1Title': '1. Dégustez',
+      'step2Body': 'Ajoutez vos notes nez/bouche/finale, rating et lieu.',
+      'step2Title': '2. Documentez',
+      'step3Body': 'Comparez les profils aromatiques et suivez la communauté.',
+      'step3Title': '3. Découvrez',
+      'title': 'À propos de DramNotes'
+    },
+    contact: {
+      'email': 'Email',
+      'emailPlaceholder': 'votre@email.com',
+      'message': 'Message',
+      'messagePlaceholder': 'Décrivez votre demande…',
+      'pageTitle': 'Contact',
+      'send': 'Envoyer',
+      'sending': 'Envoi...',
+      'subject': 'Sujet',
+      'subjectPlaceholder': 'Partenariat, bug, question...',
+      'subtitle': 'Une question, un retour, une idée ? Écrivez-nous.',
+      'success': 'Message envoyé. Merci !',
+      'title': 'Contactez-nous'
+    },
     tasting: {
       'clearFilter': 'Supprimer',
       'confirmDelete': 'Confirmer la suppression',
@@ -760,6 +792,38 @@ export const translations = {
       'updated': 'Last updated',
       'usageBody': 'Provide the service, secure the platform, improve the experience, anonymized statistics.',
       'usageTitle': 'Data usage'
+    },
+    site: {
+      'footerAbout': 'About',
+      'footerContact': 'Contact',
+      'footerPrivacy': 'Privacy policy'
+    },
+    about: {
+      'ctaCatalogue': 'Browse catalogue',
+      'ctaExplorer': 'Explore users',
+      'hero': 'The digital notebook to record, revisit and share your whisky tastings.',
+      'pageTitle': 'About',
+      'step1Body': 'Create or find a whisky, then log your tasting.',
+      'step1Title': '1. Taste',
+      'step2Body': 'Add nose/palate/finish tags, rating and location.',
+      'step2Title': '2. Document',
+      'step3Body': 'Compare aroma profiles and follow the community.',
+      'step3Title': '3. Discover',
+      'title': 'About DramNotes'
+    },
+    contact: {
+      'email': 'Email',
+      'emailPlaceholder': 'you@email.com',
+      'message': 'Message',
+      'messagePlaceholder': 'Describe your request…',
+      'pageTitle': 'Contact',
+      'send': 'Send',
+      'sending': 'Sending...',
+      'subject': 'Subject',
+      'subjectPlaceholder': 'Partnership, bug, question...',
+      'subtitle': 'A question, feedback, an idea? Contact us.',
+      'success': 'Message sent. Thank you!',
+      'title': 'Contact us'
     },
     tasting: {
       'clearFilter': 'Clear Filter',
