@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, tastingNotes, tastingNoteTags, activities, generateId } from '@/lib/db'
+import { db, tastingNotes, tastingNoteTags, activities, generateId, users } from '@/lib/db'
 import { and, eq } from 'drizzle-orm'
 import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { recomputeUserAroma } from '@/lib/user-aroma'
@@ -34,7 +34,7 @@ function normalizeRequestedStatus(value: unknown, fallback: NoteStatus): NoteSta
   return fallback
 }
 
-async function parseAndValidatePayload(body: any, targetStatus: NoteStatus) {
+async function parseAndValidatePayload(body: any, targetStatus: NoteStatus, userVisibility: 'public' | 'private') {
   const tastingDateRaw = String(body?.tastingDate || '').trim()
   const tastingDate = tastingDateRaw || new Date().toISOString().slice(0, 10)
   const overallRaw = String(body?.overall || '').trim()
@@ -46,6 +46,8 @@ async function parseAndValidatePayload(body: any, targetStatus: NoteStatus) {
   const countryRaw = body?.country ? String(body.country).trim() : ''
   const cityRaw = body?.city ? String(body.city).trim() : ''
   const tags = (body?.tags || {}) as TagsPayload
+  const requestedLocationVisibility = body?.locationVisibility === 'public_precise' ? 'public_precise' : 'public_city'
+  const locationVisibility = userVisibility === 'public' ? requestedLocationVisibility : 'public_city'
 
   const noseTagIds = normalizeTagIds(tags.nose)
   const palateTagIds = normalizeTagIds(tags.palate)
@@ -109,6 +111,7 @@ async function parseAndValidatePayload(body: any, targetStatus: NoteStatus) {
     payload: {
       tastingDate,
       location,
+      locationVisibility,
       latitude,
       longitude,
       country,
@@ -144,6 +147,12 @@ export async function PATCH(
 
   const { id } = await context.params
   const body = await request.json()
+  const userRows = await db
+    .select({ visibility: users.visibility })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  const userVisibility = (userRows?.[0]?.visibility === 'public' ? 'public' : 'private') as 'public' | 'private'
   const existing = await db
     .select({ id: tastingNotes.id, whiskyId: tastingNotes.whiskyId, status: tastingNotes.status })
     .from(tastingNotes)
@@ -160,7 +169,7 @@ export async function PATCH(
     return apiError('CANNOT_DOWNGRADE_PUBLISHED', 'Une note publiée ne peut pas redevenir brouillon', 400)
   }
 
-  const parsed = await parseAndValidatePayload(body, nextStatus)
+  const parsed = await parseAndValidatePayload(body, nextStatus, userVisibility)
   if ('error' in parsed) return parsed.error
   const { payload } = parsed
 
@@ -168,6 +177,7 @@ export async function PATCH(
     status: nextStatus,
     tastingDate: payload.tastingDate,
     location: payload.location,
+    locationVisibility: payload.locationVisibility,
     latitude: payload.latitude,
     longitude: payload.longitude,
     country: payload.country,

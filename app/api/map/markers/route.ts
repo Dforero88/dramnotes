@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
     .select({
       latitude: tastingNotes.latitude,
       longitude: tastingNotes.longitude,
+      locationVisibility: tastingNotes.locationVisibility,
       tastingDate: tastingNotes.tastingDate,
       whiskyName: whiskies.name,
       whiskyId: tastingNotes.whiskyId,
@@ -65,8 +66,14 @@ export async function POST(request: NextRequest) {
     ))
 
   const items = (rows as any[]).map((row) => ({
-    latitude: Number(row.latitude),
-    longitude: Number(row.longitude),
+    latitude:
+      row.userId !== userId && row.locationVisibility === 'public_city'
+        ? Number(Number(row.latitude).toFixed(1))
+        : Number(row.latitude),
+    longitude:
+      row.userId !== userId && row.locationVisibility === 'public_city'
+        ? Number(Number(row.longitude).toFixed(1))
+        : Number(row.longitude),
     tastingDate: row.tastingDate,
     whiskyName: row.whiskyName,
     whiskyId: row.whiskyId,

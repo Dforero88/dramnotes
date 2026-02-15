@@ -118,6 +118,7 @@ function createSqliteSchema(): DbSchema {
     status: text('status').notNull(),
     tastingDate: text('tasting_date').notNull(),
     location: text('location'),
+    locationVisibility: text('location_visibility').notNull(),
     latitude: real('latitude'),
     longitude: real('longitude'),
     country: text('country'),
@@ -312,6 +313,7 @@ function createMysqlSchema(): DbSchema {
     status: varchar('status', { length: 16 }).notNull(),
     tastingDate: varchar('tasting_date', { length: 10 }).notNull(),
     location: varchar('location', { length: 255 }),
+    locationVisibility: varchar('location_visibility', { length: 16 }).notNull(),
     latitude: double('latitude'),
     longitude: double('longitude'),
     country: varchar('country', { length: 100 }),
@@ -679,6 +681,7 @@ function initSqlite(sqlite: any) {
       status TEXT NOT NULL DEFAULT 'published',
       tasting_date TEXT NOT NULL,
       location TEXT,
+      location_visibility TEXT NOT NULL DEFAULT 'public_city',
       latitude REAL,
       longitude REAL,
       country TEXT,
@@ -694,6 +697,9 @@ function initSqlite(sqlite: any) {
   const tastingNotesColumnNames = tastingNotesColumns.map((col: any) => col.name)
   if (!tastingNotesColumnNames.includes('status')) {
     sqlite.prepare(`ALTER TABLE tasting_notes ADD COLUMN status TEXT NOT NULL DEFAULT 'published'`).run()
+  }
+  if (!tastingNotesColumnNames.includes('location_visibility')) {
+    sqlite.prepare(`ALTER TABLE tasting_notes ADD COLUMN location_visibility TEXT NOT NULL DEFAULT 'public_city'`).run()
   }
 
   sqlite.prepare(`

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, tastingNotes, tastingNoteTags, activities } from '@/lib/db'
+import { db, tastingNotes, tastingNoteTags, activities, users } from '@/lib/db'
 import { and, eq } from 'drizzle-orm'
 import { generateId } from '@/lib/db'
 import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
@@ -33,7 +33,7 @@ function getRequestedStatus(value: unknown): NoteStatus {
   return value === 'draft' ? 'draft' : 'published'
 }
 
-async function parseAndValidatePayload(body: any, targetStatus: NoteStatus) {
+async function parseAndValidatePayload(body: any, targetStatus: NoteStatus, userVisibility: 'public' | 'private') {
   const whiskyId = String(body?.whiskyId || '').trim()
   const tastingDateRaw = String(body?.tastingDate || '').trim()
   const tastingDate = tastingDateRaw || new Date().toISOString().slice(0, 10)
@@ -46,6 +46,8 @@ async function parseAndValidatePayload(body: any, targetStatus: NoteStatus) {
   const countryRaw = body?.country ? String(body.country).trim() : ''
   const cityRaw = body?.city ? String(body.city).trim() : ''
   const tags = (body?.tags || {}) as TagsPayload
+  const requestedLocationVisibility = body?.locationVisibility === 'public_precise' ? 'public_precise' : 'public_city'
+  const locationVisibility = userVisibility === 'public' ? requestedLocationVisibility : 'public_city'
 
   if (!whiskyId) {
     return { error: apiError('MISSING_REQUIRED_FIELDS', 'Données manquantes', 400) }
@@ -114,6 +116,7 @@ async function parseAndValidatePayload(body: any, targetStatus: NoteStatus) {
       whiskyId,
       tastingDate,
       location,
+      locationVisibility,
       latitude,
       longitude,
       country,
@@ -146,7 +149,13 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json()
   const status = getRequestedStatus(body?.status)
-  const parsed = await parseAndValidatePayload(body, status)
+  const userRows = await db
+    .select({ visibility: users.visibility })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  const userVisibility = (userRows?.[0]?.visibility === 'public' ? 'public' : 'private') as 'public' | 'private'
+  const parsed = await parseAndValidatePayload(body, status, userVisibility)
   if ('error' in parsed) return parsed.error
   const { payload } = parsed
 
@@ -166,6 +175,7 @@ export async function POST(request: NextRequest) {
         status,
         tastingDate: payload.tastingDate,
         location: payload.location,
+        locationVisibility: payload.locationVisibility,
         latitude: payload.latitude,
         longitude: payload.longitude,
         country: payload.country,
@@ -191,6 +201,7 @@ export async function POST(request: NextRequest) {
       status: 'published',
       tastingDate: payload.tastingDate,
       location: payload.location,
+      locationVisibility: payload.locationVisibility,
       latitude: payload.latitude,
       longitude: payload.longitude,
       country: payload.country,
@@ -238,6 +249,7 @@ export async function POST(request: NextRequest) {
     status,
     tastingDate: payload.tastingDate,
     location: payload.location,
+    locationVisibility: payload.locationVisibility,
     latitude: payload.latitude,
     longitude: payload.longitude,
     country: payload.country,

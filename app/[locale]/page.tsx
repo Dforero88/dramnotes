@@ -40,6 +40,9 @@ type ActivityItem = {
   distillerName: string | null
   bottlerName: string | null
   location: string | null
+  locationVisibility: string | null
+  city: string | null
+  country: string | null
   rating: number | null
   shelfStatus: string | null
 }
@@ -210,6 +213,9 @@ export default async function HomePage({
           distillerName: distillers.name,
           bottlerName: bottlers.name,
           location: tastingNotes.location,
+          locationVisibility: tastingNotes.locationVisibility,
+          city: tastingNotes.city,
+          country: tastingNotes.country,
           rating: tastingNotes.rating,
           shelfStatus: userShelf.status,
         })
@@ -267,6 +273,13 @@ export default async function HomePage({
       const bTime = bDate ? bDate.getTime() : 0
       return bTime - aTime
     })
+    .map((row) => ({
+      ...row,
+      location:
+        row.locationVisibility === 'public_precise'
+          ? row.location
+          : [row.city, row.country].filter(Boolean).join(', ') || row.country || null,
+    }))
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
       id: tastingNotes.id,
       tastingDate: tastingNotes.tastingDate,
       rating: tastingNotes.rating,
+      locationVisibility: tastingNotes.locationVisibility,
       latitude: tastingNotes.latitude,
       longitude: tastingNotes.longitude,
       whiskyId: tastingNotes.whiskyId,
@@ -93,6 +94,7 @@ export async function GET(request: NextRequest) {
     id: string
     tastingDate: string
     rating: number | null
+    locationVisibility: string | null
     latitude: number | null
     longitude: number | null
     whiskyId: string
@@ -128,9 +130,13 @@ export async function GET(request: NextRequest) {
   const items = (notes as NoteRow[]).map((note: NoteRow) => {
     const allTags = tagsByNote[note.id] || []
     const uniqueTags = Array.from(new Set(allTags))
+    const shouldApprox = !isOwner && note.locationVisibility === 'public_city'
+    const approx = (value: number | null) => (typeof value === 'number' ? Number(value.toFixed(1)) : null)
     return {
       ...note,
       countryName: lang.toLowerCase() === 'fr' ? note.countryNameFr || note.countryName : note.countryName,
+      latitude: shouldApprox ? approx(note.latitude) : note.latitude,
+      longitude: shouldApprox ? approx(note.longitude) : note.longitude,
       tags: uniqueTags.slice(0, 3),
       extraTagsCount: Math.max(0, uniqueTags.length - 3),
     }

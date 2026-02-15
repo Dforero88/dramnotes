@@ -58,6 +58,9 @@ export async function GET(request: NextRequest) {
       id: tastingNotes.id,
       tastingDate: tastingNotes.tastingDate,
       location: tastingNotes.location,
+      locationVisibility: tastingNotes.locationVisibility,
+      country: tastingNotes.country,
+      city: tastingNotes.city,
       overall: tastingNotes.overall,
       rating: tastingNotes.rating,
       userId: tastingNotes.userId,
@@ -77,6 +80,9 @@ export async function GET(request: NextRequest) {
     id: string
     tastingDate: string
     location: string | null
+    locationVisibility: string | null
+    country: string | null
+    city: string | null
     overall: string | null
     rating: number | null
     userId: string
@@ -108,6 +114,10 @@ export async function GET(request: NextRequest) {
 
   const items = (notes as NoteRow[]).map((note: NoteRow) => ({
     ...note,
+    location:
+      note.locationVisibility === 'public_precise'
+        ? note.location
+        : [note.city, note.country].filter(Boolean).join(', ') || note.country || null,
     tags: tagsByNote[note.id] || { nose: [], palate: [], finish: [] },
   }))
 

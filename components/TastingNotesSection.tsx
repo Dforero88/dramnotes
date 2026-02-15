@@ -11,6 +11,7 @@ import { trackEvent } from '@/lib/analytics-client'
 type Note = {
   id: string
   status?: 'draft' | 'published'
+  locationVisibility?: 'public_city' | 'public_precise'
   tastingDate: string
   location?: string | null
   latitude?: number | null
@@ -52,12 +53,14 @@ export default function TastingNotesSection({
   locale,
   googleMapsApiKey,
   filterPseudo,
+  notesVisibilityPublic,
 }: {
   whiskyId: string
   whiskyPath?: string
   locale: Locale
   googleMapsApiKey?: string | null
   filterPseudo?: string | null
+  notesVisibilityPublic?: boolean
 }) {
   const t = getTranslations(locale)
   const { data: session, status } = useSession()
@@ -75,6 +78,7 @@ export default function TastingNotesSection({
   const [city, setCity] = useState('')
   const [overall, setOverall] = useState('')
   const [rating, setRating] = useState(0)
+  const [locationVisibility, setLocationVisibility] = useState<'public_city' | 'public_precise'>('public_city')
   const [formError, setFormError] = useState('')
 
   const [others, setOthers] = useState<Note[]>([])
@@ -170,6 +174,7 @@ export default function TastingNotesSection({
     setCity(myNote.city || '')
     setOverall(myNote.overall || '')
     setRating(myNote.rating || 0)
+    setLocationVisibility(myNote.locationVisibility === 'public_precise' ? 'public_precise' : 'public_city')
   }, [myNote])
 
   const resetForm = () => {
@@ -181,6 +186,7 @@ export default function TastingNotesSection({
     setCity('')
     setOverall('')
     setRating(0)
+    setLocationVisibility('public_city')
     setMyTags(emptyTags)
   }
 
@@ -203,6 +209,7 @@ export default function TastingNotesSection({
     }
     const payload: any = {
       status: targetStatus,
+      locationVisibility,
       tastingDate,
       location,
       latitude,
@@ -443,17 +450,17 @@ export default function TastingNotesSection({
                   {formError}
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">{t('tasting.date')}</label>
-                  <input
-                    type="date"
-                    value={tastingDate}
-                    onChange={(e) => setTastingDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
-                    style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-                  />
-                </div>
+              <div className="max-w-xs">
+                <label className="block text-sm font-medium text-gray-700">{t('tasting.date')}</label>
+                <input
+                  type="date"
+                  value={tastingDate}
+                  onChange={(e) => setTastingDate(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+                  style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+                />
+              </div>
+              <div className={`grid grid-cols-1 gap-4 ${notesVisibilityPublic ? 'md:grid-cols-[minmax(0,1fr)_auto]' : ''}`}>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">{t('tasting.location')}</label>
                   <input
@@ -466,6 +473,30 @@ export default function TastingNotesSection({
                     style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
                   />
                 </div>
+                {notesVisibilityPublic && (
+                  <div className="md:min-w-[280px]">
+                    <label className="block text-sm font-medium text-gray-700">{t('tasting.locationVisibilityLabel')}</label>
+                    <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-1">
+                      <button
+                        type="button"
+                        onClick={() => setLocationVisibility('public_city')}
+                        className={`px-3 py-1.5 rounded-full text-sm transition ${locationVisibility === 'public_city' ? 'text-white' : 'text-gray-700'}`}
+                        style={locationVisibility === 'public_city' ? { backgroundColor: 'var(--color-primary)' } : {}}
+                      >
+                        {t('tasting.locationVisibilityCity')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLocationVisibility('public_precise')}
+                        className={`px-3 py-1.5 rounded-full text-sm transition ${locationVisibility === 'public_precise' ? 'text-white' : 'text-gray-700'}`}
+                        style={locationVisibility === 'public_precise' ? { backgroundColor: 'var(--color-primary)' } : {}}
+                      >
+                        {t('tasting.locationVisibilityPrecise')}
+                      </button>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500">{t('tasting.locationVisibilityHelp')}</div>
+                  </div>
+                )}
               </div>
 
               <TagInput

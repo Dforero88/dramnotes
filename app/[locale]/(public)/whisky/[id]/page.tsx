@@ -1,6 +1,6 @@
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
-import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache, whiskyTagStats, tagLang } from '@/lib/db'
+import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache, whiskyTagStats, tagLang, users } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 import TastingNotesSection from '@/components/TastingNotesSection'
 import WhiskyShelfControl from '@/components/WhiskyShelfControl'
@@ -71,6 +71,15 @@ export default async function WhiskyDetailPage({
   const t = getTranslations(locale)
   const session = await getServerSession(authOptions)
   const isLoggedIn = Boolean(session?.user?.id)
+  let notesVisibilityPublic = false
+  if (session?.user?.id) {
+    const userRows = await db
+      .select({ visibility: users.visibility })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1)
+    notesVisibilityPublic = userRows?.[0]?.visibility === 'public'
+  }
   if (process.env.DRAMNOTES_BUILD === '1') {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -388,6 +397,7 @@ export default async function WhiskyDetailPage({
           locale={locale}
           googleMapsApiKey={process.env.GOOGLE_MAPS_API_KEY || null}
           filterPseudo={filterPseudo}
+          notesVisibilityPublic={notesVisibilityPublic}
         />
       </div>
     </div>
