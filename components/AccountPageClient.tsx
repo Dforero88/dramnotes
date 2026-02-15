@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { signOut } from 'next-auth/react'
+import { trackEvent } from '@/lib/analytics-client'
 
 type AccountData = {
   pseudo: string
@@ -40,10 +42,14 @@ export default function AccountPageClient() {
   const [loadingPseudo, setLoadingPseudo] = useState(false)
   const [loadingVisibility, setLoadingVisibility] = useState(false)
   const [loadingAddress, setLoadingAddress] = useState(false)
+  const [loadingExport, setLoadingExport] = useState(false)
+  const [loadingDelete, setLoadingDelete] = useState(false)
 
   const [pseudoMessage, setPseudoMessage] = useState('')
   const [visibilityMessage, setVisibilityMessage] = useState('')
   const [addressMessage, setAddressMessage] = useState('')
+  const [rgpdMessage, setRgpdMessage] = useState('')
+  const [deletePassword, setDeletePassword] = useState('')
   const isAdmin = (user?.email || '').toLowerCase() === 'forerodavid88@gmail.com'
 
   useEffect(() => {
@@ -138,6 +144,56 @@ export default function AccountPageClient() {
       setAddressMessage(e?.message || t('common.error'))
     } finally {
       setLoadingAddress(false)
+    }
+  }
+
+  const exportData = async () => {
+    setRgpdMessage('')
+    setLoadingExport(true)
+    try {
+      const res = await fetch('/api/account/export', { method: 'GET' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Erreur')
+      const files: { name: string; content: string }[] = Array.isArray(json?.files) ? json.files : []
+      files.forEach((file) => {
+        const blob = new Blob([file.content], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = file.name
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      })
+      trackEvent('account_data_exported', { files_count: files.length })
+      setRgpdMessage(t('account.rgpdExportDone'))
+    } catch (e: any) {
+      setRgpdMessage(e?.message || t('common.error'))
+    } finally {
+      setLoadingExport(false)
+    }
+  }
+
+  const deleteAccount = async () => {
+    if (!deletePassword) return
+    if (!confirm(t('account.rgpdDeleteConfirm'))) return
+    setRgpdMessage('')
+    setLoadingDelete(true)
+    try {
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Erreur')
+      trackEvent('account_deleted')
+      await signOut({ callbackUrl: `/${locale}/` })
+    } catch (e: any) {
+      setRgpdMessage(e?.message || t('common.error'))
+    } finally {
+      setLoadingDelete(false)
     }
   }
 
@@ -295,6 +351,54 @@ export default function AccountPageClient() {
           </div>
           {addressMessage && (
             <p className="text-sm mt-2 text-gray-700">{addressMessage}</p>
+          )}
+        </div>
+
+        {/* Section Données & confidentialité */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+          <h2 className="text-xl font-semibold">{t('account.rgpdTitle')}</h2>
+          <p className="text-sm text-gray-600 mt-1">{t('account.rgpdHelp')}</p>
+
+          <div className="mt-4 rounded-xl border border-gray-200 p-4">
+            <div className="text-sm font-medium text-gray-800">{t('account.rgpdExportTitle')}</div>
+            <p className="text-xs text-gray-500 mt-1">{t('account.rgpdExportHelp')}</p>
+            <div className="mt-3">
+              <button
+                onClick={exportData}
+                disabled={loadingExport}
+                className="px-5 py-2 rounded-xl text-white disabled:opacity-50"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
+                {loadingExport ? t('common.saving') : t('account.rgpdExportButton')}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-red-200 p-4 bg-red-50/40">
+            <div className="text-sm font-medium text-red-700">{t('account.rgpdDeleteTitle')}</div>
+            <p className="text-xs text-red-600 mt-1">{t('account.rgpdDeleteHelp')}</p>
+            <div className="mt-3 flex flex-col md:flex-row gap-3">
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                className="flex-1 border border-red-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2"
+                placeholder={t('account.rgpdDeletePasswordPlaceholder')}
+                style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+              />
+              <button
+                onClick={deleteAccount}
+                disabled={loadingDelete || !deletePassword}
+                className="px-5 py-2 rounded-xl text-white disabled:opacity-50"
+                style={{ backgroundColor: '#dc2626' }}
+              >
+                {loadingDelete ? t('common.saving') : t('account.rgpdDeleteButton')}
+              </button>
+            </div>
+          </div>
+
+          {rgpdMessage && (
+            <p className="text-sm mt-2 text-gray-700">{rgpdMessage}</p>
           )}
         </div>
       </div>

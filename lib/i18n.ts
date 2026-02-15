@@ -30,7 +30,18 @@ export const translations = {
       'visibilityPublic': 'Public',
       'visibilitySaved': 'Visibilité sauvée',
       'visibilityTitle': 'Visibilité',
-      'zipPlaceholder': 'Votre zip'
+      'zipPlaceholder': 'Votre zip',
+      'rgpdTitle': 'Données et confidentialité',
+      'rgpdHelp': 'Exportez vos données ou supprimez définitivement votre compte.',
+      'rgpdExportTitle': 'Exporter mes données',
+      'rgpdExportHelp': 'Télécharge des fichiers CSV: compte, notes, tags, étagère, follows, activités.',
+      'rgpdExportButton': 'Exporter',
+      'rgpdExportDone': 'Export terminé.',
+      'rgpdDeleteTitle': 'Supprimer mon compte',
+      'rgpdDeleteHelp': 'Action irréversible. Vos whiskies créés sont conservés, vos données personnelles sont supprimées.',
+      'rgpdDeletePasswordPlaceholder': 'Mot de passe actuel',
+      'rgpdDeleteButton': 'Supprimer le compte',
+      'rgpdDeleteConfirm': 'Confirmer la suppression définitive de votre compte ?'
     },
     adminProducers: {
       'descriptionEn': 'Description (EN)',
@@ -555,7 +566,18 @@ export const translations = {
       'visibilityPublic': 'Public',
       'visibilitySaved': 'Visibility updated',
       'visibilityTitle': 'Visibility',
-      'zipPlaceholder': 'ZIP code'
+      'zipPlaceholder': 'ZIP code',
+      'rgpdTitle': 'Data and privacy',
+      'rgpdHelp': 'Export your data or permanently delete your account.',
+      'rgpdExportTitle': 'Export my data',
+      'rgpdExportHelp': 'Downloads CSV files: account, notes, tags, shelf, follows, activities.',
+      'rgpdExportButton': 'Export',
+      'rgpdExportDone': 'Export completed.',
+      'rgpdDeleteTitle': 'Delete my account',
+      'rgpdDeleteHelp': 'Irreversible action. Whiskies you created remain, personal data is deleted.',
+      'rgpdDeletePasswordPlaceholder': 'Current password',
+      'rgpdDeleteButton': 'Delete account',
+      'rgpdDeleteConfirm': 'Confirm permanent account deletion?'
     },
     adminProducers: {
       'descriptionEn': 'Description (EN)',
