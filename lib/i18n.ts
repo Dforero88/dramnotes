@@ -101,6 +101,7 @@ export const translations = {
       'saving': 'Sauvegarde...',
       'signInHere': 'Se connecter',
       'signUp': 'Créer un compte',
+      'ageAgreement': 'Je confirme avoir 18 ans ou plus',
       'termsAgreement': 'J\'accepte la',
       'thanksForConfirming': 'Merci pour votre confirmation.',
       'tokenCheckError': 'Impossible de vérifier le token'
@@ -337,6 +338,8 @@ export const translations = {
       'locationVisibilityBody': 'Pour chaque note publique, vous choisissez entre "ville uniquement" et "adresse précise". Ces réglages servent à protéger votre vie privée.',
       'thirdPartyTitle': 'Sous-traitants techniques',
       'thirdPartyBody': 'Nous utilisons des services tiers uniquement pour faire fonctionner le service (analytics, monitoring d’erreurs, cartes, emails).',
+      'minorsTitle': 'Public majeur',
+      'minorsBody': 'DramNotes est destiné à un public majeur (18+).',
       'noSaleTitle': 'Pas de vente de données',
       'noSaleBody': 'Nous ne vendons pas vos données et nous ne les partageons pas avec des tiers à des fins marketing.',
       'title': 'Politique de confidentialité',
@@ -346,6 +349,7 @@ export const translations = {
     },
     site: {
       'footerAbout': 'À propos',
+      'footerAdults': 'Contenu destiné aux adultes (18+)',
       'footerContact': 'Contact',
       'footerPrivacy': 'Politique de confidentialité'
     },
@@ -356,7 +360,7 @@ export const translations = {
       'missionTitle': 'Mission',
       'missionBody': 'DramNotes aide les amateurs de whisky à conserver des notes structurées, comparables et utiles dans le temps.',
       'audienceTitle': 'Pour qui',
-      'audienceBody': 'Pour les curieux, amateurs réguliers et passionnés qui veulent mieux suivre leurs dégustations.',
+      'audienceBody': 'Pour les curieux, amateurs réguliers et passionnés majeurs (18+) qui veulent mieux suivre leurs dégustations.',
       'featuresTitle': 'Ce que vous pouvez faire',
       'featuresBody': 'Créer des whiskies, écrire des notes, suivre des profils, gérer une étagère, consulter la carte et préparer des brouillons.',
       'methodTitle': 'Méthode de notation',
@@ -443,6 +447,7 @@ export const translations = {
       'validationRequired': 'Veuillez remplir tous les champs obligatoires'
     },
     validation: {
+      'acceptAge': 'Vous devez confirmer avoir 18 ans ou plus',
       'acceptTerms': 'Vous devez accepter la politique de confidentialité',
       'passwordLowercase': 'Au moins une minuscule',
       'passwordMin': 'Au moins 8 caractères',
@@ -659,6 +664,7 @@ export const translations = {
       'saving': 'Saving',
       'signInHere': 'Sign In Here',
       'signUp': 'Sign Up',
+      'ageAgreement': 'I confirm I am 18 years old or older',
       'termsAgreement': 'I accept the',
       'thanksForConfirming': 'Thanks for confirming',
       'tokenCheckError': 'Unable to verify token'
@@ -896,6 +902,8 @@ export const translations = {
       'locationVisibilityBody': 'For each public note, you choose between \"city only\" and \"precise address\". This helps protect your privacy.',
       'thirdPartyTitle': 'Technical subprocessors',
       'thirdPartyBody': 'We use third-party services only to run the service (analytics, error monitoring, maps, emails).',
+      'minorsTitle': 'Adults only',
+      'minorsBody': 'DramNotes is intended for adults (18+).',
       'noSaleTitle': 'No data sale',
       'noSaleBody': 'We do not sell your data and we do not share it with third parties for marketing purposes.',
       'title': 'Privacy Policy',
@@ -905,6 +913,7 @@ export const translations = {
     },
     site: {
       'footerAbout': 'About',
+      'footerAdults': 'Content intended for adults (18+)',
       'footerContact': 'Contact',
       'footerPrivacy': 'Privacy policy'
     },
@@ -915,7 +924,7 @@ export const translations = {
       'missionTitle': 'Mission',
       'missionBody': 'DramNotes helps whisky enthusiasts keep structured, comparable notes that stay useful over time.',
       'audienceTitle': 'Who it is for',
-      'audienceBody': 'For curious beginners, regular drinkers, and enthusiasts who want to track their tastings better.',
+      'audienceBody': 'For curious beginners, regular drinkers, and adult enthusiasts (18+) who want to track their tastings better.',
       'featuresTitle': 'What you can do',
       'featuresBody': 'Create whiskies, write tasting notes, follow users, manage a shelf, browse the map, and save drafts.',
       'methodTitle': 'Tasting method',
@@ -1002,6 +1011,7 @@ export const translations = {
       'validationRequired': 'Please fill all required fields'
     },
     validation: {
+      'acceptAge': 'You must confirm you are 18 years old or older',
       'acceptTerms': 'You must accept the privacy policy',
       'passwordLowercase': 'At least one lowercase letter',
       'passwordMin': 'At least 8 characters',

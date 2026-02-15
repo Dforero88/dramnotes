@@ -24,6 +24,9 @@ export const registerSchema = z.object({
   acceptedTerms: z.boolean().refine((value) => value === true, {
     message: 'Veuillez accepter la politique de confidentialité',
   }),
+  acceptedAge: z.boolean().refine((value) => value === true, {
+    message: 'Vous devez confirmer avoir 18 ans ou plus',
+  }),
   visibility: z.enum(['private', 'public']).default('private'),
   shelfVisibility: z.enum(['private', 'public']).default('private'),
 })

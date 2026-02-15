@@ -33,6 +33,9 @@ const registerSchema = z.object({
   acceptedTerms: z.boolean().refine((value) => value === true, {
     message: 'validation.acceptTerms',
   }),
+  acceptedAge: z.boolean().refine((value) => value === true, {
+    message: 'validation.acceptAge',
+  }),
   visibility: z.enum(['private', 'public']),
   shelfVisibility: z.enum(['private', 'public']),
 })
@@ -61,6 +64,7 @@ export default function RegisterPage() {
       email: '',
       password: '',
       acceptedTerms: false,
+      acceptedAge: false,
       visibility: 'private',
       shelfVisibility: 'private',
     }
@@ -302,6 +306,17 @@ export default function RegisterPage() {
           </div>
           
           <div className="space-y-1">
+            <label className="flex items-start gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                {...register('acceptedAge')}
+              />
+              <span>{t('auth.ageAgreement')}</span>
+            </label>
+            {errors.acceptedAge && (
+              <p className="text-xs text-red-600">{t(errors.acceptedAge.message as any)}</p>
+            )}
             <label className="flex items-start gap-2 text-xs text-gray-600">
               <input
                 type="checkbox"

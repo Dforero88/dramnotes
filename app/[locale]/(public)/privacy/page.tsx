@@ -66,6 +66,11 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
         </section>
 
         <section>
+          <h2 className="font-display text-xl text-gray-900">{t('privacy.minorsTitle')}</h2>
+          <p className="mt-2 text-gray-700">{t('privacy.minorsBody')}</p>
+        </section>
+
+        <section>
           <h2 className="font-display text-xl text-gray-900">{t('privacy.noSaleTitle')}</h2>
           <p className="mt-2 text-gray-700">{t('privacy.noSaleBody')}</p>
         </section>

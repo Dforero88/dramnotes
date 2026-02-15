@@ -36,10 +36,13 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const { pseudo, email, password, acceptedTerms, visibility, shelfVisibility } = validationResult.data
+    const { pseudo, email, password, acceptedTerms, acceptedAge, visibility, shelfVisibility } = validationResult.data
     const locale = body?.locale === 'en' ? 'en' : 'fr'
     if (!acceptedTerms) {
       return NextResponse.json({ error: 'Veuillez accepter la politique de confidentialité.' }, { status: 400 })
+    }
+    if (!acceptedAge) {
+      return NextResponse.json({ error: 'Vous devez confirmer avoir 18 ans ou plus.' }, { status: 400 })
     }
     const pseudoCheck = await validatePseudo(pseudo)
     if (!pseudoCheck.ok) {
