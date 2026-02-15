@@ -1,5 +1,5 @@
 import { db, tastingNotes, tastingNoteTags, userAromaProfile, userTagStats, isMysql } from '@/lib/db'
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import * as Sentry from '@sentry/nextjs'
 
 export async function recomputeUserAroma(userId: string) {
@@ -9,7 +9,10 @@ export async function recomputeUserAroma(userId: string) {
       totalNotes: sql<number>`count(*)`,
     })
     .from(tastingNotes)
-    .where(isMysql ? sql`binary ${tastingNotes.userId} = binary ${userId}` : eq(tastingNotes.userId, userId))
+    .where(and(
+      isMysql ? sql`binary ${tastingNotes.userId} = binary ${userId}` : eq(tastingNotes.userId, userId),
+      eq(tastingNotes.status, 'published')
+    ))
 
   const totalNotes = Number(stats?.[0]?.totalNotes || 0)
   if (totalNotes === 0) {
@@ -34,7 +37,10 @@ export async function recomputeUserAroma(userId: string) {
         ? sql`binary ${tastingNoteTags.noteId} = binary ${tastingNotes.id}`
         : sql`${tastingNoteTags.noteId} = ${tastingNotes.id}`
     )
-    .where(isMysql ? sql`binary ${tastingNotes.userId} = binary ${userId}` : eq(tastingNotes.userId, userId))
+    .where(and(
+      isMysql ? sql`binary ${tastingNotes.userId} = binary ${userId}` : eq(tastingNotes.userId, userId),
+      eq(tastingNotes.status, 'published')
+    ))
     .groupBy(tastingNoteTags.tagId, tastingNoteTags.type)
 
   await db.delete(userTagStats).where(eq(userTagStats.userId, userId))

@@ -137,7 +137,9 @@ export default async function HomePage({
     .from(users)
     .leftJoin(
       tastingNotes,
-      isMysql ? sql`binary ${tastingNotes.userId} = binary ${users.id}` : eq(tastingNotes.userId, users.id)
+      isMysql
+        ? sql`binary ${tastingNotes.userId} = binary ${users.id} and binary ${tastingNotes.status} = 'published'`
+        : sql`${tastingNotes.userId} = ${users.id} and ${tastingNotes.status} = 'published'`
     )
     .where(isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'))
     .groupBy(users.id)
@@ -173,6 +175,7 @@ export default async function HomePage({
       totalNotes: sql<number>`count(${tastingNotes.id})`,
     })
     .from(tastingNotes)
+    .where(eq(tastingNotes.status, 'published'))
 
   const publicUsers = await db
     .select({
@@ -225,8 +228,8 @@ export default async function HomePage({
         .leftJoin(
           tastingNotes,
           isMysql
-            ? sql`binary ${tastingNotes.userId} = binary ${activities.userId} and binary ${tastingNotes.whiskyId} = binary ${activities.targetId}`
-            : sql`${tastingNotes.userId} = ${activities.userId} and ${tastingNotes.whiskyId} = ${activities.targetId}`
+            ? sql`binary ${tastingNotes.userId} = binary ${activities.userId} and binary ${tastingNotes.whiskyId} = binary ${activities.targetId} and binary ${tastingNotes.status} = 'published'`
+            : sql`${tastingNotes.userId} = ${activities.userId} and ${tastingNotes.whiskyId} = ${activities.targetId} and ${tastingNotes.status} = 'published'`
         )
         .leftJoin(
           userShelf,

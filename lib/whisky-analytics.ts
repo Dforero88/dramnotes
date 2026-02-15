@@ -1,5 +1,5 @@
 import { db, tastingNotes, tastingNoteTags, whiskyAnalyticsCache, whiskyTagStats, isMysql } from '@/lib/db'
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import * as Sentry from '@sentry/nextjs'
 
 export async function recomputeWhiskyAnalytics(whiskyId: string) {
@@ -9,7 +9,10 @@ export async function recomputeWhiskyAnalytics(whiskyId: string) {
       totalReviews: sql<number>`count(*)`,
     })
     .from(tastingNotes)
-    .where(isMysql ? sql`binary ${tastingNotes.whiskyId} = binary ${whiskyId}` : eq(tastingNotes.whiskyId, whiskyId))
+    .where(and(
+      isMysql ? sql`binary ${tastingNotes.whiskyId} = binary ${whiskyId}` : eq(tastingNotes.whiskyId, whiskyId),
+      eq(tastingNotes.status, 'published')
+    ))
 
   const totalReviews = Number(stats?.[0]?.totalReviews || 0)
   if (totalReviews === 0) {
@@ -33,7 +36,10 @@ export async function recomputeWhiskyAnalytics(whiskyId: string) {
         ? sql`binary ${tastingNoteTags.noteId} = binary ${tastingNotes.id}`
         : sql`${tastingNoteTags.noteId} = ${tastingNotes.id}`
     )
-    .where(isMysql ? sql`binary ${tastingNotes.whiskyId} = binary ${whiskyId}` : eq(tastingNotes.whiskyId, whiskyId))
+    .where(and(
+      isMysql ? sql`binary ${tastingNotes.whiskyId} = binary ${whiskyId}` : eq(tastingNotes.whiskyId, whiskyId),
+      eq(tastingNotes.status, 'published')
+    ))
     .groupBy(tastingNoteTags.tagId, tastingNoteTags.type)
     .orderBy(sql`count(*) desc`)
 

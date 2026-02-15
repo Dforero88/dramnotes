@@ -115,6 +115,7 @@ function createSqliteSchema(): DbSchema {
     id: text('id').primaryKey(),
     whiskyId: text('whisky_id').notNull(),
     userId: text('user_id').notNull(),
+    status: text('status').notNull(),
     tastingDate: text('tasting_date').notNull(),
     location: text('location'),
     latitude: real('latitude'),
@@ -308,6 +309,7 @@ function createMysqlSchema(): DbSchema {
     id: varchar('id', { length: 36 }).primaryKey(),
     whiskyId: varchar('whisky_id', { length: 36 }).notNull(),
     userId: varchar('user_id', { length: 36 }).notNull(),
+    status: varchar('status', { length: 16 }).notNull(),
     tastingDate: varchar('tasting_date', { length: 10 }).notNull(),
     location: varchar('location', { length: 255 }),
     latitude: double('latitude'),
@@ -674,6 +676,7 @@ function initSqlite(sqlite: any) {
       id TEXT PRIMARY KEY,
       whisky_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'published',
       tasting_date TEXT NOT NULL,
       location TEXT,
       latitude REAL,
@@ -686,6 +689,12 @@ function initSqlite(sqlite: any) {
       updated_at INTEGER DEFAULT (strftime('%s', 'now'))
     )
   `).run()
+
+  const tastingNotesColumns = sqlite.prepare('PRAGMA table_info(tasting_notes)').all()
+  const tastingNotesColumnNames = tastingNotesColumns.map((col: any) => col.name)
+  if (!tastingNotesColumnNames.includes('status')) {
+    sqlite.prepare(`ALTER TABLE tasting_notes ADD COLUMN status TEXT NOT NULL DEFAULT 'published'`).run()
+  }
 
   sqlite.prepare(`
     CREATE TABLE IF NOT EXISTS tags (

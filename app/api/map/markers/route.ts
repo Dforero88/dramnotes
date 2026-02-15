@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     )
     .where(and(
       inArray(tastingNotes.userId, selectedIds),
+      eq(tastingNotes.status, 'published'),
       sql`${tastingNotes.latitude} is not null`,
       sql`${tastingNotes.longitude} is not null`,
       isMysql

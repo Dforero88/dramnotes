@@ -48,7 +48,10 @@ export async function GET(request: NextRequest) {
     const countRes = await db
       .select({ count: sql<number>`count(*)` })
       .from(tastingNotes)
-      .where(isMysql ? sql`binary ${tastingNotes.userId} = binary ${user.id}` : eq(tastingNotes.userId, user.id))
+      .where(and(
+        isMysql ? sql`binary ${tastingNotes.userId} = binary ${user.id}` : eq(tastingNotes.userId, user.id),
+        eq(tastingNotes.status, 'published')
+      ))
     const totalNotes = Number(countRes?.[0]?.count || 0)
     return NextResponse.json({
       hasProfile: false,

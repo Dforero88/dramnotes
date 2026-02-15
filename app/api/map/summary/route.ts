@@ -26,8 +26,8 @@ export async function GET() {
     .leftJoin(
       tastingNotes,
       isMysql
-        ? sql`binary ${tastingNotes.userId} = binary ${users.id} and ${tastingNotes.latitude} is not null`
-        : sql`${tastingNotes.userId} = ${users.id} and ${tastingNotes.latitude} is not null`
+        ? sql`binary ${tastingNotes.userId} = binary ${users.id} and ${tastingNotes.latitude} is not null and binary ${tastingNotes.status} = 'published'`
+        : sql`${tastingNotes.userId} = ${users.id} and ${tastingNotes.latitude} is not null and ${tastingNotes.status} = 'published'`
     )
     .where(and(
       isMysql ? sql`binary ${follows.followerId} = binary ${userId}` : eq(follows.followerId, userId),
@@ -41,6 +41,7 @@ export async function GET() {
     .from(tastingNotes)
     .where(and(
       isMysql ? sql`binary ${tastingNotes.userId} = binary ${userId}` : eq(tastingNotes.userId, userId),
+      eq(tastingNotes.status, 'published'),
       sql`${tastingNotes.latitude} is not null`
     ))
 

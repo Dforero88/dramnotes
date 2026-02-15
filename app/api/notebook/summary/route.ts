@@ -34,7 +34,12 @@ export async function GET(request: NextRequest) {
   const notesCountRes = await db
     .select({ count: sql<number>`count(*)` })
     .from(tastingNotes)
-    .where(eq(tastingNotes.userId, user.id))
+    .where(and(eq(tastingNotes.userId, user.id), eq(tastingNotes.status, 'published')))
+
+  const draftsCountRes = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(tastingNotes)
+    .where(and(eq(tastingNotes.userId, user.id), eq(tastingNotes.status, 'draft')))
 
   const followersCountRes = await db
     .select({ count: sql<number>`count(*)` })
@@ -86,6 +91,7 @@ export async function GET(request: NextRequest) {
     isFollowing,
     counts: {
       notes: Number(notesCountRes?.[0]?.count || 0),
+      drafts: isOwner ? Number(draftsCountRes?.[0]?.count || 0) : 0,
       shelf: isOwner || shelfIsPublic ? Number(shelfCountRes?.[0]?.count || 0) : 0,
       followers: Number(followersCountRes?.[0]?.count || 0),
       following: Number(followingCountRes?.[0]?.count || 0),

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { db, users, tastingNotes, whiskies, distillers, bottlers, countries, tagLang, tastingNoteTags, isMysql } from '@/lib/db'
+import { db, users, tastingNotes, whiskies, distillers, bottlers, countries, tastingNoteTags, isMysql } from '@/lib/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, Number(searchParams.get('page') || '1'))
   const pageSize = Math.max(1, Math.min(24, Number(searchParams.get('pageSize') || '12')))
   const offset = (page - 1) * pageSize
-  const sort = (searchParams.get('sort') || 'created_desc').trim()
+  const sort = (searchParams.get('sort') || 'updated_desc').trim()
 
   if (!userId) {
     return NextResponse.json({ error: 'userId missing' }, { status: 400 })
@@ -33,27 +33,24 @@ export async function GET(request: NextRequest) {
   }
 
   const isOwner = user.id === session.user.id
-  if (!isOwner && user.visibility !== 'public') {
+  if (!isOwner) {
     return NextResponse.json({ error: 'Private' }, { status: 403 })
   }
 
   const countRes = await db
     .select({ count: sql<number>`count(*)` })
     .from(tastingNotes)
-    .where(and(
-      isMysql ? sql`binary ${tastingNotes.userId} = binary ${user.id}` : eq(tastingNotes.userId, user.id),
-      eq(tastingNotes.status, 'published')
-    ))
+    .where(and(eq(tastingNotes.userId, user.id), eq(tastingNotes.status, 'draft')))
   const total = Number(countRes?.[0]?.count || 0)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
-  let orderBy = sql`${tastingNotes.createdAt} desc`
-  if (sort === 'created_asc') {
-    orderBy = sql`${tastingNotes.createdAt} asc`
-  } else if (sort === 'rating_desc') {
-    orderBy = sql`${tastingNotes.rating} desc, ${tastingNotes.createdAt} desc`
-  } else if (sort === 'rating_asc') {
-    orderBy = sql`${tastingNotes.rating} asc, ${tastingNotes.createdAt} desc`
+  let orderBy = sql`${tastingNotes.updatedAt} desc`
+  if (sort === 'updated_asc') {
+    orderBy = sql`${tastingNotes.updatedAt} asc`
+  } else if (sort === 'name_asc') {
+    orderBy = sql`lower(${whiskies.name}) asc`
+  } else if (sort === 'name_desc') {
+    orderBy = sql`lower(${whiskies.name}) desc`
   }
 
   const notes = await db
@@ -61,9 +58,11 @@ export async function GET(request: NextRequest) {
       id: tastingNotes.id,
       tastingDate: tastingNotes.tastingDate,
       rating: tastingNotes.rating,
-      latitude: tastingNotes.latitude,
-      longitude: tastingNotes.longitude,
-      whiskyId: tastingNotes.whiskyId,
+      location: tastingNotes.location,
+      overall: tastingNotes.overall,
+      updatedAt: tastingNotes.updatedAt,
+      whiskyId: whiskies.id,
+      whiskySlug: whiskies.slug,
       whiskyName: whiskies.name,
       distillerName: distillers.name,
       bottlerName: bottlers.name,
@@ -83,7 +82,7 @@ export async function GET(request: NextRequest) {
     .leftJoin(countries, eq(whiskies.countryId, countries.id))
     .where(and(
       isMysql ? sql`binary ${tastingNotes.userId} = binary ${user.id}` : eq(tastingNotes.userId, user.id),
-      eq(tastingNotes.status, 'published')
+      eq(tastingNotes.status, 'draft')
     ))
     .orderBy(orderBy)
     .limit(pageSize)
@@ -93,9 +92,11 @@ export async function GET(request: NextRequest) {
     id: string
     tastingDate: string
     rating: number | null
-    latitude: number | null
-    longitude: number | null
+    location: string | null
+    overall: string | null
+    updatedAt: Date | string | number | null
     whiskyId: string
+    whiskySlug: string | null
     whiskyName: string | null
     distillerName: string | null
     bottlerName: string | null
@@ -107,32 +108,41 @@ export async function GET(request: NextRequest) {
   }
 
   const noteIds = (notes as NoteRow[]).map((n: NoteRow) => n.id)
-  let tags: { noteId: string; name: string | null }[] = []
+  let tags: { noteId: string; type: string; count: number }[] = []
   if (noteIds.length > 0) {
     tags = await db
       .select({
         noteId: tastingNoteTags.noteId,
-        name: tagLang.name,
+        type: tastingNoteTags.type,
+        count: sql<number>`count(*)`,
       })
       .from(tastingNoteTags)
-      .leftJoin(tagLang, and(eq(tagLang.tagId, tastingNoteTags.tagId), eq(tagLang.lang, lang)))
       .where(inArray(tastingNoteTags.noteId, noteIds))
+      .groupBy(tastingNoteTags.noteId, tastingNoteTags.type)
   }
 
-  const tagsByNote: Record<string, string[]> = {}
+  const tagCountsByNote: Record<string, Record<string, number>> = {}
   tags.forEach((tag) => {
-    if (!tagsByNote[tag.noteId]) tagsByNote[tag.noteId] = []
-    if (tag.name) tagsByNote[tag.noteId].push(tag.name)
+    if (!tagCountsByNote[tag.noteId]) tagCountsByNote[tag.noteId] = {}
+    tagCountsByNote[tag.noteId][tag.type] = Number(tag.count || 0)
   })
 
   const items = (notes as NoteRow[]).map((note: NoteRow) => {
-    const allTags = tagsByNote[note.id] || []
-    const uniqueTags = Array.from(new Set(allTags))
+    const tagCounts = tagCountsByNote[note.id] || {}
+    const checks = [
+      Boolean(note.tastingDate),
+      Boolean(note.location),
+      Boolean(note.overall),
+      typeof note.rating === 'number' && note.rating >= 1 && note.rating <= 10,
+      Number(tagCounts.nose || 0) > 0,
+      Number(tagCounts.palate || 0) > 0,
+      Number(tagCounts.finish || 0) > 0,
+    ]
+    const completed = checks.filter(Boolean).length
     return {
       ...note,
       countryName: lang.toLowerCase() === 'fr' ? note.countryNameFr || note.countryName : note.countryName,
-      tags: uniqueTags.slice(0, 3),
-      extraTagsCount: Math.max(0, uniqueTags.length - 3),
+      completionPercent: Math.round((completed / checks.length) * 100),
     }
   })
 

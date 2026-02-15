@@ -60,7 +60,9 @@ export async function GET(request: NextRequest) {
     )
     .leftJoin(
       tastingNotes,
-      isMysql ? sql`binary ${tastingNotes.userId} = binary ${users.id}` : eq(tastingNotes.userId, users.id)
+      isMysql
+        ? sql`binary ${tastingNotes.userId} = binary ${users.id} and binary ${tastingNotes.status} = 'published'`
+        : sql`${tastingNotes.userId} = ${users.id} and ${tastingNotes.status} = 'published'`
     )
     .where(baseFilter)
     .groupBy(users.id)

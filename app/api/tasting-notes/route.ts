@@ -27,6 +27,104 @@ function apiError(code: string, message: string, status: number, extra?: Record<
   return NextResponse.json({ errorCode: code, error: message, ...(extra || {}) }, { status })
 }
 
+type NoteStatus = 'draft' | 'published'
+
+function getRequestedStatus(value: unknown): NoteStatus {
+  return value === 'draft' ? 'draft' : 'published'
+}
+
+async function parseAndValidatePayload(body: any, targetStatus: NoteStatus) {
+  const whiskyId = String(body?.whiskyId || '').trim()
+  const tastingDateRaw = String(body?.tastingDate || '').trim()
+  const tastingDate = tastingDateRaw || new Date().toISOString().slice(0, 10)
+  const overallRaw = String(body?.overall || '').trim()
+  const ratingRaw = body?.rating
+  const ratingNumber = ratingRaw === null || ratingRaw === undefined || ratingRaw === '' ? null : Number(ratingRaw)
+  const locationRaw = body?.location ? String(body.location).trim() : ''
+  const latitude = body?.latitude ? Number(body.latitude) : null
+  const longitude = body?.longitude ? Number(body.longitude) : null
+  const countryRaw = body?.country ? String(body.country).trim() : ''
+  const cityRaw = body?.city ? String(body.city).trim() : ''
+  const tags = (body?.tags || {}) as TagsPayload
+
+  if (!whiskyId) {
+    return { error: apiError('MISSING_REQUIRED_FIELDS', 'Données manquantes', 400) }
+  }
+
+  const noseTagIds = normalizeTagIds(tags.nose)
+  const palateTagIds = normalizeTagIds(tags.palate)
+  const finishTagIds = normalizeTagIds(tags.finish)
+
+  if (targetStatus === 'published') {
+    if (!tastingDate || !locationRaw || !overallRaw) {
+      return { error: apiError('MISSING_REQUIRED_FIELDS', 'Données manquantes', 400) }
+    }
+    if (ratingNumber === null || ratingNumber < 1 || ratingNumber > 10) {
+      return { error: apiError('RATING_INVALID', 'Rating invalide', 400) }
+    }
+    if (noseTagIds.length === 0 || palateTagIds.length === 0 || finishTagIds.length === 0) {
+      return { error: apiError('TAGS_REQUIRED_ALL_SECTIONS', 'Au moins un tag par section est requis', 400) }
+    }
+  } else if (ratingNumber !== null && (ratingNumber < 1 || ratingNumber > 10)) {
+    return { error: apiError('RATING_INVALID', 'Rating invalide', 400) }
+  }
+
+  let overall: string | null = null
+  if (overallRaw) {
+    const overallCheck = await validateOverall(overallRaw)
+    if (!overallCheck.ok) {
+      return { error: apiError('OVERALL_INVALID', overallCheck.message || 'Overall invalide', 400) }
+    }
+    overall = overallCheck.value
+  } else if (targetStatus === 'published') {
+    return { error: apiError('OVERALL_REQUIRED', 'Overall requis', 400) }
+  }
+
+  let location: string | null = null
+  if (locationRaw) {
+    const locationCheck = await validateLocation(locationRaw)
+    if (!locationCheck.ok) {
+      return { error: apiError('LOCATION_INVALID', locationCheck.message || 'Location invalide', 400) }
+    }
+    location = locationCheck.value
+  } else if (targetStatus === 'published') {
+    return { error: apiError('LOCATION_REQUIRED', 'Lieu requis', 400) }
+  }
+
+  let country: string | null = null
+  if (countryRaw) {
+    const check = await validateDisplayName(countryRaw, 80)
+    if (!check.ok) {
+      return { error: apiError('COUNTRY_INVALID', check.message || 'Pays invalide', 400) }
+    }
+    country = check.value
+  }
+
+  let city: string | null = null
+  if (cityRaw) {
+    const check = await validateDisplayName(cityRaw, 80)
+    if (!check.ok) {
+      return { error: apiError('CITY_INVALID', check.message || 'Ville invalide', 400) }
+    }
+    city = check.value
+  }
+
+  return {
+    payload: {
+      whiskyId,
+      tastingDate,
+      location,
+      latitude,
+      longitude,
+      country,
+      city,
+      overall,
+      rating: ratingNumber,
+      tags: { noseTagIds, palateTagIds, finishTagIds },
+    },
+  }
+}
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id
@@ -47,116 +145,139 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const whiskyId = String(body?.whiskyId || '').trim()
-  const tastingDate = String(body?.tastingDate || '').trim()
-  const overallRaw = String(body?.overall || '').trim()
-  const rating = Number(body?.rating || 0)
-  const locationRaw = body?.location ? String(body.location).trim() : ''
-  const latitude = body?.latitude ? Number(body.latitude) : null
-  const longitude = body?.longitude ? Number(body.longitude) : null
-  const countryRaw = body?.country ? String(body.country).trim() : ''
-  const cityRaw = body?.city ? String(body.city).trim() : ''
-  const tags = (body?.tags || {}) as TagsPayload
-
-  if (!whiskyId || !tastingDate) {
-    return apiError('MISSING_REQUIRED_FIELDS', 'Données manquantes', 400)
-  }
-  if (!locationRaw) {
-    return apiError('LOCATION_REQUIRED', 'Lieu requis', 400)
-  }
-  if (!overallRaw) {
-    return apiError('OVERALL_REQUIRED', 'Overall requis', 400)
-  }
-  if (rating < 1 || rating > 10) {
-    return apiError('RATING_INVALID', 'Rating invalide', 400)
-  }
-  const noseTagIds = normalizeTagIds(tags.nose)
-  const palateTagIds = normalizeTagIds(tags.palate)
-  const finishTagIds = normalizeTagIds(tags.finish)
-  if (noseTagIds.length === 0 || palateTagIds.length === 0 || finishTagIds.length === 0) {
-    return apiError('TAGS_REQUIRED_ALL_SECTIONS', 'Au moins un tag par section est requis', 400)
-  }
-
-  const overallCheck = await validateOverall(overallRaw)
-  if (!overallCheck.ok) {
-    return apiError('OVERALL_INVALID', overallCheck.message || 'Overall invalide', 400)
-  }
-  const locationCheck = await validateLocation(locationRaw)
-  if (!locationCheck.ok) {
-    return apiError('LOCATION_INVALID', locationCheck.message || 'Location invalide', 400)
-  }
-  const overall = overallCheck.value
-  const location = locationCheck.value
-
-  let country: string | null = null
-  if (countryRaw) {
-    const check = await validateDisplayName(countryRaw, 80)
-    if (!check.ok) {
-      return apiError('COUNTRY_INVALID', check.message || 'Pays invalide', 400)
-    }
-    country = check.value
-  }
-
-  let city: string | null = null
-  if (cityRaw) {
-    const check = await validateDisplayName(cityRaw, 80)
-    if (!check.ok) {
-      return apiError('CITY_INVALID', check.message || 'Ville invalide', 400)
-    }
-    city = check.value
-  }
+  const status = getRequestedStatus(body?.status)
+  const parsed = await parseAndValidatePayload(body, status)
+  if ('error' in parsed) return parsed.error
+  const { payload } = parsed
 
   const existing = await db
-    .select({ id: tastingNotes.id })
+    .select({ id: tastingNotes.id, status: tastingNotes.status })
     .from(tastingNotes)
-    .where(and(eq(tastingNotes.whiskyId, whiskyId), eq(tastingNotes.userId, userId)))
+    .where(and(eq(tastingNotes.whiskyId, payload.whiskyId), eq(tastingNotes.userId, userId)))
     .limit(1)
 
   if (existing.length > 0) {
-    return apiError('NOTE_ALREADY_EXISTS', 'Note déjà existante', 409)
+    const existingNote = existing[0]
+    if (existingNote.status === 'published') {
+      return apiError('NOTE_ALREADY_EXISTS', 'Note déjà existante', 409)
+    }
+    if (status === 'draft') {
+      await db.update(tastingNotes).set({
+        status,
+        tastingDate: payload.tastingDate,
+        location: payload.location,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        country: payload.country,
+        city: payload.city,
+        overall: payload.overall,
+        rating: payload.rating,
+        updatedAt: new Date(),
+      }).where(eq(tastingNotes.id, existingNote.id))
+
+      await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, existingNote.id))
+      const relations: any[] = []
+      payload.tags.noseTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'nose' }))
+      payload.tags.palateTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'palate' }))
+      payload.tags.finishTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'finish' }))
+      if (relations.length > 0) {
+        await db.insert(tastingNoteTags).values(relations)
+      }
+      return NextResponse.json({ success: true, id: existingNote.id, status: 'draft', created: false })
+    }
+
+    // Publish existing draft
+    await db.update(tastingNotes).set({
+      status: 'published',
+      tastingDate: payload.tastingDate,
+      location: payload.location,
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      country: payload.country,
+      city: payload.city,
+      overall: payload.overall,
+      rating: payload.rating,
+      updatedAt: new Date(),
+    }).where(eq(tastingNotes.id, existingNote.id))
+
+    await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, existingNote.id))
+    const relations: any[] = []
+    payload.tags.noseTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'nose' }))
+    payload.tags.palateTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'palate' }))
+    payload.tags.finishTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'finish' }))
+    if (relations.length > 0) {
+      await db.insert(tastingNoteTags).values(relations)
+    }
+
+    const now = new Date()
+    await db.insert(activities).values({
+      id: generateId(),
+      userId,
+      type: 'new_note',
+      targetId: payload.whiskyId,
+      createdAt: now,
+    } as any)
+
+    await recomputeWhiskyAnalytics(payload.whiskyId)
+    await recomputeUserAroma(userId)
+
+    Sentry.captureMessage('tasting_note_published', {
+      level: 'info',
+      tags: { userId, whiskyId: payload.whiskyId },
+    })
+
+    return NextResponse.json({ success: true, id: existingNote.id, status: 'published', created: false, publishedFromDraft: true })
   }
 
   const id = generateId()
   const now = new Date()
   await db.insert(tastingNotes).values({
     id,
-    whiskyId,
+    whiskyId: payload.whiskyId,
     userId,
-    tastingDate,
-    location,
-    latitude,
-    longitude,
-    country,
-    city,
-    overall,
-    rating,
+    status,
+    tastingDate: payload.tastingDate,
+    location: payload.location,
+    latitude: payload.latitude,
+    longitude: payload.longitude,
+    country: payload.country,
+    city: payload.city,
+    overall: payload.overall,
+    rating: payload.rating,
     createdAt: now,
     updatedAt: now,
   })
 
   const relations: any[] = []
-  noseTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'nose' }))
-  palateTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'palate' }))
-  finishTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'finish' }))
+  payload.tags.noseTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'nose' }))
+  payload.tags.palateTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'palate' }))
+  payload.tags.finishTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'finish' }))
   if (relations.length > 0) {
     await db.insert(tastingNoteTags).values(relations)
   }
 
-  await db.insert(activities).values({
-    id: generateId(),
-    userId,
-    type: 'new_note',
-    targetId: whiskyId,
-    createdAt: now,
-  } as any)
+  if (status === 'published') {
+    await db.insert(activities).values({
+      id: generateId(),
+      userId,
+      type: 'new_note',
+      targetId: payload.whiskyId,
+      createdAt: now,
+    } as any)
 
-  await recomputeWhiskyAnalytics(whiskyId)
-  await recomputeUserAroma(userId)
+    await recomputeWhiskyAnalytics(payload.whiskyId)
+    await recomputeUserAroma(userId)
 
-  Sentry.captureMessage('tasting_note_created', {
-    level: 'info',
-    tags: { userId, whiskyId },
-  })
+    Sentry.captureMessage('tasting_note_created', {
+      level: 'info',
+      tags: { userId, whiskyId: payload.whiskyId },
+    })
+  } else {
+    Sentry.captureMessage('tasting_note_draft_created', {
+      level: 'info',
+      tags: { userId, whiskyId: payload.whiskyId },
+    })
+  }
 
-  return NextResponse.json({ success: true, id })
+  return NextResponse.json({ success: true, id, status, created: true })
 }

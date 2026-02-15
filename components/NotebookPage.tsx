@@ -11,7 +11,7 @@ import { buildWhiskyPath } from '@/lib/whisky-url'
 
 type Summary = {
   user: { id: string; pseudo: string; visibility: 'public' | 'private'; shelfVisibility?: 'public' | 'private' }
-  counts: { notes: number; shelf?: number; followers: number; following: number }
+  counts: { notes: number; drafts?: number; shelf?: number; followers: number; following: number }
   isOwner: boolean
   isFollowing: boolean
   private?: boolean
@@ -38,6 +38,25 @@ type NoteCard = {
 type ShelfCard = {
   id: string
   status: 'wishlist' | 'owned_unopened' | 'owned_opened' | 'finished'
+  updatedAt: string | number | Date | null
+  whiskyId: string
+  whiskySlug: string | null
+  whiskyName: string | null
+  distillerName: string | null
+  bottlerName: string | null
+  bottlingType: string | null
+  type: string | null
+  countryName: string | null
+  bottleImageUrl: string | null
+}
+
+type DraftCard = {
+  id: string
+  tastingDate: string
+  rating: number | null
+  location: string | null
+  overall: string | null
+  completionPercent: number
   updatedAt: string | number | Date | null
   whiskyId: string
   whiskySlug: string | null
@@ -92,7 +111,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
 
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loadingSummary, setLoadingSummary] = useState(true)
-  const [activeTab, setActiveTab] = useState<'notes' | 'followers' | 'following' | 'aroma' | 'shelf'>('notes')
+  const [activeTab, setActiveTab] = useState<'notes' | 'drafts' | 'followers' | 'following' | 'aroma' | 'shelf'>('notes')
   const [notesView, setNotesView] = useState<'list' | 'map'>('list')
   const [notesSort, setNotesSort] = useState<'created_desc' | 'created_asc' | 'rating_desc' | 'rating_asc'>('created_desc')
   const [shareNotice, setShareNotice] = useState<string | null>(null)
@@ -127,6 +146,11 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   const [shelfPages, setShelfPages] = useState(1)
   const [shelfSort, setShelfSort] = useState<'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc'>('updated_desc')
   const [loadingShelf, setLoadingShelf] = useState(false)
+  const [draftItems, setDraftItems] = useState<DraftCard[]>([])
+  const [draftPage, setDraftPage] = useState(1)
+  const [draftPages, setDraftPages] = useState(1)
+  const [draftSort, setDraftSort] = useState<'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc'>('updated_desc')
+  const [loadingDrafts, setLoadingDrafts] = useState(false)
 
   const hideSocialTabs = useMemo(() => {
     if (!summary) return false
@@ -140,6 +164,10 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     if (summary.isOwner) return true
     return summary.user.visibility === 'public' && summary.user.shelfVisibility === 'public'
   }, [summary])
+  const hasDraftsTab = Boolean(summary?.isOwner && (summary?.counts?.drafts || 0) > 0)
+  const kpiCardsCount = 2 + (hasDraftsTab ? 1 : 0) + (isShelfVisible ? 1 : 0)
+  const kpiGridLgClass =
+    kpiCardsCount >= 4 ? 'lg:grid-cols-4' : kpiCardsCount === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'
 
   const statusLabel = (status: ShelfCard['status']) => {
     if (status === 'wishlist') return t('notebook.shelfWishlist')
@@ -267,6 +295,25 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     setLoadingShelf(false)
   }
 
+  const loadDrafts = async (
+    page = draftPage,
+    sort: 'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc' = draftSort
+  ) => {
+    if (!summary?.user?.id || !summary.isOwner) return
+    setLoadingDrafts(true)
+    const params = new URLSearchParams()
+    params.set('userId', summary.user.id)
+    params.set('page', String(page))
+    params.set('pageSize', '12')
+    params.set('lang', locale)
+    params.set('sort', sort)
+    const res = await fetch(`/api/notebook/drafts?${params.toString()}`, { cache: 'no-store' })
+    const json = await res.json()
+    setDraftItems(json.items || [])
+    setDraftPages(json.totalPages || 1)
+    setLoadingDrafts(false)
+  }
+
   useEffect(() => {
     if (isLoggedIn) loadSummary()
   }, [isLoggedIn])
@@ -297,6 +344,13 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     setShelfPage(1)
     loadShelf(1)
   }, [summary?.user?.id, activeTab, shelfSort, isShelfVisible])
+
+  useEffect(() => {
+    if (!summary || summary.private) return
+    if (!summary.isOwner || activeTab !== 'drafts') return
+    setDraftPage(1)
+    loadDrafts(1)
+  }, [summary?.user?.id, activeTab, draftSort])
 
   useEffect(() => {
     if (!summary || summary.private) return
@@ -347,6 +401,14 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     loadSummary()
     if (activeTab === 'followers') loadFollowers()
     if (activeTab === 'following') loadFollowing()
+  }
+
+  const deleteDraft = async (draftId: string) => {
+    if (!confirm(t('tasting.confirmDelete'))) return
+    const res = await fetch(`/api/tasting-notes/${draftId}`, { method: 'DELETE' })
+    if (!res.ok) return
+    trackEvent('tasting_note_draft_deleted', { note_id: draftId })
+    await Promise.all([loadSummary(), loadDrafts(draftPage)])
   }
 
   if (isLoading) return <div className="p-8">{t('common.loading')}</div>
@@ -481,7 +543,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className={`mt-6 grid grid-cols-1 sm:grid-cols-2 ${kpiGridLgClass} gap-4`}>
             <button
               onClick={() => setActiveTab('notes')}
               className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'notes' ? 'border-transparent' : 'border-gray-200'}`}
@@ -490,6 +552,17 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
               <div className="text-2xl font-semibold text-gray-900">{summary.counts.notes}</div>
               <div className="text-sm text-gray-600">{t('notebook.notesCount')}</div>
             </button>
+
+            {hasDraftsTab && (
+              <button
+                onClick={() => setActiveTab('drafts')}
+                className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'drafts' ? 'border-transparent' : 'border-gray-200'}`}
+                style={activeTab === 'drafts' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
+              >
+                <div className="text-2xl font-semibold text-gray-900">{summary.counts.drafts || 0}</div>
+                <div className="text-sm text-gray-600">{t('notebook.draftsTitle')}</div>
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab('aroma')}
@@ -673,6 +746,119 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                           loadNotes(next)
                         }}
                         disabled={notesPage === notesPages}
+                        className="px-3 py-1.5 rounded-lg border text-sm disabled:opacity-50"
+                      >
+                        {t('catalogue.next')}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'drafts' && summary.isOwner && (
+            <div>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-gray-700">{t('notebook.draftsTitle')}</div>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="draft-sort" className="text-sm text-gray-600">
+                    {t('notebook.notesSortLabel')}
+                  </label>
+                  <select
+                    id="draft-sort"
+                    value={draftSort}
+                    onChange={(e) => {
+                      setDraftPage(1)
+                      setDraftSort(e.target.value as typeof draftSort)
+                    }}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="updated_desc">{t('notebook.shelfSortUpdatedDesc')}</option>
+                    <option value="updated_asc">{t('notebook.shelfSortUpdatedAsc')}</option>
+                    <option value="name_asc">{t('catalogue.sortNameAsc')}</option>
+                    <option value="name_desc">{t('catalogue.sortNameDesc')}</option>
+                  </select>
+                </div>
+              </div>
+
+              {loadingDrafts ? (
+                <div className="text-sm text-gray-500">{t('common.loading')}</div>
+              ) : draftItems.length === 0 ? (
+                <div className="text-sm text-gray-600">{t('notebook.noDrafts')}</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {draftItems.map((item) => {
+                      const imageSrc = normalizeImage(item.bottleImageUrl)
+                      const producer =
+                        item.bottlingType === 'DB' ? item.distillerName : item.bottlerName
+                      const typeLine = [item.type, item.countryName].filter(Boolean).join(' • ')
+                      const href = buildWhiskyPath(locale, item.whiskyId, item.whiskyName || undefined, item.whiskySlug || undefined)
+                      return (
+                        <div key={item.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                          <Link href={href} className="block">
+                            <div className="w-full h-40 bg-white rounded-xl flex items-center justify-center overflow-hidden">
+                              {imageSrc ? (
+                                <img src={imageSrc} alt={item.whiskyName || ''} className="w-full h-full object-contain" />
+                              ) : (
+                                <div className="text-gray-400">{t('catalogue.noImage')}</div>
+                              )}
+                            </div>
+                            <div className="mt-4 space-y-1">
+                              <div className="text-base font-semibold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>
+                                {item.whiskyName}
+                              </div>
+                              {producer && <div className="text-sm text-gray-600 line-clamp-1">{producer}</div>}
+                              {typeLine && <div className="text-xs text-gray-500">{typeLine}</div>}
+                            </div>
+                          </Link>
+                          <div className="mt-3">
+                            <div className="text-xs text-gray-600">{t('notebook.draftCompletion')} {item.completionPercent}%</div>
+                            <div className="h-1.5 mt-1 rounded-full bg-gray-100 overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${item.completionPercent}%`, backgroundColor: 'var(--color-primary)' }} />
+                            </div>
+                          </div>
+                          <div className="mt-4 flex items-center gap-2">
+                            <Link
+                              href={href}
+                              className="px-3 py-1.5 rounded-lg text-sm text-white"
+                              style={{ backgroundColor: 'var(--color-primary)' }}
+                            >
+                              {t('notebook.draftContinue')}
+                            </Link>
+                            <button
+                              onClick={() => deleteDraft(item.id)}
+                              className="px-3 py-1.5 rounded-lg border border-red-300 text-sm text-red-600"
+                            >
+                              {t('notebook.draftDelete')}
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {draftPages > 1 && (
+                    <div className="flex items-center justify-center gap-3 mt-8">
+                      <button
+                        onClick={() => {
+                          const next = Math.max(1, draftPage - 1)
+                          setDraftPage(next)
+                          loadDrafts(next)
+                        }}
+                        disabled={draftPage === 1}
+                        className="px-3 py-1.5 rounded-lg border text-sm disabled:opacity-50"
+                      >
+                        {t('catalogue.prev')}
+                      </button>
+                      <span className="text-sm text-gray-500">{draftPage} / {draftPages}</span>
+                      <button
+                        onClick={() => {
+                          const next = Math.min(draftPages, draftPage + 1)
+                          setDraftPage(next)
+                          loadDrafts(next)
+                        }}
+                        disabled={draftPage === draftPages}
                         className="px-3 py-1.5 rounded-lg border text-sm disabled:opacity-50"
                       >
                         {t('catalogue.next')}
