@@ -46,6 +46,31 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
         </section>
 
         <section>
+          <h2 className="font-display text-xl text-gray-900">{t('privacy.notesVisibilityTitle')}</h2>
+          <p className="mt-2 text-gray-700">{t('privacy.notesVisibilityBody')}</p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-gray-900">{t('privacy.shelfVisibilityTitle')}</h2>
+          <p className="mt-2 text-gray-700">{t('privacy.shelfVisibilityBody')}</p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-gray-900">{t('privacy.locationVisibilityTitle')}</h2>
+          <p className="mt-2 text-gray-700">{t('privacy.locationVisibilityBody')}</p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-gray-900">{t('privacy.thirdPartyTitle')}</h2>
+          <p className="mt-2 text-gray-700">{t('privacy.thirdPartyBody')}</p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-gray-900">{t('privacy.noSaleTitle')}</h2>
+          <p className="mt-2 text-gray-700">{t('privacy.noSaleBody')}</p>
+        </section>
+
+        <section>
           <h2 className="font-display text-xl text-gray-900">{t('privacy.contactTitle')}</h2>
           <p className="mt-2 text-gray-700">{t('privacy.contactBody')}</p>
         </section>

@@ -20,6 +20,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 export default async function AboutPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params
   const t = getTranslations(locale)
+  const sections = [
+    { title: t('about.missionTitle'), body: t('about.missionBody') },
+    { title: t('about.audienceTitle'), body: t('about.audienceBody') },
+    { title: t('about.featuresTitle'), body: t('about.featuresBody') },
+    { title: t('about.methodTitle'), body: t('about.methodBody') },
+    { title: t('about.aromaTitle'), body: t('about.aromaBody') },
+    { title: t('about.philosophyTitle'), body: t('about.philosophyBody') },
+  ]
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-8 py-12 space-y-8">
@@ -28,19 +36,13 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
         <p className="mt-3 text-gray-700">{t('about.hero')}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <h2 className="font-semibold text-gray-900">{t('about.step1Title')}</h2>
-          <p className="mt-2 text-sm text-gray-600">{t('about.step1Body')}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <h2 className="font-semibold text-gray-900">{t('about.step2Title')}</h2>
-          <p className="mt-2 text-sm text-gray-600">{t('about.step2Body')}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <h2 className="font-semibold text-gray-900">{t('about.step3Title')}</h2>
-          <p className="mt-2 text-sm text-gray-600">{t('about.step3Body')}</p>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {sections.map((section) => (
+          <div key={section.title} className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="font-semibold text-gray-900">{section.title}</h2>
+            <p className="mt-2 text-sm text-gray-600">{section.body}</p>
+          </div>
+        ))}
       </div>
 
       <div className="flex flex-wrap gap-3">
