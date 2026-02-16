@@ -5,7 +5,7 @@ import { generateId } from '@/lib/db'
 import path from 'path'
 import fs from 'fs/promises'
 import { validateWhiskyName, validateDisplayName, sanitizeText } from '@/lib/moderation'
-import { captureBusinessEvent } from '@/lib/sentry-business'
+import * as Sentry from '@sentry/nextjs'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { normalizeProducerName } from '@/lib/producer-name'
 import { resolveBottlerName, resolveDistillerName } from '@/lib/producer-resolver'
@@ -365,10 +365,16 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    await captureBusinessEvent('whisky_created', {
+    const sentryEventId = Sentry.captureMessage('whisky_created', {
       level: 'info',
-      tags: { whiskyId: id },
+      tags: { whiskyId: id, userId: String(data?.added_by || 'unknown') },
+      extra: {
+        name,
+        bottlingType,
+      },
     })
+    await Sentry.flush(2000)
+    console.info(`[sentry-business] sent "whisky_created" (eventId: ${sentryEventId || 'n/a'})`)
 
     return NextResponse.json({ success: true, id, slug, bottleImageUrl })
   } catch (error) {

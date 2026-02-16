@@ -20,22 +20,29 @@ export async function captureBusinessEvent(
   }
 
   try {
+    const normalizedTags: Record<string, string> = {
+      business_event: message,
+      ...(tags || {}),
+    }
+
     // Avoid SDK de-duplication dropping repeated business messages
     // by adding a deterministic fingerprint including business IDs when available.
     const fingerprint = [message]
-    if (tags?.userId) fingerprint.push(`user:${tags.userId}`)
-    if (tags?.whiskyId) fingerprint.push(`whisky:${tags.whiskyId}`)
-    if (tags?.noteId) fingerprint.push(`note:${tags.noteId}`)
+    if (normalizedTags.userId) fingerprint.push(`user:${normalizedTags.userId}`)
+    if (normalizedTags.whiskyId) fingerprint.push(`whisky:${normalizedTags.whiskyId}`)
+    if (normalizedTags.noteId) fingerprint.push(`note:${normalizedTags.noteId}`)
 
     const eventId = Sentry.captureMessage(message, {
       level,
-      tags,
+      tags: normalizedTags,
       extra,
       fingerprint,
     })
     const flushed = await Sentry.flush(flushTimeoutMs)
     if (!flushed) {
       console.warn(`[sentry-business] flush timeout for "${message}" (eventId: ${eventId || 'n/a'})`)
+    } else {
+      console.info(`[sentry-business] sent "${message}" (eventId: ${eventId || 'n/a'})`)
     }
   } catch (error) {
     // Keep business flow resilient if Sentry transport fails, but log for diagnostics.
