@@ -5,6 +5,8 @@ import { authOptions } from '@/lib/auth'
 import { activities, db, follows, tastingNotes, tastingNoteTags, userShelf, users } from '@/lib/db'
 import { captureBusinessEvent } from '@/lib/sentry-business'
 
+export const runtime = 'nodejs'
+
 function csvEscape(value: unknown) {
   if (value === null || value === undefined) return ''
   const str = String(value)

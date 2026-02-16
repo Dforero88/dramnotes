@@ -10,6 +10,8 @@ import { validateLocation, validateOverall, validateDisplayName } from '@/lib/mo
 import { captureBusinessEvent } from '@/lib/sentry-business'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
+export const runtime = 'nodejs'
+
 type TagsPayload = {
   nose?: Array<string | { id: string }>
   palate?: Array<string | { id: string }>

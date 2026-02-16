@@ -18,6 +18,8 @@ import {
 import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { captureBusinessEvent } from '@/lib/sentry-business'
 
+export const runtime = 'nodejs'
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id

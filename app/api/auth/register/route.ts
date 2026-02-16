@@ -11,6 +11,8 @@ import { validatePseudo, sanitizeText } from '@/lib/moderation'
 import { captureBusinessEvent } from '@/lib/sentry-business'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
+export const runtime = 'nodejs'
+
 export async function POST(request: NextRequest) {
   try {
     const limit = rateLimit(request, {

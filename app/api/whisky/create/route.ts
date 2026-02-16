@@ -13,6 +13,7 @@ import { slugifyProducerName } from '@/lib/producer-url'
 import { slugifyWhiskyName } from '@/lib/whisky-url'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 function normalizeYear(value: any): number | null {
   const n = Number(value)
