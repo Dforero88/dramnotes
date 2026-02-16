@@ -7,7 +7,7 @@ import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { recomputeUserAroma } from '@/lib/user-aroma'
 import { validateLocation, validateOverall, validateDisplayName } from '@/lib/moderation'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
-import * as Sentry from '@sentry/nextjs'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 export const runtime = 'nodejs'
 
@@ -214,12 +214,10 @@ export async function PATCH(
   }
 
   if (current.status !== 'published' && nextStatus === 'published') {
-    const sentryEventId = Sentry.captureMessage('tasting_note_published', {
+    await captureBusinessEvent('tasting_note_published', {
       level: 'info',
       tags: { userId, whiskyId: current.whiskyId },
     })
-    await Sentry.flush(2000)
-    console.info(`[sentry-business] sent "tasting_note_published" (eventId: ${sentryEventId || 'n/a'})`)
   }
 
   return NextResponse.json({
@@ -279,12 +277,10 @@ export async function DELETE(
     await recomputeWhiskyAnalytics(existing[0].whiskyId)
     await recomputeUserAroma(userId)
   } else {
-    const sentryEventId = Sentry.captureMessage('tasting_note_draft_deleted', {
+    await captureBusinessEvent('tasting_note_draft_deleted', {
       level: 'info',
       tags: { userId, whiskyId: existing[0].whiskyId },
     })
-    await Sentry.flush(2000)
-    console.info(`[sentry-business] sent "tasting_note_draft_deleted" (eventId: ${sentryEventId || 'n/a'})`)
   }
 
   return NextResponse.json({ success: true, deletedStatus: existing[0].status })

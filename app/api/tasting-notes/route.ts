@@ -7,7 +7,7 @@ import { generateId } from '@/lib/db'
 import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { recomputeUserAroma } from '@/lib/user-aroma'
 import { validateLocation, validateOverall, validateDisplayName } from '@/lib/moderation'
-import * as Sentry from '@sentry/nextjs'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
@@ -234,12 +234,10 @@ export async function POST(request: NextRequest) {
     await recomputeWhiskyAnalytics(payload.whiskyId)
     await recomputeUserAroma(userId)
 
-    const sentryEventId = Sentry.captureMessage('tasting_note_published', {
+    await captureBusinessEvent('tasting_note_published', {
       level: 'info',
       tags: { userId, whiskyId: payload.whiskyId },
     })
-    await Sentry.flush(2000)
-    console.info(`[sentry-business] sent "tasting_note_published" (eventId: ${sentryEventId || 'n/a'})`)
 
     return NextResponse.json({ success: true, id: existingNote.id, status: 'published', created: false, publishedFromDraft: true })
   }
@@ -284,19 +282,15 @@ export async function POST(request: NextRequest) {
     await recomputeWhiskyAnalytics(payload.whiskyId)
     await recomputeUserAroma(userId)
 
-    const sentryEventId = Sentry.captureMessage('tasting_note_created', {
+    await captureBusinessEvent('tasting_note_created', {
       level: 'info',
       tags: { userId, whiskyId: payload.whiskyId },
     })
-    await Sentry.flush(2000)
-    console.info(`[sentry-business] sent "tasting_note_created" (eventId: ${sentryEventId || 'n/a'})`)
   } else {
-    const sentryEventId = Sentry.captureMessage('tasting_note_draft_created', {
+    await captureBusinessEvent('tasting_note_draft_created', {
       level: 'info',
       tags: { userId, whiskyId: payload.whiskyId },
     })
-    await Sentry.flush(2000)
-    console.info(`[sentry-business] sent "tasting_note_draft_created" (eventId: ${sentryEventId || 'n/a'})`)
   }
 
   return NextResponse.json({ success: true, id, status, created: true })
