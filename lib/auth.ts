@@ -5,6 +5,7 @@ import { db, users } from './db'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { loginSchema } from '@/lib/validation/schemas'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -51,6 +52,12 @@ export const authOptions: AuthOptions = {
         }
 
         // Retourner l'utilisateur (sans le mot de passe)
+        await captureBusinessEvent('user_login', {
+          level: 'info',
+          tags: { userId: user.id },
+          extra: { email: user.email },
+        })
+
         return {
           id: user.id,
           email: user.email,

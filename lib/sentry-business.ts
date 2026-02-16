@@ -13,6 +13,20 @@ export async function captureBusinessEvent(
   message: string,
   { level = 'info', tags, extra, flushTimeoutMs = 1200 }: BusinessEventOptions = {}
 ) {
+  const payload = {
+    ts: new Date().toISOString(),
+    event: message,
+    level,
+    ...(tags ? { tags } : {}),
+    ...(extra ? { extra } : {}),
+  }
+  console.info(`[business] ${JSON.stringify(payload)}`)
+
+  const enabled = process.env.ENABLE_SENTRY_BUSINESS_LOGS === '1'
+  if (!enabled) {
+    return
+  }
+
   const dsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN || ''
   if (!dsn) {
     console.warn(`[sentry-business] skipped "${message}" (dsn missing)`)
