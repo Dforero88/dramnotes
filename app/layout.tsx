@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 const siteUrl = process.env.APP_URL || 'https://dramnotes.com'
-const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || '0.1.0'
+const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'
 const gitSha = (process.env.NEXT_PUBLIC_GIT_SHA || '').trim()
 const buildLabel = gitSha ? `v${appVersion} (${gitSha})` : `v${appVersion}`
 

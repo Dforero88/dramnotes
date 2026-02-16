@@ -38,6 +38,8 @@ export default function AdminProducersPageClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
+  const [previewImageUrl, setPreviewImageUrl] = useState('')
 
   const selected = useMemo(() => items.find((x) => x.id === selectedId) || null, [items, selectedId])
 
@@ -94,6 +96,8 @@ export default function AdminProducersPageClient() {
 
   useEffect(() => {
     if (!selected) return
+    setPendingImageFile(null)
+    setPreviewImageUrl(selected.imageUrl || '')
     setForm({
       name: selected.name || '',
       countryId: selected.countryId || '',
@@ -120,6 +124,20 @@ export default function AdminProducersPageClient() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Error')
+
+      if (pendingImageFile) {
+        const fd = new FormData()
+        fd.append('image', pendingImageFile)
+        const imageRes = await fetch(`/api/admin/producers/${selected.id}/image?kind=${kind}`, {
+          method: 'POST',
+          body: fd,
+        })
+        const imageJson = await imageRes.json()
+        if (!imageRes.ok) throw new Error(imageJson?.error || 'Error')
+        setPendingImageFile(null)
+        setPreviewImageUrl(imageJson?.imageUrl || previewImageUrl)
+      }
+
       setMessage(t('account.addressSaved'))
       await load()
     } catch (e: any) {
@@ -129,21 +147,11 @@ export default function AdminProducersPageClient() {
     }
   }
 
-  const onUpload = async (file: File) => {
-    if (!selected) return
+  const onUpload = (file: File) => {
     setMessage('')
-    const fd = new FormData()
-    fd.append('image', file)
-    const res = await fetch(`/api/admin/producers/${selected.id}/image?kind=${kind}`, {
-      method: 'POST',
-      body: fd,
-    })
-    const json = await res.json()
-    if (!res.ok) {
-      setMessage(json?.error || t('common.error'))
-      return
-    }
-    await load()
+    setPendingImageFile(file)
+    setPreviewImageUrl(URL.createObjectURL(file))
+    setMessage(t('adminProducers.imagePendingSave'))
   }
 
   return (
@@ -264,7 +272,8 @@ export default function AdminProducersPageClient() {
                         if (file) void onUpload(file)
                       }}
                     />
-                    {selected.imageUrl ? <img src={selected.imageUrl} alt={selected.name} className="w-28 h-28 object-contain border border-gray-200 rounded-lg bg-white" /> : null}
+                    <div className="text-xs text-gray-500">{t('adminProducers.imageSaveHint')}</div>
+                    {previewImageUrl ? <img src={previewImageUrl} alt={selected.name} className="w-28 h-28 object-contain border border-gray-200 rounded-lg bg-white" /> : null}
                   </div>
                   <button onClick={save} disabled={saving} className="w-full px-4 py-2 rounded-xl text-white disabled:opacity-50" style={{ backgroundColor: 'var(--color-primary)' }}>
                     {saving ? t('common.saving') : t('account.save')}
@@ -279,4 +288,3 @@ export default function AdminProducersPageClient() {
     </div>
   )
 }
-
