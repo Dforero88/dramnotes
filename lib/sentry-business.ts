@@ -20,7 +20,19 @@ export async function captureBusinessEvent(
   }
 
   try {
-    const eventId = Sentry.captureMessage(message, { level, tags, extra })
+    // Avoid SDK de-duplication dropping repeated business messages
+    // by adding a deterministic fingerprint including business IDs when available.
+    const fingerprint = [message]
+    if (tags?.userId) fingerprint.push(`user:${tags.userId}`)
+    if (tags?.whiskyId) fingerprint.push(`whisky:${tags.whiskyId}`)
+    if (tags?.noteId) fingerprint.push(`note:${tags.noteId}`)
+
+    const eventId = Sentry.captureMessage(message, {
+      level,
+      tags,
+      extra,
+      fingerprint,
+    })
     const flushed = await Sentry.flush(flushTimeoutMs)
     if (!flushed) {
       console.warn(`[sentry-business] flush timeout for "${message}" (eventId: ${eventId || 'n/a'})`)
