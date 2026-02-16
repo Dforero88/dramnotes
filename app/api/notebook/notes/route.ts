@@ -61,6 +61,9 @@ export async function GET(request: NextRequest) {
       id: tastingNotes.id,
       tastingDate: tastingNotes.tastingDate,
       rating: tastingNotes.rating,
+      location: tastingNotes.location,
+      city: tastingNotes.city,
+      country: tastingNotes.country,
       locationVisibility: tastingNotes.locationVisibility,
       latitude: tastingNotes.latitude,
       longitude: tastingNotes.longitude,
@@ -94,6 +97,9 @@ export async function GET(request: NextRequest) {
     id: string
     tastingDate: string
     rating: number | null
+    location: string | null
+    city: string | null
+    country: string | null
     locationVisibility: string | null
     latitude: number | null
     longitude: number | null
@@ -132,9 +138,15 @@ export async function GET(request: NextRequest) {
     const uniqueTags = Array.from(new Set(allTags))
     const shouldApprox = !isOwner && note.locationVisibility === 'public_city'
     const approx = (value: number | null) => (typeof value === 'number' ? Number(value.toFixed(1)) : null)
+    const locationDisplay = isOwner
+      ? note.location
+      : note.locationVisibility === 'public_precise'
+        ? note.location
+        : [note.city, note.country].filter(Boolean).join(', ') || note.country || null
     return {
       ...note,
       countryName: lang.toLowerCase() === 'fr' ? note.countryNameFr || note.countryName : note.countryName,
+      location: locationDisplay,
       latitude: shouldApprox ? approx(note.latitude) : note.latitude,
       longitude: shouldApprox ? approx(note.longitude) : note.longitude,
       tags: uniqueTags.slice(0, 3),

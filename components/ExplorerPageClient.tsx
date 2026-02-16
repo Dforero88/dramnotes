@@ -31,6 +31,25 @@ function buildAvatar(pseudo: string) {
   return { color, initial }
 }
 
+function FollowActionIcon({ following }: { following?: boolean }) {
+  if (following) {
+    return (
+      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M16 19a4 4 0 0 0-8 0" />
+        <circle cx="12" cy="8" r="3.5" />
+        <path d="M18.5 10.5 20 12l3-3" />
+      </svg>
+    )
+  }
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M16 19a4 4 0 0 0-8 0" />
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M21 12h-5M18.5 9.5v5" />
+    </svg>
+  )
+}
+
 export default function ExplorerPageClient() {
   const params = useParams()
   const locale = params.locale as Locale
@@ -191,7 +210,7 @@ export default function ExplorerPageClient() {
                     ) : (
                       <Link
                         href={`/${locale}/user/${encodeURIComponent(user.pseudo)}`}
-                        className="text-base font-semibold text-gray-900 hover:underline"
+                        className="text-base font-semibold text-gray-900 hover:text-[var(--color-primary)] transition-colors"
                       >
                         {user.pseudo}
                       </Link>
@@ -207,13 +226,15 @@ export default function ExplorerPageClient() {
                     type="button"
                     onClick={() => handleToggleFollow(user.id)}
                     disabled={followLoadingId === user.id}
-                    className={`px-4 py-2 rounded-lg text-sm transition ${followLoadingId === user.id ? 'opacity-70' : ''}`}
+                    aria-label={user.isFollowing ? t('notebook.followActionFollowing') : t('notebook.followActionFollow')}
+                    title={user.isFollowing ? t('notebook.followActionFollowing') : t('notebook.followActionFollow')}
+                    className={`h-10 w-10 inline-flex items-center justify-center rounded-full transition ${followLoadingId === user.id ? 'opacity-70' : ''}`}
                     style={{
                       backgroundColor: user.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
                       color: user.isFollowing ? 'var(--color-primary)' : '#fff',
                     }}
                   >
-                    {user.isFollowing ? t('notebook.following') : t('notebook.follow')}
+                    <FollowActionIcon following={user.isFollowing} />
                   </button>
                 )}
               </div>

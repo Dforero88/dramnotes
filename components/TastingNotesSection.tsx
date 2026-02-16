@@ -416,8 +416,65 @@ export default function TastingNotesSection({
           </div>
           {myNote && myNote.status !== 'draft' && !editing ? (
             <div className="space-y-4">
-              <div className="text-sm text-gray-600">
-                {myNote.tastingDate} {myNote.location ? `• ${myNote.location}` : ''}
+              <div className="text-sm text-gray-600 flex flex-wrap items-center gap-2">
+                <span>{myNote.tastingDate}</span>
+                {myNote.location && (
+                  <>
+                    <span className="text-gray-400">•</span>
+                    <span className="inline-flex items-center gap-1">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-5 w-5 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 21s-7-4.35-7-10a7 7 0 1 1 14 0c0 5.65-7 10-7 10z" />
+                        <circle cx="12" cy="11" r="2.5" />
+                      </svg>
+                      <span>{myNote.location}</span>
+                    </span>
+                    <span className="text-gray-400">·</span>
+                    <span className="text-xs text-gray-500 inline-flex items-center gap-1">
+                      <span>{t('tasting.locationVisibilityShort')}:</span>
+                      {myNote.locationVisibility === 'public_precise' ? (
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-5 w-5 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-label={t('tasting.locationModePrecise')}
+                        >
+                          <circle cx="12" cy="12" r="8" />
+                          <path d="M12 4v4M12 16v4M4 12h4M16 12h4" />
+                          <circle cx="12" cy="12" r="1.5" />
+                        </svg>
+                      ) : (
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-5 w-5 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-label={t('tasting.locationModeCity')}
+                        >
+                          <path d="M3 21h18" />
+                          <path d="M5 21V10h5v11" />
+                          <path d="M10 21V6h4v15" />
+                          <path d="M14 21V12h5v9" />
+                          <path d="M7 13h.01M7 16h.01M12 9h.01M12 12h.01M12 15h.01M16 15h.01M16 18h.01" />
+                        </svg>
+                      )}
+                    </span>
+                  </>
+                )}
               </div>
               <div className="flex gap-1 text-yellow-500">
                 {stars.map((s) => (

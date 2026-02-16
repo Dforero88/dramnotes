@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
     user: {
       id: user.id,
       pseudo: user.pseudo,
+      countryId: user.countryId || null,
       visibility: user.visibility,
       shelfVisibility: user.shelfVisibility || 'private',
     },

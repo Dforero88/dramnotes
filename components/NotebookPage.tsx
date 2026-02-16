@@ -8,9 +8,10 @@ import { useParams } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics-client'
 import NotebookNotesMap from '@/components/NotebookNotesMap'
 import { buildWhiskyPath } from '@/lib/whisky-url'
+import { Notepad, Sparkle, BeerBottle, PencilSimple } from '@phosphor-icons/react'
 
 type Summary = {
-  user: { id: string; pseudo: string; visibility: 'public' | 'private'; shelfVisibility?: 'public' | 'private' }
+  user: { id: string; pseudo: string; countryId?: string | null; visibility: 'public' | 'private'; shelfVisibility?: 'public' | 'private' }
   counts: { notes: number; drafts?: number; shelf?: number; followers: number; following: number }
   isOwner: boolean
   isFollowing: boolean
@@ -21,6 +22,8 @@ type NoteCard = {
   id: string
   tastingDate: string
   rating: number | null
+  location: string | null
+  locationVisibility: string | null
   whiskyId: string
   whiskyName: string | null
   distillerName: string | null
@@ -96,6 +99,33 @@ function normalizeImage(url?: string | null) {
   if (!url) return ''
   if (url.startsWith('http') || url.startsWith('/')) return url
   return `/${url}`
+}
+
+function FollowActionIcon({ following }: { following?: boolean }) {
+  if (following) {
+    return (
+      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M16 19a4 4 0 0 0-8 0" />
+        <circle cx="12" cy="8" r="3.5" />
+        <path d="M18.5 10.5 20 12l3-3" />
+      </svg>
+    )
+  }
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M16 19a4 4 0 0 0-8 0" />
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M21 12h-5M18.5 9.5v5" />
+    </svg>
+  )
+}
+
+function getCountryFlagUrl(countryId?: string | null) {
+  if (!countryId) return ''
+  const code = countryId.trim().toLowerCase()
+  if (!code) return ''
+  if (code === 'sct') return '/flags/scotland.svg'
+  return `https://hatscripts.github.io/circle-flags/flags/${code}.svg`
 }
 
 type NotebookProps = {
@@ -174,6 +204,38 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
     if (status === 'owned_unopened') return t('notebook.shelfOwnedNew')
     if (status === 'owned_opened') return t('notebook.shelfOwnedOpen')
     return t('notebook.shelfFinished')
+  }
+
+  const statusIcon = (status: ShelfCard['status']) => {
+    if (status === 'wishlist') {
+      return (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 20s-6.5-4.2-8.5-7A5.2 5.2 0 0 1 12 6.4 5.2 5.2 0 0 1 20.5 13c-2 2.8-8.5 7-8.5 7z" />
+        </svg>
+      )
+    }
+    if (status === 'owned_unopened') {
+      return (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M10.5 4.5C8.2 7.6 7 9.7 7 12a3.5 3.5 0 0 0 7 0c0-2.3-1.2-4.4-3.5-7.5z" />
+          <path d="M17.2 8.2c-1.6 2.1-2.4 3.6-2.4 5a2.4 2.4 0 0 0 4.8 0c0-1.4-.8-2.9-2.4-5z" />
+        </svg>
+      )
+    }
+    if (status === 'owned_opened') {
+      return (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 4.5C9.2 8.2 7.5 10.7 7.5 13.3a4.5 4.5 0 0 0 9 0c0-2.6-1.7-5.1-4.5-8.8z" />
+          <path d="M8.8 14h6.4" />
+        </svg>
+      )
+    }
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 4.5C9.2 8.2 7.5 10.7 7.5 13.3a4.5 4.5 0 0 0 9 0c0-2.6-1.7-5.1-4.5-8.8z" />
+        <path d="M5 19 19 5" />
+      </svg>
+    )
   }
 
   const handleShare = async () => {
@@ -467,6 +529,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   }
 
   const avatar = avatarForPseudo(summary.user.pseudo)
+  const profileFlagUrl = getCountryFlagUrl(summary.user.countryId || null)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -496,7 +559,18 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                 {avatar.initial}
               </div>
               <div className="min-w-0">
-                <div className="text-xl font-semibold text-gray-900 truncate">{summary.user.pseudo}</div>
+                <div className="text-xl font-semibold text-gray-900 truncate inline-flex items-center gap-2">
+                  <span className="truncate">{summary.user.pseudo}</span>
+                  {profileFlagUrl && (
+                    <img
+                      src={profileFlagUrl}
+                      alt=""
+                      className="h-4 w-6 rounded-sm shrink-0"
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
+                  )}
+                </div>
                 <div className="text-sm text-gray-500">{t('notebook.profileSubtitle')}</div>
               </div>
             </div>
@@ -505,13 +579,15 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
               {!summary.isOwner && (
                 <button
                   onClick={() => toggleFollow(summary.user.id)}
-                  className="px-4 py-2 rounded-lg text-sm transition shrink-0"
+                  className="h-10 w-10 inline-flex items-center justify-center rounded-full transition shrink-0"
+                  aria-label={summary.isFollowing ? t('notebook.followActionFollowing') : t('notebook.followActionFollow')}
+                  title={summary.isFollowing ? t('notebook.followActionFollowing') : t('notebook.followActionFollow')}
                   style={{
                     backgroundColor: summary.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
                     color: summary.isFollowing ? 'var(--color-primary)' : '#fff',
                   }}
                 >
-                  {summary.isFollowing ? t('notebook.following') : t('notebook.follow')}
+                  <FollowActionIcon following={summary.isFollowing} />
                 </button>
               )}
                   {canShare && (
@@ -524,7 +600,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                         <svg
                           aria-hidden
                           viewBox="0 0 24 24"
-                          className="h-4 w-4"
+                          className="h-6 w-6"
                           fill="none"
                           stroke="currentColor"
                           strokeWidth="2"
@@ -546,41 +622,92 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
           <div className={`mt-6 grid grid-cols-1 sm:grid-cols-2 ${kpiGridLgClass} gap-4`}>
             <button
               onClick={() => setActiveTab('notes')}
-              className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'notes' ? 'border-transparent' : 'border-gray-200'}`}
-              style={activeTab === 'notes' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
+              aria-label={`${t('notebook.notesCount')} (${summary.counts.notes})`}
+              title={`${t('notebook.notesCount')} (${summary.counts.notes})`}
+              className={`rounded-xl h-20 border px-4 flex items-center gap-3 text-left ${activeTab === 'notes' ? 'border-transparent' : 'border-gray-200'}`}
+              style={activeTab === 'notes' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
             >
-              <div className="text-2xl font-semibold text-gray-900">{summary.counts.notes}</div>
-              <div className="text-sm text-gray-600">{t('notebook.notesCount')}</div>
+              <span className="relative inline-flex items-center justify-center">
+                <Notepad
+                  size={28}
+                  weight="duotone"
+                  aria-hidden
+                  style={{ color: activeTab === 'notes' ? 'var(--color-primary)' : 'var(--color-primary)', opacity: activeTab === 'notes' ? 1 : 0.68 }}
+                />
+                <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold leading-[18px] text-center">
+                  {summary.counts.notes}
+                </span>
+              </span>
+              <span className={`text-sm font-medium ${activeTab === 'notes' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
+                {t('notebook.notesCount')}
+              </span>
             </button>
 
             {hasDraftsTab && (
               <button
                 onClick={() => setActiveTab('drafts')}
-                className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'drafts' ? 'border-transparent' : 'border-gray-200'}`}
-                style={activeTab === 'drafts' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
+                aria-label={`${t('notebook.draftsTitle')} (${summary.counts.drafts || 0})`}
+                title={`${t('notebook.draftsTitle')} (${summary.counts.drafts || 0})`}
+                className={`rounded-xl h-20 border px-4 flex items-center gap-3 text-left ${activeTab === 'drafts' ? 'border-transparent' : 'border-gray-200'}`}
+                style={activeTab === 'drafts' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
               >
-                <div className="text-2xl font-semibold text-gray-900">{summary.counts.drafts || 0}</div>
-                <div className="text-sm text-gray-600">{t('notebook.draftsTitle')}</div>
+                <span className="relative inline-flex items-center justify-center">
+                  <PencilSimple
+                    size={28}
+                    weight="duotone"
+                    aria-hidden
+                    style={{ color: activeTab === 'drafts' ? 'var(--color-primary)' : 'var(--color-primary)', opacity: activeTab === 'drafts' ? 1 : 0.68 }}
+                  />
+                  <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold leading-[18px] text-center">
+                    {summary.counts.drafts || 0}
+                  </span>
+                </span>
+                <span className={`text-sm font-medium ${activeTab === 'drafts' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
+                  {t('notebook.draftsTitle')}
+                </span>
               </button>
             )}
 
             <button
               onClick={() => setActiveTab('aroma')}
-              className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'aroma' ? 'border-transparent' : 'border-gray-200'}`}
-              style={activeTab === 'aroma' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
+              aria-label={t('notebook.aromaTitle')}
+              title={t('notebook.aromaTitle')}
+              className={`rounded-xl h-20 border px-4 flex items-center gap-3 text-left ${activeTab === 'aroma' ? 'border-transparent' : 'border-gray-200'}`}
+              style={activeTab === 'aroma' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
             >
-              <div className="text-2xl font-semibold text-gray-900">✦</div>
-              <div className="text-sm text-gray-600">{t('notebook.aromaTitle')}</div>
+              <Sparkle
+                size={28}
+                weight="duotone"
+                aria-hidden
+                style={{ color: activeTab === 'aroma' ? 'var(--color-primary)' : 'var(--color-primary)', opacity: activeTab === 'aroma' ? 1 : 0.68 }}
+              />
+              <span className={`text-sm font-medium ${activeTab === 'aroma' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
+                {t('notebook.aromaTitle')}
+              </span>
             </button>
 
             {isShelfVisible && (
               <button
                 onClick={() => setActiveTab('shelf')}
-                className={`rounded-xl px-4 py-3 text-left border ${activeTab === 'shelf' ? 'border-transparent' : 'border-gray-200'}`}
-                style={activeTab === 'shelf' ? { backgroundColor: 'var(--color-primary-light)' } : {}}
+                aria-label={`${t('notebook.shelfTitle')} (${summary.counts.shelf || 0})`}
+                title={`${t('notebook.shelfTitle')} (${summary.counts.shelf || 0})`}
+                className={`rounded-xl h-20 border px-4 flex items-center gap-3 text-left ${activeTab === 'shelf' ? 'border-transparent' : 'border-gray-200'}`}
+                style={activeTab === 'shelf' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
               >
-                <div className="text-2xl font-semibold text-gray-900">{summary.counts.shelf || 0}</div>
-                <div className="text-sm text-gray-600">{t('notebook.shelfTitle')}</div>
+                <span className="relative inline-flex items-center justify-center">
+                  <BeerBottle
+                    size={28}
+                    weight="duotone"
+                    aria-hidden
+                    style={{ color: activeTab === 'shelf' ? 'var(--color-primary)' : 'var(--color-primary)', opacity: activeTab === 'shelf' ? 1 : 0.68 }}
+                  />
+                  <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold leading-[18px] text-center">
+                    {summary.counts.shelf || 0}
+                  </span>
+                </span>
+                <span className={`text-sm font-medium ${activeTab === 'shelf' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
+                  {t('notebook.shelfTitle')}
+                </span>
               </button>
             )}
           </div>
@@ -705,6 +832,60 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                               <div>
                                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-xs font-semibold">
                                   ★ {note.rating}/10
+                                </span>
+                              </div>
+                            )}
+                            {summary.isOwner && note.location && (
+                              <div className="text-xs text-gray-600 flex items-center gap-1.5">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  className="h-5 w-5 text-gray-500"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M12 21s-7-4.35-7-10a7 7 0 1 1 14 0c0 5.65-7 10-7 10z" />
+                                  <circle cx="12" cy="11" r="2.5" />
+                                </svg>
+                                <span className="truncate">{note.location}</span>
+                                <span className="text-gray-400">·</span>
+                                <span className="text-gray-500 inline-flex items-center gap-1">
+                                  <span>{t('tasting.locationVisibilityShort')}:</span>
+                                  {note.locationVisibility === 'public_precise' ? (
+                                    <svg
+                                      viewBox="0 0 24 24"
+                                      className="h-5 w-5 text-gray-500"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      aria-label={t('tasting.locationModePrecise')}
+                                    >
+                                      <circle cx="12" cy="12" r="8" />
+                                      <path d="M12 4v4M12 16v4M4 12h4M16 12h4" />
+                                      <circle cx="12" cy="12" r="1.5" />
+                                    </svg>
+                                  ) : (
+                                    <svg
+                                      viewBox="0 0 24 24"
+                                      className="h-5 w-5 text-gray-500"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      aria-label={t('tasting.locationModeCity')}
+                                    >
+                                      <path d="M3 21h18" />
+                                      <path d="M5 21V10h5v11" />
+                                      <path d="M10 21V6h4v15" />
+                                      <path d="M14 21V12h5v9" />
+                                      <path d="M7 13h.01M7 16h.01M12 9h.01M12 12h.01M12 15h.01M16 15h.01M16 18h.01" />
+                                    </svg>
+                                  )}
                                 </span>
                               </div>
                             )}
@@ -927,8 +1108,15 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                             {producer && <div className="text-sm text-gray-600 line-clamp-1">{producer}</div>}
                             {typeLine && <div className="text-xs text-gray-500">{typeLine}</div>}
                             <div>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-xs font-semibold">
-                                {statusLabel(item.status)}
+                              <span
+                                className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                  summary?.user?.shelfVisibility === 'public'
+                                    ? 'bg-gray-100 text-gray-700 border border-gray-200'
+                                    : 'bg-amber-50 text-amber-700'
+                                }`}
+                              >
+                                {statusIcon(item.status)}
+                                <span>{statusLabel(item.status)}</span>
                               </span>
                             </div>
                           </div>
@@ -1000,13 +1188,15 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                             {viewer?.id !== user.id && (
                               <button
                                 onClick={() => toggleFollow(user.id)}
-                                className="px-4 py-2 rounded-lg text-sm transition"
+                                className="h-10 w-10 inline-flex items-center justify-center rounded-full transition"
+                                aria-label={user.isFollowing ? t('notebook.followActionFollowing') : t('notebook.followActionFollow')}
+                                title={user.isFollowing ? t('notebook.followActionFollowing') : t('notebook.followActionFollow')}
                                 style={{
                                   backgroundColor: user.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
                                   color: user.isFollowing ? 'var(--color-primary)' : '#fff',
                                 }}
                               >
-                                {user.isFollowing ? t('notebook.following') : t('notebook.follow')}
+                                <FollowActionIcon following={user.isFollowing} />
                               </button>
                             )}
                           </div>
@@ -1078,13 +1268,15 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                             {viewer?.id !== user.id && (
                               <button
                                 onClick={() => toggleFollow(user.id)}
-                                className="px-4 py-2 rounded-lg text-sm transition"
+                                className="h-10 w-10 inline-flex items-center justify-center rounded-full transition"
+                                aria-label={user.isFollowing ? t('notebook.followActionFollowing') : t('notebook.followActionFollow')}
+                                title={user.isFollowing ? t('notebook.followActionFollowing') : t('notebook.followActionFollow')}
                                 style={{
                                   backgroundColor: user.isFollowing ? 'var(--color-primary-light)' : 'var(--color-primary)',
                                   color: user.isFollowing ? 'var(--color-primary)' : '#fff',
                                 }}
                               >
-                                {user.isFollowing ? t('notebook.following') : t('notebook.follow')}
+                                <FollowActionIcon following={user.isFollowing} />
                               </button>
                             )}
                           </div>
