@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { eq, inArray } from 'drizzle-orm'
 import { authOptions } from '@/lib/auth'
 import { activities, db, follows, tastingNotes, tastingNoteTags, userShelf, users } from '@/lib/db'
-import * as Sentry from '@sentry/nextjs'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 function csvEscape(value: unknown) {
   if (value === null || value === undefined) return ''
@@ -208,7 +208,7 @@ export async function GET() {
     (myActivities as { id: string; type: string; targetId: string; createdAt: Date | string | number | null }[]).map((row: { id: string; type: string; targetId: string; createdAt: Date | string | number | null }) => ({ id: row.id, type: row.type, target_id: row.targetId, created_at: row.createdAt }))
   )
 
-  Sentry.captureMessage('account_data_exported', {
+  await captureBusinessEvent('account_data_exported', {
     level: 'info',
     tags: { userId },
     extra: {

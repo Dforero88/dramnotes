@@ -1,6 +1,6 @@
 import { db, tastingNotes, tastingNoteTags, userAromaProfile, userTagStats, isMysql } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
-import * as Sentry from '@sentry/nextjs'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 export async function recomputeUserAroma(userId: string) {
   const stats = await db
@@ -64,7 +64,7 @@ export async function recomputeUserAroma(userId: string) {
     lastUpdated: new Date(),
   } as any)
 
-  Sentry.captureMessage('aroma_user_recomputed', {
+  await captureBusinessEvent('aroma_user_recomputed', {
     level: 'info',
     tags: { userId },
   })

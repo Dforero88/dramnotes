@@ -5,7 +5,7 @@ import { generateId } from '@/lib/db'
 import path from 'path'
 import fs from 'fs/promises'
 import { validateWhiskyName, validateDisplayName, sanitizeText } from '@/lib/moderation'
-import * as Sentry from '@sentry/nextjs'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { normalizeProducerName } from '@/lib/producer-name'
 import { resolveBottlerName, resolveDistillerName } from '@/lib/producer-resolver'
@@ -364,7 +364,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    Sentry.captureMessage('whisky_created', {
+    await captureBusinessEvent('whisky_created', {
       level: 'info',
       tags: { whiskyId: id },
     })

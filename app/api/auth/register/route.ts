@@ -8,7 +8,7 @@ import { generateConfirmationToken } from '@/lib/auth/tokens'
 import { sendEmail, getConfirmationEmailTemplate } from '@/lib/email/sender'
 import { generateId } from '@/lib/db'
 import { validatePseudo, sanitizeText } from '@/lib/moderation'
-import * as Sentry from '@sentry/nextjs'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     })
 
-    Sentry.captureMessage('account_created', {
+    await captureBusinessEvent('account_created', {
       level: 'info',
       tags: { userId },
     })

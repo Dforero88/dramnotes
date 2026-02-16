@@ -16,7 +16,7 @@ import {
   whiskies,
 } from '@/lib/db'
 import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
-import * as Sentry from '@sentry/nextjs'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   await db.delete(userTagStats).where(eq(userTagStats.userId, userId))
   await db.delete(userAromaProfile).where(eq(userAromaProfile.userId, userId))
 
-  Sentry.captureMessage('account_deleted', {
+  await captureBusinessEvent('account_deleted', {
     level: 'warning',
     tags: { userId },
     extra: {

@@ -7,7 +7,7 @@ import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { recomputeUserAroma } from '@/lib/user-aroma'
 import { validateLocation, validateOverall, validateDisplayName } from '@/lib/moderation'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
-import * as Sentry from '@sentry/nextjs'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 type TagsPayload = {
   nose?: Array<string | { id: string }>
@@ -212,7 +212,7 @@ export async function PATCH(
   }
 
   if (current.status !== 'published' && nextStatus === 'published') {
-    Sentry.captureMessage('tasting_note_published', {
+    await captureBusinessEvent('tasting_note_published', {
       level: 'info',
       tags: { userId, whiskyId: current.whiskyId },
     })
@@ -275,7 +275,7 @@ export async function DELETE(
     await recomputeWhiskyAnalytics(existing[0].whiskyId)
     await recomputeUserAroma(userId)
   } else {
-    Sentry.captureMessage('tasting_note_draft_deleted', {
+    await captureBusinessEvent('tasting_note_draft_deleted', {
       level: 'info',
       tags: { userId, whiskyId: existing[0].whiskyId },
     })

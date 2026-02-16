@@ -7,7 +7,7 @@ import { generateId } from '@/lib/db'
 import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { recomputeUserAroma } from '@/lib/user-aroma'
 import { validateLocation, validateOverall, validateDisplayName } from '@/lib/moderation'
-import * as Sentry from '@sentry/nextjs'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
 type TagsPayload = {
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
     await recomputeWhiskyAnalytics(payload.whiskyId)
     await recomputeUserAroma(userId)
 
-    Sentry.captureMessage('tasting_note_published', {
+    await captureBusinessEvent('tasting_note_published', {
       level: 'info',
       tags: { userId, whiskyId: payload.whiskyId },
     })
@@ -280,12 +280,12 @@ export async function POST(request: NextRequest) {
     await recomputeWhiskyAnalytics(payload.whiskyId)
     await recomputeUserAroma(userId)
 
-    Sentry.captureMessage('tasting_note_created', {
+    await captureBusinessEvent('tasting_note_created', {
       level: 'info',
       tags: { userId, whiskyId: payload.whiskyId },
     })
   } else {
-    Sentry.captureMessage('tasting_note_draft_created', {
+    await captureBusinessEvent('tasting_note_draft_created', {
       level: 'info',
       tags: { userId, whiskyId: payload.whiskyId },
     })
