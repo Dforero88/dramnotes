@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
+import { trackEvent } from '@/lib/analytics-client'
 
 export default function LoginPage() {
   const params = useParams()
@@ -41,6 +42,11 @@ export default function LoginPage() {
           setError(t('auth.invalidCredentials'))
         }
       } else {
+        trackEvent('login_completed', {
+          source_context: 'login_page',
+          method: 'credentials',
+          locale,
+        })
         const redirectUrl = result?.url?.includes('callbackUrl=') 
           ? result.url 
           : `/${locale}/catalogue`

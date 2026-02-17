@@ -135,8 +135,12 @@ But:
 | Event | Déclenchement | Paramètres |
 |---|---|---|
 | `account_created` | inscription réussie | `user_id` (si disponible) |
+| `login_completed` | connexion réussie | `source_context`, `method`, `locale` |
+| `onboarding_started` | début onboarding post-inscription | `user_id` (si dispo), `entry_point`, `source_context`, `locale` |
+| `onboarding_completed` | 1re valeur atteinte (1re note publiée) | `user_id`, `completion_type`, `source_context`, `locale` |
 | `whisky_created` | création whisky réussie | `whisky_id` |
-| `tasting_note_created` | création note réussie | `whisky_id` |
+| `tasting_note_published` | publication note réussie | `whisky_id`, `published_from`, `source_context` |
+| `search_performed` | recherche lancée (catalogue/explorer) | `query_length`, `filters_count`, `filter_types`, `source_context`, `search_view`, `results_count` |
 | `follow_user` | follow réussi | `target_user_id` |
 | `unfollow_user` | unfollow réussi | `target_user_id` |
 | `notebook_section_view` | changement section notebook (hors `notes`) | `section`, `viewer_is_owner`, `profile_pseudo` |

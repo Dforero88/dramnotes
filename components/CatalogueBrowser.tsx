@@ -6,6 +6,7 @@ import Link from 'next/link'
 import TagInput from '@/components/TagInput'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 import { buildBottlerPath, buildDistillerPath } from '@/lib/producer-url'
+import { trackEvent } from '@/lib/analytics-client'
 
 type WhiskyCard = {
   id: string
@@ -227,6 +228,44 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   }, [draftFilters.distiller, draftFilters.bottler, view])
 
   const applyFilters = () => {
+    const filterEntries: Array<[string, string]> =
+      view === 'whiskies'
+        ? [
+            ['name', draftFilters.name],
+            ['countryId', draftFilters.countryId],
+            ['distiller', draftFilters.distiller],
+            ['bottler', draftFilters.bottler],
+            ['barcode', draftFilters.barcode],
+            ['distilledYear', draftFilters.distilledYear],
+            ['bottledYear', draftFilters.bottledYear],
+            ['age', draftFilters.age],
+            ['alcoholVolume', draftFilters.alcoholVolume],
+            ['ratingMin', draftFilters.ratingMin],
+            ['ratingMax', draftFilters.ratingMax],
+            ['region', draftFilters.region],
+            ['type', draftFilters.type],
+            ['bottlingType', draftFilters.bottlingType],
+            ['noseTags', noseTags.map((tag) => tag.id).join(',')],
+            ['palateTags', palateTags.map((tag) => tag.id).join(',')],
+            ['finishTags', finishTags.map((tag) => tag.id).join(',')],
+          ]
+        : [
+            ['name', draftFilters.name],
+            ['countryId', draftFilters.countryId],
+            ['region', draftFilters.region],
+          ]
+    const activeFilterTypes = filterEntries
+      .filter(([, value]) => String(value || '').trim() !== '')
+      .map(([key]) => key)
+
+    trackEvent('search_performed', {
+      query_length: draftFilters.name.trim().length,
+      filters_count: activeFilterTypes.length,
+      filter_types: activeFilterTypes.join(','),
+      source_context: 'catalogue',
+      search_view: view,
+    })
+
     setAppliedFilters((prev) => ({
       ...prev,
       ...draftFilters,

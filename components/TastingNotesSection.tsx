@@ -6,7 +6,7 @@ import Link from 'next/link'
 import TagInput from '@/components/TagInput'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Script from 'next/script'
-import { trackEvent } from '@/lib/analytics-client'
+import { trackEvent, trackEventOnce } from '@/lib/analytics-client'
 
 type Note = {
   id: string
@@ -243,7 +243,19 @@ export default function TastingNotesSection({
         }
         if (targetStatus === 'published') {
           if (!isUpdate || result?.publishedFromDraft) {
-            trackEvent('tasting_note_created', { whisky_id: whiskyId })
+            trackEvent('tasting_note_published', {
+              whisky_id: whiskyId,
+              source_context: 'whisky_page',
+              published_from: result?.publishedFromDraft ? 'draft' : 'new',
+            })
+            if (session?.user?.id) {
+              trackEventOnce('onboarding_completed', `onboarding_completed:${session.user.id}`, {
+                user_id: session.user.id,
+                completion_type: 'first_note_published',
+                source_context: 'whisky_page',
+                locale,
+              })
+            }
           }
         }
         return

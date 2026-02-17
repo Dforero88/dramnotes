@@ -94,8 +94,19 @@ export default function RegisterPage() {
       setSuccess(true)
       if (result?.userId) {
         trackEvent('account_created', { user_id: result.userId })
+        trackEvent('onboarding_started', {
+          user_id: result.userId,
+          source_context: 'register_success',
+          locale,
+          entry_point: 'register',
+        })
       } else {
         trackEvent('account_created')
+        trackEvent('onboarding_started', {
+          source_context: 'register_success',
+          locale,
+          entry_point: 'register',
+        })
       }
       
     } catch (err) {

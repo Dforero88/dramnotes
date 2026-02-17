@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useParams } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics-client'
 
 type ExplorerUser = {
@@ -64,6 +64,7 @@ export default function ExplorerPageClient() {
   const [isTop, setIsTop] = useState(false)
   const [loading, setLoading] = useState(false)
   const [followLoadingId, setFollowLoadingId] = useState<string | null>(null)
+  const pendingSearchRef = useRef<{ queryLength: number } | null>(null)
 
   const trimmedQuery = useMemo(() => query.trim(), [query])
 
@@ -81,6 +82,16 @@ export default function ExplorerPageClient() {
         setUsers(json.items || [])
         setTotalPages(json.totalPages || 1)
         setIsTop(Boolean(json.isTop))
+        if (pendingSearchRef.current && page === 1) {
+          trackEvent('search_performed', {
+            query_length: pendingSearchRef.current.queryLength,
+            filters_count: 0,
+            filter_types: '',
+            results_count: Number(json?.total ?? (json?.items || []).length),
+            source_context: 'explorer',
+          })
+          pendingSearchRef.current = null
+        }
       }
       setLoading(false)
     }
@@ -158,6 +169,7 @@ export default function ExplorerPageClient() {
           <button
             type="button"
             onClick={() => {
+              pendingSearchRef.current = { queryLength: trimmedQuery.length }
               setAppliedQuery(trimmedQuery)
               setPage(1)
             }}
