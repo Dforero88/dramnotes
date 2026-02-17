@@ -227,6 +227,9 @@ export default function AdminProducersPageClient() {
                       {(!item.descriptionFr && !item.descriptionEn) ? (
                         <span className="px-2 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-amber-700">{t('adminProducers.missingDescriptionBadge')}</span>
                       ) : null}
+                      {!item.countryId ? (
+                        <span className="px-2 py-0.5 rounded-full border border-sky-300 bg-sky-50 text-sky-700">{t('adminProducers.missingCountryBadge')}</span>
+                      ) : null}
                       {!item.imageUrl ? (
                         <span className="px-2 py-0.5 rounded-full border border-rose-300 bg-rose-50 text-rose-700">{t('adminProducers.missingImageBadge')}</span>
                       ) : null}
@@ -265,6 +268,7 @@ export default function AdminProducersPageClient() {
                   <textarea value={form.descriptionEn} onChange={(e) => setForm((p) => ({ ...p, descriptionEn: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2 min-h-[110px]" placeholder={t('adminProducers.descriptionEn')} />
                   <div className="space-y-2">
                     <input
+                      key={`producer-image-${kind}-${selected.id}`}
                       type="file"
                       accept="image/*"
                       onChange={(e) => {
