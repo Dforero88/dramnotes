@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import TagInput from '@/components/TagInput'
@@ -118,6 +118,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
     distiller: false,
     bottler: false,
   })
+  const prevViewRef = useRef<CatalogueView | null>(null)
 
   const pageSize = 12
 
@@ -307,6 +308,17 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
       if (nextSort === prev.sort) return prev
       return { ...prev, sort: nextSort }
     })
+  }, [view])
+
+  useEffect(() => {
+    const previousView = prevViewRef.current
+    trackEvent('catalogue_view_selected', {
+      source_context: 'catalogue',
+      selected_view: view,
+      previous_view: previousView || '',
+      trigger: previousView ? 'toggle_click' : 'page_load',
+    })
+    prevViewRef.current = view
   }, [view])
 
   const renderFilters = (isMobile = false) => (

@@ -141,6 +141,7 @@ But:
 | `whisky_created` | création whisky réussie | `whisky_id` |
 | `tasting_note_published` | publication note réussie | `whisky_id`, `published_from`, `source_context` |
 | `search_performed` | recherche lancée (catalogue/explorer) | `query_length`, `filters_count`, `filter_types`, `source_context`, `search_view`, `results_count` |
+| `catalogue_view_selected` | affichage/changement de vue catalogue | `source_context`, `selected_view`, `previous_view`, `trigger` |
 | `follow_user` | follow réussi | `target_user_id` |
 | `unfollow_user` | unfollow réussi | `target_user_id` |
 | `notebook_section_view` | changement section notebook (hors `notes`) | `section`, `viewer_is_owner`, `profile_pseudo` |
