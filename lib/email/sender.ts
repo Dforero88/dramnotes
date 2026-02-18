@@ -42,13 +42,19 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
     await verifySmtpOnce()
     const from = process.env.SMTP_FROM || 'no-reply@dramnotes.com'
-    
+    const text = options.text || options.html
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
     const info = await transporter.sendMail({
       from: `"DramNotes" <${from}>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
-      text: options.text || options.html.replace(/<[^>]*>/g, ''),
+      text,
     })
     
     console.log(`📧 Email envoyé à ${options.to}: ${info.messageId}`)
@@ -76,7 +82,7 @@ function buildEmailLayout(content: string, locale: EmailLocale): string {
     .wrapper { width:100%; padding:24px 12px; box-sizing:border-box; }
     .card { max-width:620px; margin:0 auto; background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden; }
     .header { background:#2A0F14; color:#ffffff; padding:24px; text-align:center; }
-    .brand { margin:0; font-size:28px; font-weight:700; letter-spacing:0.4px; }
+    .brand { margin:0; font-size:28px; font-weight:700; letter-spacing:0.4px; font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif; }
     .subtitle { margin:6px 0 0 0; font-size:14px; color:#f5e9eb; }
     .content { padding:28px 24px; line-height:1.55; }
     .buttonWrap { text-align:center; margin:26px 0; }
