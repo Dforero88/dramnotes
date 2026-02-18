@@ -5,9 +5,11 @@ import { authOptions } from '@/lib/auth'
 import { db, bottlers, distillers, whiskies } from '@/lib/db'
 import { isAdminEmail } from '@/lib/admin'
 import { normalizeProducerName } from '@/lib/producer-name'
+import { slugifyProducerName } from '@/lib/producer-url'
 import { validateDisplayName, validateWhiskyName } from '@/lib/moderation'
 import { normalizeWhiskyName } from '@/lib/whisky-name'
 import { slugifyWhiskyName } from '@/lib/whisky-url'
+import { isSlugReserved, rememberOldSlug } from '@/lib/slug-redirects'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +29,14 @@ export async function PATCH(
     const body = await request.json()
 
     if (kind === 'whisky') {
+      const existingRows = await db
+        .select({ id: whiskies.id, slug: whiskies.slug })
+        .from(whiskies)
+        .where(eq(whiskies.id, id))
+        .limit(1)
+      const existing = existingRows?.[0]
+      if (!existing) return NextResponse.json({ error: 'Whisky not found' }, { status: 404 })
+
       const nameRaw = typeof body?.name === 'string' ? body.name.trim() : ''
       if (!nameRaw) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
       const normalizedName = normalizeWhiskyName(nameRaw)
@@ -36,13 +46,7 @@ export async function PATCH(
       const baseSlug = slugifyWhiskyName(nameCheck.value)
       let nextSlug = baseSlug
       let counter = 2
-      while (true) {
-        const duplicate = await db
-          .select({ id: whiskies.id })
-          .from(whiskies)
-          .where(and(eq(whiskies.slug, nextSlug), sql`${whiskies.id} <> ${id}`))
-          .limit(1)
-        if (!duplicate.length) break
+      while (await isSlugReserved('whisky', nextSlug, id)) {
         nextSlug = `${baseSlug}-${counter}`
         counter += 1
       }
@@ -75,6 +79,10 @@ export async function PATCH(
         })
         .where(eq(whiskies.id, id))
 
+      if (existing.slug && existing.slug !== nextSlug) {
+        await rememberOldSlug('whisky', id, existing.slug)
+      }
+
       return NextResponse.json({ success: true, slug: nextSlug })
     }
 
@@ -89,6 +97,14 @@ export async function PATCH(
     const countryId = typeof body?.countryId === 'string' && body.countryId.trim() ? body.countryId.trim() : null
 
     if (kind === 'distiller') {
+      const existingRows = await db
+        .select({ id: distillers.id, slug: distillers.slug })
+        .from(distillers)
+        .where(eq(distillers.id, id))
+        .limit(1)
+      const existing = existingRows?.[0]
+      if (!existing) return NextResponse.json({ error: 'Distiller not found' }, { status: 404 })
+
       const duplicate = await db
         .select({ id: distillers.id })
         .from(distillers)
@@ -98,18 +114,39 @@ export async function PATCH(
         return NextResponse.json({ error: 'A distiller with this name already exists' }, { status: 409 })
       }
 
+      const baseSlug = slugifyProducerName(nameCheck.value)
+      let nextSlug = baseSlug
+      let counter = 2
+      while (await isSlugReserved('distiller', nextSlug, id)) {
+        nextSlug = `${baseSlug}-${counter}`
+        counter += 1
+      }
+
       await db
         .update(distillers)
         .set({
           name: nameCheck.value,
+          slug: nextSlug,
           countryId,
           region,
           descriptionFr,
           descriptionEn,
         })
         .where(eq(distillers.id, id))
+
+      if (existing.slug && existing.slug !== nextSlug) {
+        await rememberOldSlug('distiller', id, existing.slug)
+      }
       return NextResponse.json({ success: true })
     }
+
+    const existingRows = await db
+      .select({ id: bottlers.id, slug: bottlers.slug })
+      .from(bottlers)
+      .where(eq(bottlers.id, id))
+      .limit(1)
+    const existing = existingRows?.[0]
+    if (!existing) return NextResponse.json({ error: 'Bottler not found' }, { status: 404 })
 
     const duplicate = await db
       .select({ id: bottlers.id })
@@ -120,16 +157,29 @@ export async function PATCH(
       return NextResponse.json({ error: 'A bottler with this name already exists' }, { status: 409 })
     }
 
+    const baseSlug = slugifyProducerName(nameCheck.value)
+    let nextSlug = baseSlug
+    let counter = 2
+    while (await isSlugReserved('bottler', nextSlug, id)) {
+      nextSlug = `${baseSlug}-${counter}`
+      counter += 1
+    }
+
     await db
       .update(bottlers)
       .set({
         name: nameCheck.value,
+        slug: nextSlug,
         countryId,
         region,
         descriptionFr,
         descriptionEn,
       })
       .where(eq(bottlers.id, id))
+
+    if (existing.slug && existing.slug !== nextSlug) {
+      await rememberOldSlug('bottler', id, existing.slug)
+    }
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('❌ admin producers patch error:', error)

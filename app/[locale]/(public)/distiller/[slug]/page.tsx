@@ -4,7 +4,10 @@ import { eq, or, sql } from 'drizzle-orm'
 import { db, bottlers, countries, distillers, whiskies, whiskyAnalyticsCache } from '@/lib/db'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import { buildWhiskyPath } from '@/lib/whisky-url'
+import { buildDistillerPath } from '@/lib/producer-url'
 import ProducerSortSelect from '@/components/ProducerSortSelect'
+import { resolveCurrentSlugFromLegacy } from '@/lib/slug-redirects'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -70,7 +73,15 @@ export default async function DistillerPage({ params, searchParams }: Props) {
     .limit(1)
 
   const header = headerRows?.[0]
+  const queryParts: string[] = []
+  if (pageRaw) queryParts.push(`page=${encodeURIComponent(pageRaw)}`)
+  if (sortRaw) queryParts.push(`sort=${encodeURIComponent(sortRaw)}`)
+  const querySuffix = queryParts.length ? `?${queryParts.join('&')}` : ''
   if (!header) {
+    const legacy = await resolveCurrentSlugFromLegacy('distiller', slug)
+    if (legacy?.slug) {
+      redirect(`${buildDistillerPath(locale, legacy.slug)}${querySuffix}`)
+    }
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 py-16 text-center">
@@ -85,6 +96,10 @@ export default async function DistillerPage({ params, searchParams }: Props) {
         </div>
       </div>
     )
+  }
+
+  if (header.slug && slug !== header.slug) {
+    redirect(`${buildDistillerPath(locale, header.slug)}${querySuffix}`)
   }
 
   const countRows = await db
@@ -282,7 +297,7 @@ export default async function DistillerPage({ params, searchParams }: Props) {
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2">
             <Link
-              href={`/${locale}/distiller/${slug}?page=${Math.max(1, page - 1)}&sort=${encodeURIComponent(sort)}`}
+              href={`/${locale}/distiller/${header.slug || slug}?page=${Math.max(1, page - 1)}&sort=${encodeURIComponent(sort)}`}
               className={`px-3 py-2 rounded-lg border ${page === 1 ? 'pointer-events-none opacity-50' : ''}`}
               style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
             >
@@ -292,7 +307,7 @@ export default async function DistillerPage({ params, searchParams }: Props) {
               {t('catalogue.page')} {page} / {totalPages}
             </span>
             <Link
-              href={`/${locale}/distiller/${slug}?page=${Math.min(totalPages, page + 1)}&sort=${encodeURIComponent(sort)}`}
+              href={`/${locale}/distiller/${header.slug || slug}?page=${Math.min(totalPages, page + 1)}&sort=${encodeURIComponent(sort)}`}
               className={`px-3 py-2 rounded-lg border ${page >= totalPages ? 'pointer-events-none opacity-50' : ''}`}
               style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
             >

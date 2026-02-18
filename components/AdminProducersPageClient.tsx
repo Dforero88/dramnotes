@@ -389,6 +389,9 @@ export default function AdminProducersPageClient() {
                     <>
                       <textarea value={form.descriptionFr} onChange={(e) => setForm((p) => ({ ...p, descriptionFr: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2 min-h-[110px]" placeholder={t('adminProducers.descriptionFr')} />
                       <textarea value={form.descriptionEn} onChange={(e) => setForm((p) => ({ ...p, descriptionEn: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2 min-h-[110px]" placeholder={t('adminProducers.descriptionEn')} />
+                      <div className="text-xs text-gray-500">
+                        {t('adminProducers.currentSlug')}: {selected.slug || '-'}
+                      </div>
                     </>
                   )}
                   <div className="space-y-2">

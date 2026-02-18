@@ -7,6 +7,7 @@ type DbSchema = {
   distillers: any
   bottlers: any
   whiskies: any
+  slugRedirects: any
   tastingNotes: any
   tags: any
   tagLang: any
@@ -111,6 +112,14 @@ function createSqliteSchema(): DbSchema {
     updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(() => new Date()),
   })
 
+  const slugRedirects = sqliteTable('slug_redirects', {
+    id: text('id').primaryKey(),
+    entityType: text('entity_type').notNull(),
+    entityId: text('entity_id').notNull(),
+    oldSlug: text('old_slug').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+  })
+
   const tastingNotes = sqliteTable('tasting_notes', {
     id: text('id').primaryKey(),
     whiskyId: text('whisky_id').notNull(),
@@ -213,6 +222,7 @@ function createSqliteSchema(): DbSchema {
     distillers,
     bottlers,
     whiskies,
+    slugRedirects,
     tastingNotes,
     tags,
     tagLang,
@@ -304,6 +314,14 @@ function createMysqlSchema(): DbSchema {
     bottleImageUrl: text('bottle_image_url'),
     createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
     updatedAt: datetime('updated_at', { mode: 'date' }).$onUpdate(() => new Date()),
+  })
+
+  const slugRedirects = mysqlTable('slug_redirects', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    entityType: varchar('entity_type', { length: 20 }).notNull(),
+    entityId: varchar('entity_id', { length: 36 }).notNull(),
+    oldSlug: varchar('old_slug', { length: 160 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
   })
 
   const tastingNotes = mysqlTable('tasting_notes', {
@@ -408,6 +426,7 @@ function createMysqlSchema(): DbSchema {
     distillers,
     bottlers,
     whiskies,
+    slugRedirects,
     tastingNotes,
     tags,
     tagLang,
@@ -430,6 +449,7 @@ export const {
   distillers,
   bottlers,
   whiskies,
+  slugRedirects,
   tastingNotes,
   tags,
   tagLang,
@@ -571,6 +591,22 @@ function initSqlite(sqlite: any) {
   }
   try {
     sqlite.prepare('CREATE UNIQUE INDEX IF NOT EXISTS uniq_whiskies_slug ON whiskies(slug)').run()
+  } catch (_e) {
+    // ignore
+  }
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS slug_redirects (
+      id TEXT PRIMARY KEY,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      old_slug TEXT NOT NULL,
+      created_at INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+  `).run()
+  try {
+    sqlite.prepare('CREATE UNIQUE INDEX IF NOT EXISTS uniq_slug_redirects_type_slug ON slug_redirects(entity_type, old_slug)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_slug_redirects_entity ON slug_redirects(entity_type, entity_id)').run()
   } catch (_e) {
     // ignore
   }

@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { buildWhiskyPath, extractWhiskyUuidFromParam } from '@/lib/whisky-url'
+import { resolveCurrentSlugFromLegacy } from '@/lib/slug-redirects'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -144,6 +145,12 @@ export default async function WhiskyDetailPage({
   const whisky = result?.[0]
 
   if (!whisky) {
+    if (!maybeUuid) {
+      const legacy = await resolveCurrentSlugFromLegacy('whisky', id)
+      if (legacy?.slug) {
+        redirect(buildWhiskyPath(locale, legacy.entityId, undefined, legacy.slug))
+      }
+    }
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 py-16 text-center">
