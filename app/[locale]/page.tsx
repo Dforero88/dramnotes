@@ -293,13 +293,13 @@ export default async function HomePage({
               slides={[
                 {
                   href: `/${locale}/catalogue`,
-                  image: '/images/hero/home-hero-catalogue.png',
+                  image: '/images/hero/home-hero-catalogue.webp',
                   title: t('home.actionCatalogueTitle'),
                   description: t('home.actionCatalogueDesc'),
                 },
                 {
                   href: `/${locale}/explorer`,
-                  image: '/images/hero/home-hero-explorer.png',
+                  image: '/images/hero/home-hero-explorer.webp',
                   title: t('home.actionExploreTitle'),
                   description: t('home.actionExploreDesc'),
                 },
@@ -312,7 +312,7 @@ export default async function HomePage({
               className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-900 p-5 min-h-[170px] flex items-end shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
               <img
-                src="/images/hero/home-hero-catalogue.png"
+                src="/images/hero/home-hero-catalogue.webp"
                 alt=""
                 aria-hidden="true"
                 className="absolute inset-0 h-full w-full object-cover opacity-80"
@@ -336,7 +336,7 @@ export default async function HomePage({
               className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-900 p-5 min-h-[170px] flex items-end shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
               <img
-                src="/images/hero/home-hero-explorer.png"
+                src="/images/hero/home-hero-explorer.webp"
                 alt=""
                 aria-hidden="true"
                 className="absolute inset-0 h-full w-full object-cover opacity-80"
