@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { and, eq, sql } from 'drizzle-orm'
 import { authOptions } from '@/lib/auth'
-import { db, bottlers, distillers } from '@/lib/db'
+import { db, bottlers, distillers, whiskies } from '@/lib/db'
 import { isAdminEmail } from '@/lib/admin'
 import { normalizeProducerName } from '@/lib/producer-name'
-import { validateDisplayName } from '@/lib/moderation'
+import { validateDisplayName, validateWhiskyName } from '@/lib/moderation'
+import { normalizeWhiskyName } from '@/lib/whisky-name'
+import { slugifyWhiskyName } from '@/lib/whisky-url'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,8 +22,61 @@ export async function PATCH(
 
   try {
     const { id } = await context.params
-    const kind = request.nextUrl.searchParams.get('kind') === 'bottler' ? 'bottler' : 'distiller'
+    const kindParam = (request.nextUrl.searchParams.get('kind') || 'distiller').toLowerCase()
+    const kind = kindParam === 'bottler' ? 'bottler' : kindParam === 'whisky' ? 'whisky' : 'distiller'
     const body = await request.json()
+
+    if (kind === 'whisky') {
+      const nameRaw = typeof body?.name === 'string' ? body.name.trim() : ''
+      if (!nameRaw) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+      const normalizedName = normalizeWhiskyName(nameRaw)
+      const nameCheck = await validateWhiskyName(normalizedName)
+      if (!nameCheck.ok) return NextResponse.json({ error: nameCheck.message || 'Invalid name' }, { status: 400 })
+
+      const baseSlug = slugifyWhiskyName(nameCheck.value)
+      let nextSlug = baseSlug
+      let counter = 2
+      while (true) {
+        const duplicate = await db
+          .select({ id: whiskies.id })
+          .from(whiskies)
+          .where(and(eq(whiskies.slug, nextSlug), sql`${whiskies.id} <> ${id}`))
+          .limit(1)
+        if (!duplicate.length) break
+        nextSlug = `${baseSlug}-${counter}`
+        counter += 1
+      }
+
+      const barcode = typeof body?.barcode === 'string' && body.barcode.trim() ? body.barcode.trim() : null
+      const bottlingType = body?.bottlingType === 'IB' ? 'IB' : 'DB'
+      const age = Number.isFinite(Number(body?.age)) ? Number(body.age) : null
+      const distilledYear = Number.isFinite(Number(body?.distilledYear)) ? Number(body.distilledYear) : null
+      const bottledYear = Number.isFinite(Number(body?.bottledYear)) ? Number(body.bottledYear) : null
+      const alcoholVolume = Number.isFinite(Number(body?.alcoholVolume)) ? Number(body.alcoholVolume) : null
+      const countryId = typeof body?.countryId === 'string' && body.countryId.trim() ? body.countryId.trim() : null
+      const region = typeof body?.region === 'string' && body.region.trim() ? body.region.trim() : null
+      const type = typeof body?.type === 'string' && body.type.trim() ? body.type.trim() : null
+
+      await db
+        .update(whiskies)
+        .set({
+          name: nameCheck.value,
+          slug: nextSlug,
+          barcode,
+          barcodeType: barcode ? 'EAN-13' : null,
+          age,
+          distilledYear,
+          bottledYear,
+          alcoholVolume,
+          bottlingType,
+          countryId,
+          region,
+          type,
+        })
+        .where(eq(whiskies.id, id))
+
+      return NextResponse.json({ success: true, slug: nextSlug })
+    }
 
     const rawName = typeof body?.name === 'string' ? normalizeProducerName(body.name) : ''
     if (!rawName) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -81,4 +136,3 @@ export async function PATCH(
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
-

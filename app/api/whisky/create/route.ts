@@ -11,6 +11,7 @@ import { normalizeProducerName } from '@/lib/producer-name'
 import { resolveBottlerName, resolveDistillerName } from '@/lib/producer-resolver'
 import { slugifyProducerName } from '@/lib/producer-url'
 import { slugifyWhiskyName } from '@/lib/whisky-url'
+import { normalizeWhiskyName } from '@/lib/whisky-name'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -103,7 +104,12 @@ export async function POST(request: NextRequest) {
     if (!nameCheck.ok) {
       return apiError('NAME_INVALID', nameCheck.message || 'Nom invalide', 400)
     }
-    const name = nameCheck.value
+    const normalizedName = normalizeWhiskyName(nameCheck.value)
+    const normalizedNameCheck = await validateWhiskyName(normalizedName)
+    if (!normalizedNameCheck.ok) {
+      return apiError('NAME_INVALID', normalizedNameCheck.message || 'Nom invalide', 400)
+    }
+    const name = normalizedNameCheck.value
     const bottlingType = String(data?.bottling_type || '').trim()
     if (!bottlingType) {
       return apiError('BOTTLING_TYPE_REQUIRED', 'Type d’embouteillage requis', 400)

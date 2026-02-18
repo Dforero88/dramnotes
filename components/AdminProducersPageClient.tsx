@@ -17,6 +17,18 @@ type ProducerItem = {
   countryName?: string | null
   region?: string | null
   whiskyCount?: number
+  bottleImageUrl?: string | null
+  barcode?: string | null
+  age?: number | null
+  distilledYear?: number | null
+  bottledYear?: number | null
+  alcoholVolume?: number | null
+  bottlingType?: string | null
+  type?: string | null
+  missingEan13?: boolean
+  ageNotNormalized?: boolean
+  missingImage?: boolean
+  createdAt?: string | null
 }
 
 type Country = { id: string; name: string; nameFr?: string | null; displayName?: string | null }
@@ -25,11 +37,29 @@ export default function AdminProducersPageClient() {
   const params = useParams()
   const locale = params.locale as Locale
   const t = getTranslations(locale)
+  const whiskyTypeOptions = [
+    'American whiskey',
+    'Blend',
+    'Blended Grain',
+    'Blended Malt',
+    'Bourbon',
+    'Canadian Whisky',
+    'Corn',
+    'Rye',
+    'Single Grain',
+    'Single Malt',
+    'Single Pot Still',
+    'Spirit',
+    'Tennesse',
+    'Wheat',
+  ]
 
-  const [kind, setKind] = useState<ProducerKind>('distiller')
+  const [kind, setKind] = useState<ProducerKind | 'whisky'>('distiller')
   const [q, setQ] = useState('')
   const [missingDescription, setMissingDescription] = useState(false)
   const [missingImage, setMissingImage] = useState(false)
+  const [missingEan13, setMissingEan13] = useState(false)
+  const [ageNotNormalized, setAgeNotNormalized] = useState(false)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [items, setItems] = useState<ProducerItem[]>([])
@@ -49,6 +79,13 @@ export default function AdminProducersPageClient() {
     region: '',
     descriptionFr: '',
     descriptionEn: '',
+    barcode: '',
+    age: '',
+    distilledYear: '',
+    bottledYear: '',
+    alcoholVolume: '',
+    bottlingType: 'DB',
+    type: '',
   })
 
   useEffect(() => {
@@ -71,6 +108,8 @@ export default function AdminProducersPageClient() {
       if (q.trim()) params.set('q', q.trim())
       if (missingDescription) params.set('missingDescription', '1')
       if (missingImage) params.set('missingImage', '1')
+      if (missingEan13) params.set('missingEan13', '1')
+      if (ageNotNormalized) params.set('ageNotNormalized', '1')
       const res = await fetch(`/api/admin/producers/list?${params.toString()}`, { cache: 'no-store' })
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Error')
@@ -92,20 +131,27 @@ export default function AdminProducersPageClient() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, page, missingDescription, missingImage])
+  }, [kind, page, missingDescription, missingImage, missingEan13, ageNotNormalized])
 
   useEffect(() => {
     if (!selected) return
     setPendingImageFile(null)
-    setPreviewImageUrl(selected.imageUrl || '')
+    setPreviewImageUrl(kind === 'whisky' ? (selected.bottleImageUrl || selected.imageUrl || '') : (selected.imageUrl || ''))
     setForm({
       name: selected.name || '',
       countryId: selected.countryId || '',
       region: selected.region || '',
       descriptionFr: selected.descriptionFr || '',
       descriptionEn: selected.descriptionEn || '',
+      barcode: selected.barcode || '',
+      age: selected.age == null ? '' : String(selected.age),
+      distilledYear: selected.distilledYear == null ? '' : String(selected.distilledYear),
+      bottledYear: selected.bottledYear == null ? '' : String(selected.bottledYear),
+      alcoholVolume: selected.alcoholVolume == null ? '' : String(selected.alcoholVolume),
+      bottlingType: selected.bottlingType === 'IB' ? 'IB' : 'DB',
+      type: selected.type || '',
     })
-  }, [selected])
+  }, [selected, kind])
 
   const applySearch = () => {
     setPage(1)
@@ -161,18 +207,25 @@ export default function AdminProducersPageClient() {
 
         <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
           <button
-            onClick={() => { setKind('distiller'); setPage(1); setSelectedId(null) }}
+            onClick={() => { setKind('distiller'); setPage(1); setSelectedId(null); setMissingEan13(false); setAgeNotNormalized(false) }}
             className={`px-4 py-2 rounded-full text-sm ${kind === 'distiller' ? 'text-white' : 'text-gray-600'}`}
             style={{ backgroundColor: kind === 'distiller' ? 'var(--color-primary)' : 'transparent' }}
           >
             {t('catalogue.viewDistillers')}
           </button>
           <button
-            onClick={() => { setKind('bottler'); setPage(1); setSelectedId(null) }}
+            onClick={() => { setKind('bottler'); setPage(1); setSelectedId(null); setMissingEan13(false); setAgeNotNormalized(false) }}
             className={`px-4 py-2 rounded-full text-sm ${kind === 'bottler' ? 'text-white' : 'text-gray-600'}`}
             style={{ backgroundColor: kind === 'bottler' ? 'var(--color-primary)' : 'transparent' }}
           >
             {t('catalogue.viewBottlers')}
+          </button>
+          <button
+            onClick={() => { setKind('whisky'); setPage(1); setSelectedId(null); setMissingDescription(false) }}
+            className={`px-4 py-2 rounded-full text-sm ${kind === 'whisky' ? 'text-white' : 'text-gray-600'}`}
+            style={{ backgroundColor: kind === 'whisky' ? 'var(--color-primary)' : 'transparent' }}
+          >
+            {t('catalogue.viewWhiskies')}
           </button>
         </div>
 
@@ -183,14 +236,29 @@ export default function AdminProducersPageClient() {
             className="border border-gray-200 rounded-xl px-3 py-2"
             placeholder={t('adminProducers.searchPlaceholder')}
           />
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={missingDescription} onChange={(e) => setMissingDescription(e.target.checked)} />
-            {t('adminProducers.onlyMissingDescription')}
-          </label>
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={missingImage} onChange={(e) => setMissingImage(e.target.checked)} />
-            {t('adminProducers.onlyMissingImage')}
-          </label>
+          {kind === 'whisky' ? (
+            <>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={missingEan13} onChange={(e) => setMissingEan13(e.target.checked)} />
+                {t('adminProducers.onlyMissingEan13')}
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={ageNotNormalized} onChange={(e) => setAgeNotNormalized(e.target.checked)} />
+                {t('adminProducers.onlyAgeNotNormalized')}
+              </label>
+            </>
+          ) : (
+            <>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={missingDescription} onChange={(e) => setMissingDescription(e.target.checked)} />
+                {t('adminProducers.onlyMissingDescription')}
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={missingImage} onChange={(e) => setMissingImage(e.target.checked)} />
+                {t('adminProducers.onlyMissingImage')}
+              </label>
+            </>
+          )}
           <button
             onClick={applySearch}
             className="px-4 py-2 rounded-xl text-white"
@@ -217,22 +285,48 @@ export default function AdminProducersPageClient() {
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="font-semibold">{item.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {[item.countryName, item.region].filter(Boolean).join(' • ')}
-                        </div>
+                        {kind === 'whisky' ? (
+                          <div className="text-xs text-gray-500">
+                            {[item.countryName, item.region, item.type].filter(Boolean).join(' • ')}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-500">
+                            {[item.countryName, item.region].filter(Boolean).join(' • ')}
+                          </div>
+                        )}
                       </div>
-                      <div className="text-xs text-gray-500">{Number(item.whiskyCount || 0)} {t('catalogue.whiskiesCount')}</div>
+                      {kind === 'whisky' ? (
+                        <div className="text-xs text-gray-500">{item.createdAt ? new Date(item.createdAt).toLocaleDateString(locale) : ''}</div>
+                      ) : (
+                        <div className="text-xs text-gray-500">{Number(item.whiskyCount || 0)} {t('catalogue.whiskiesCount')}</div>
+                      )}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                      {(!item.descriptionFr && !item.descriptionEn) ? (
-                        <span className="px-2 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-amber-700">{t('adminProducers.missingDescriptionBadge')}</span>
-                      ) : null}
-                      {!item.countryId ? (
-                        <span className="px-2 py-0.5 rounded-full border border-sky-300 bg-sky-50 text-sky-700">{t('adminProducers.missingCountryBadge')}</span>
-                      ) : null}
-                      {!item.imageUrl ? (
-                        <span className="px-2 py-0.5 rounded-full border border-rose-300 bg-rose-50 text-rose-700">{t('adminProducers.missingImageBadge')}</span>
-                      ) : null}
+                      {kind === 'whisky' ? (
+                        <>
+                          {item.missingEan13 ? (
+                            <span className="px-2 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-amber-700">{t('adminProducers.missingEan13Badge')}</span>
+                          ) : null}
+                          {item.ageNotNormalized ? (
+                            <span className="px-2 py-0.5 rounded-full border border-sky-300 bg-sky-50 text-sky-700">{t('adminProducers.ageNotNormalizedBadge')}</span>
+                          ) : null}
+                          {item.missingImage ? (
+                            <span className="px-2 py-0.5 rounded-full border border-rose-300 bg-rose-50 text-rose-700">{t('adminProducers.missingImageBadge')}</span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <>
+                          {(!item.descriptionFr && !item.descriptionEn) ? (
+                            <span className="px-2 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-amber-700">{t('adminProducers.missingDescriptionBadge')}</span>
+                          ) : null}
+                          {!item.countryId ? (
+                            <span className="px-2 py-0.5 rounded-full border border-sky-300 bg-sky-50 text-sky-700">{t('adminProducers.missingCountryBadge')}</span>
+                          ) : null}
+                          {!item.imageUrl ? (
+                            <span className="px-2 py-0.5 rounded-full border border-rose-300 bg-rose-50 text-rose-700">{t('adminProducers.missingImageBadge')}</span>
+                          ) : null}
+                        </>
+                      )}
                     </div>
                   </button>
                 ))
@@ -264,8 +358,39 @@ export default function AdminProducersPageClient() {
                     ))}
                   </select>
                   <input value={form.region} onChange={(e) => setForm((p) => ({ ...p, region: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2" placeholder={t('catalogue.filterRegion')} />
-                  <textarea value={form.descriptionFr} onChange={(e) => setForm((p) => ({ ...p, descriptionFr: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2 min-h-[110px]" placeholder={t('adminProducers.descriptionFr')} />
-                  <textarea value={form.descriptionEn} onChange={(e) => setForm((p) => ({ ...p, descriptionEn: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2 min-h-[110px]" placeholder={t('adminProducers.descriptionEn')} />
+                  {kind === 'whisky' ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input value={form.barcode} onChange={(e) => setForm((p) => ({ ...p, barcode: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2" placeholder={t('whisky.fieldBarcode')} />
+                        <input value={form.age} onChange={(e) => setForm((p) => ({ ...p, age: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2" placeholder={t('catalogue.filterAgePlaceholder')} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <select value={form.bottlingType} onChange={(e) => setForm((p) => ({ ...p, bottlingType: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2">
+                          <option value="DB">{t('whisky.bottlingDB')}</option>
+                          <option value="IB">{t('whisky.bottlingIB')}</option>
+                        </select>
+                        <select value={form.type} onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2">
+                          <option value="">{t('common.selectEmpty')}</option>
+                          {whiskyTypeOptions.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input value={form.distilledYear} onChange={(e) => setForm((p) => ({ ...p, distilledYear: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2" placeholder={t('whisky.fieldDistilledYear')} />
+                        <input value={form.bottledYear} onChange={(e) => setForm((p) => ({ ...p, bottledYear: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2" placeholder={t('whisky.fieldBottledYear')} />
+                        <input value={form.alcoholVolume} onChange={(e) => setForm((p) => ({ ...p, alcoholVolume: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2" placeholder={t('whisky.fieldAlcoholVolume')} />
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {t('adminProducers.currentSlug')}: {selected.slug || '-'}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <textarea value={form.descriptionFr} onChange={(e) => setForm((p) => ({ ...p, descriptionFr: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2 min-h-[110px]" placeholder={t('adminProducers.descriptionFr')} />
+                      <textarea value={form.descriptionEn} onChange={(e) => setForm((p) => ({ ...p, descriptionEn: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2 min-h-[110px]" placeholder={t('adminProducers.descriptionEn')} />
+                    </>
+                  )}
                   <div className="space-y-2">
                     <input
                       key={`producer-image-${kind}-${selected.id}`}

@@ -4,7 +4,7 @@
 export const translations = {
   fr: {
     account: {
-      'adminProducersCta': 'Admin distillers/embouteilleurs',
+      'adminProducersCta': 'Admin catalogue',
       'addressHelp': 'Renseignez votre pays et votre ville (optionnel).',
       'addressPlaceholder': 'Rue et numéro',
       'addressSaved': 'Adresse sauvée',
@@ -44,6 +44,8 @@ export const translations = {
       'rgpdDeleteConfirm': 'Confirmer la suppression définitive de votre compte ?'
     },
     adminProducers: {
+      'ageNotNormalizedBadge': 'Âge non normalisé',
+      'currentSlug': 'Slug actuel',
       'descriptionEn': 'Description (EN)',
       'descriptionFr': 'Description (FR)',
       'forbidden': 'Accès refusé.',
@@ -51,12 +53,15 @@ export const translations = {
       'imageSaveHint': 'La photo sera enregistrée lors du clic sur Sauver.',
       'missingDescriptionBadge': 'Sans description',
       'missingCountryBadge': 'Sans pays',
+      'missingEan13Badge': 'EAN-13 manquant',
       'missingImageBadge': 'Sans photo',
+      'onlyAgeNotNormalized': 'Âge non normalisé',
       'onlyMissingDescription': 'Sans description',
+      'onlyMissingEan13': 'EAN-13 manquant',
       'onlyMissingImage': 'Sans photo',
       'searchPlaceholder': 'Rechercher un nom...',
       'selectItem': 'Sélectionnez un item à éditer',
-      'title': 'Admin producteurs'
+      'title': 'Admin catalogue'
     },
     aromatic: {
       'title': 'Profil aromatique'
@@ -573,7 +578,7 @@ export const translations = {
   },
   en: {
     account: {
-      'adminProducersCta': 'Admin distillers/bottlers',
+      'adminProducersCta': 'Catalogue admin',
       'addressHelp': 'Set your country and city (optional).',
       'addressPlaceholder': 'Street and number',
       'addressSaved': 'Address saved',
@@ -613,6 +618,8 @@ export const translations = {
       'rgpdDeleteConfirm': 'Confirm permanent account deletion?'
     },
     adminProducers: {
+      'ageNotNormalizedBadge': 'Age not normalized',
+      'currentSlug': 'Current slug',
       'descriptionEn': 'Description (EN)',
       'descriptionFr': 'Description (FR)',
       'forbidden': 'Access denied.',
@@ -620,12 +627,15 @@ export const translations = {
       'imageSaveHint': 'The image will be uploaded when you click Save.',
       'missingDescriptionBadge': 'No description',
       'missingCountryBadge': 'No country',
+      'missingEan13Badge': 'Missing EAN-13',
       'missingImageBadge': 'No image',
+      'onlyAgeNotNormalized': 'Only age not normalized',
       'onlyMissingDescription': 'Only missing description',
+      'onlyMissingEan13': 'Only missing EAN-13',
       'onlyMissingImage': 'Only missing image',
       'searchPlaceholder': 'Search by name...',
       'selectItem': 'Select an item to edit',
-      'title': 'Producer admin'
+      'title': 'Catalogue admin'
     },
     aromatic: {
       'title': 'Whisky catalogue'

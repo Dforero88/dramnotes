@@ -4,7 +4,7 @@ import path from 'path'
 import fs from 'fs/promises'
 import { eq } from 'drizzle-orm'
 import { authOptions } from '@/lib/auth'
-import { db, bottlers, distillers, generateId } from '@/lib/db'
+import { db, bottlers, distillers, generateId, whiskies } from '@/lib/db'
 import { isAdminEmail } from '@/lib/admin'
 
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,8 @@ export async function POST(
 
   try {
     const { id } = await context.params
-    const kind = request.nextUrl.searchParams.get('kind') === 'bottler' ? 'bottler' : 'distiller'
+    const kindParam = (request.nextUrl.searchParams.get('kind') || 'distiller').toLowerCase()
+    const kind = kindParam === 'bottler' ? 'bottler' : kindParam === 'whisky' ? 'whisky' : 'distiller'
     const formData = await request.formData()
     const image = formData.get('image') as File | null
     if (!image) return NextResponse.json({ error: 'Image is required' }, { status: 400 })
@@ -28,8 +29,8 @@ export async function POST(
     const filename = `${generateId()}.webp`
     const uploadsRoot = process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads')
     const publicBase = process.env.UPLOADS_PUBLIC_URL || '/uploads/bottles'
-    const producersBase = publicBase.replace(/\/bottles\/?$/i, '/producers')
-    const publicPath = producersBase.replace(/^\/+/, '')
+    const targetBase = kind === 'whisky' ? publicBase : publicBase.replace(/\/bottles\/?$/i, '/producers')
+    const publicPath = targetBase.replace(/^\/+/, '')
     const relativePath = publicPath.startsWith('uploads/')
       ? publicPath.slice('uploads/'.length)
       : publicPath
@@ -51,12 +52,14 @@ export async function POST(
     }
 
     await fs.writeFile(filePath, outputBuffer)
-    const imageUrl = `${producersBase}/${filename}`
+    const imageUrl = `${targetBase}/${filename}`
 
     if (kind === 'distiller') {
       await db.update(distillers).set({ imageUrl }).where(eq(distillers.id, id))
-    } else {
+    } else if (kind === 'bottler') {
       await db.update(bottlers).set({ imageUrl }).where(eq(bottlers.id, id))
+    } else {
+      await db.update(whiskies).set({ bottleImageUrl: imageUrl, imageUrl }).where(eq(whiskies.id, id))
     }
 
     return NextResponse.json({ success: true, imageUrl })
@@ -65,4 +68,3 @@ export async function POST(
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
-
