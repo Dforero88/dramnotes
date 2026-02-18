@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer'
+import path from 'path'
+import fs from 'fs/promises'
 
 export interface EmailOptions {
   to: string
@@ -42,6 +44,13 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
     await verifySmtpOnce()
     const from = process.env.SMTP_FROM || 'no-reply@dramnotes.com'
+    const baseUrl = (process.env.APP_URL || 'https://dramnotes.com').replace(/\/+$/, '')
+    const logoPath = path.join(process.cwd(), 'public', 'logo-email.png')
+    const hasLogo = await fs.stat(logoPath).then(() => true).catch(() => false)
+    const html = options.html.replace(
+      /__DRAMNOTES_LOGO__/g,
+      hasLogo ? 'cid:dramnotes-logo' : `${baseUrl}/logo-email.png`
+    )
     const text = options.text || options.html
       .replace(/<style[\s\S]*?<\/style>/gi, ' ')
       .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -53,8 +62,9 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       from: `"DramNotes" <${from}>`,
       to: options.to,
       subject: options.subject,
-      html: options.html,
+      html,
       text,
+      attachments: hasLogo ? [{ filename: 'logo-email.png', path: logoPath, cid: 'dramnotes-logo' }] : [],
     })
     
     console.log(`📧 Email envoyé à ${options.to}: ${info.messageId}`)
@@ -66,6 +76,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 }
 
 function buildEmailLayout(content: string, locale: EmailLocale): string {
+  const logo = '__DRAMNOTES_LOGO__'
   const preheader =
     locale === 'fr'
       ? 'Confirmez votre compte DramNotes'
@@ -81,9 +92,8 @@ function buildEmailLayout(content: string, locale: EmailLocale): string {
     body { margin:0; padding:0; background:#f8fafc; font-family: Arial, sans-serif; color:#111827; }
     .wrapper { width:100%; padding:24px 12px; box-sizing:border-box; }
     .card { max-width:620px; margin:0 auto; background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden; }
-    .header { background:#2A0F14; color:#ffffff; padding:24px; text-align:center; }
-    .brand { margin:0; font-size:28px; font-weight:700; letter-spacing:0.4px; font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif; }
-    .subtitle { margin:6px 0 0 0; font-size:14px; color:#f5e9eb; }
+    .header { padding:16px 24px 8px 24px; text-align:center; }
+    .logo { display:block; width:180px; height:auto; margin:0 auto; }
     .content { padding:28px 24px; line-height:1.55; }
     .buttonWrap { text-align:center; margin:26px 0; }
     .button { display:inline-block; text-decoration:none; border-radius:999px; background:#2A0F14; color:#ffffff !important; font-weight:600; padding:12px 22px; font-size:14px; }
@@ -97,8 +107,7 @@ function buildEmailLayout(content: string, locale: EmailLocale): string {
   <div class="wrapper">
     <div class="card">
       <div class="header">
-        <h1 class="brand">DramNotes</h1>
-        <p class="subtitle">${locale === 'fr' ? 'Votre carnet de dégustation' : 'Your tasting notebook'}</p>
+        <img src="${logo}" alt="DramNotes" class="logo" />
       </div>
       ${content}
     </div>
