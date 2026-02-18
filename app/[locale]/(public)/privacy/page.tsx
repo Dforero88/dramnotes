@@ -1,5 +1,6 @@
 import { getTranslations, type Locale } from '@/lib/i18n'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -78,6 +79,18 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
         <section>
           <h2 className="font-display text-xl text-gray-900">{t('privacy.contactTitle')}</h2>
           <p className="mt-2 text-gray-700">{t('privacy.contactBody')}</p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-gray-900">{t('privacy.termsLinkTitle')}</h2>
+          <p className="mt-2 text-gray-700">{t('privacy.termsLinkBody')}</p>
+          <Link
+            href={`/${locale}/terms`}
+            className="mt-3 inline-flex rounded-lg border px-3 py-2 text-sm"
+            style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+          >
+            {t('privacy.termsLinkCta')}
+          </Link>
         </section>
       </div>
     </div>

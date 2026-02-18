@@ -801,6 +801,11 @@ export default function AddWhiskyPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottlePhoto')}</label>
                     <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
+                      <div className="rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-600">
+                        <p className="font-medium text-gray-800">{t('whisky.photoGuidelinesTitle')}</p>
+                        <p className="mt-1">{t('whisky.photoGuidelinesBody')}</p>
+                        <p className="mt-2 text-xs text-gray-500">{t('whisky.photoRightsNote')}</p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => document.getElementById('bottle-image')?.click()}

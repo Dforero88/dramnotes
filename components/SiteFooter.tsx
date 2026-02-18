@@ -16,6 +16,7 @@ export default function SiteFooter({ buildLabel }: { buildLabel: string }) {
           <Link href={`/${locale}/about`} className="hover:underline">{t('site.footerAbout')}</Link>
           <Link href={`/${locale}/contact`} className="hover:underline">{t('site.footerContact')}</Link>
           <Link href={`/${locale}/privacy`} className="hover:underline">{t('site.footerPrivacy')}</Link>
+          <Link href={`/${locale}/terms`} className="hover:underline">{t('site.footerTerms')}</Link>
         </div>
         <div className="mt-2 text-center text-xs text-gray-600">{t('site.footerAdults')}</div>
         <div className="mt-3 text-center">DramNotes © 2026 · {buildLabel}</div>

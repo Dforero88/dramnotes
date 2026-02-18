@@ -337,6 +337,13 @@ export default function RegisterPage() {
               <span>
                 {t('auth.termsAgreement')}{' '}
                 <Link
+                  href={`/${locale}/terms`}
+                  className="font-medium text-primary hover:text-primary-dark-light underline"
+                >
+                  {t('auth.termsOfUse')}
+                </Link>
+                {' '}{t('common.and')}{' '}
+                <Link
                   href={`/${locale}/privacy`}
                   className="font-medium text-primary hover:text-primary-dark-light underline"
                 >
