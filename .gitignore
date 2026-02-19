@@ -45,7 +45,9 @@ next-env.d.ts
 /app/generated/prisma
 
 # uploads (keep folders, not files)
-public/uploads/*
-!public/uploads/.gitkeep
-public/uploads/bottles/*
-!public/uploads/bottles/.gitkeep
+/public/uploads/**
+!/public/uploads/.gitkeep
+!/public/uploads/bottles/
+!/public/uploads/bottles/.gitkeep
+!/public/uploads/producers/
+!/public/uploads/producers/.gitkeep
