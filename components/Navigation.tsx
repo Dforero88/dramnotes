@@ -91,7 +91,7 @@ export default function Navigation() {
                     {t('navigation.welcome')}, {session.user?.name || session.user?.email}
                   </span>
                   <button 
-                    onClick={() => signOut()}
+                    onClick={() => signOut({ callbackUrl: `/${locale}/catalogue` })}
                     className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark-light"
                   >
                     {t('navigation.signOut')}
@@ -119,7 +119,7 @@ export default function Navigation() {
 
             {session ? (
               <button
-                onClick={() => signOut()}
+                onClick={() => signOut({ callbackUrl: `/${locale}/catalogue` })}
                 className="md:hidden p-2.5 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition"
                 style={{ color: 'var(--color-primary)' }}
                 aria-label="Logout"
