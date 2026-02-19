@@ -244,6 +244,7 @@ export const translations = {
       'footer': 'DramNotes © 2026',
       'heroSubtitle': 'Créez des whiskies, ajoutez des notes et suivez des passionnés.',
       'heroTitle': 'Track every dram.',
+      'heroCommunitySubtitle': 'Ne laissez plus vos dégustations se perdre : créez votre étagère whisky, publiez vos notes de dégustation et construisez un profil aromatique qui vous ressemble.\nRejoignez une communauté de passionnés, suivez les profils qui vous inspirent, et contribuez à un catalogue vivant, créé par la communauté et pour la communauté.',
       'latestWhiskiesTitle': 'Derniers whiskies ajoutés',
       'noActivity': 'Aucune activité récente.',
       'notesCount': 'Notes de dégustations',
@@ -253,6 +254,7 @@ export const translations = {
       'statsContributors': 'Contributeurs',
       'statsNotes': 'Notes de dégustation',
       'statsWhiskies': 'Whiskies',
+      'ctaJoinCommunity': 'Rejoindre la communauté',
       'title': 'Le whisky, une mémoire en notes',
       'topUsersTitle': 'Les utilisateurs les plus actifs'
     },
@@ -851,6 +853,7 @@ export const translations = {
       'footer': 'DramNotes © 2026',
       'heroSubtitle': 'Create whiskies, add tasting notes, and follow enthusiasts.',
       'heroTitle': 'Track every dram.',
+      'heroCommunitySubtitle': 'Stop losing your tasting memories: build your whisky shelf, publish your tasting notes, and create an aroma profile that reflects who you are.\nJoin a community of enthusiasts, follow the profiles that inspire you, and contribute to a living catalogue built by the community, for the community.',
       'latestWhiskiesTitle': 'Latest whiskies added',
       'noActivity': 'No recent activity.',
       'notesCount': 'Tasting notes',
@@ -860,6 +863,7 @@ export const translations = {
       'statsContributors': 'Public users',
       'statsNotes': 'Tasting notes',
       'statsWhiskies': 'Whiskies',
+      'ctaJoinCommunity': 'Join the community',
       'subtitle': 'Find whiskies and filter quickly',
       'title': 'Whisky catalogue',
       'topUsersTitle': 'Users with most tasting notes'

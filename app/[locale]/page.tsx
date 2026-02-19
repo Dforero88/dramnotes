@@ -288,6 +288,20 @@ export default async function HomePage({
           <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">
             {t('home.title')}
           </h1>
+          <p className="mt-3 text-gray-600 text-base md:text-lg max-w-3xl whitespace-pre-line">
+            {t('home.heroCommunitySubtitle')}
+          </p>
+          {!isLoggedIn ? (
+            <div className="mt-5">
+              <Link
+                href={`/${locale}/register`}
+                className="inline-flex items-center rounded-xl px-4 py-2 text-sm font-medium text-white"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
+                {t('home.ctaJoinCommunity')}
+              </Link>
+            </div>
+          ) : null}
           <div className="mt-6 hidden lg:block -mx-8 -mb-8">
             <HomeHeroCarousel
               slides={[
