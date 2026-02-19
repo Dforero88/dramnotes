@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { eq, or, sql } from 'drizzle-orm'
+import { and, eq, or, sql } from 'drizzle-orm'
 import { db, bottlers, countries, distillers, whiskies, whiskyAnalyticsCache } from '@/lib/db'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import { buildWhiskyPath } from '@/lib/whisky-url'
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   const row = await db
     .select({ name: bottlers.name, descriptionFr: bottlers.descriptionFr, descriptionEn: bottlers.descriptionEn })
     .from(bottlers)
-    .where(or(eq(bottlers.slug, slug), eq(bottlers.id, slug)))
+    .where(and(or(eq(bottlers.slug, slug), eq(bottlers.id, slug)), eq(bottlers.isActive, 1), sql`${bottlers.mergedIntoId} is null`))
     .limit(1)
   const name = row?.[0]?.name || 'Bottler'
   const localizedDescription =
@@ -74,7 +74,7 @@ export default async function BottlerPage({ params, searchParams }: Props) {
     })
     .from(bottlers)
     .leftJoin(countries, eq(countries.id, bottlers.countryId))
-    .where(or(eq(bottlers.slug, slug), eq(bottlers.id, slug)))
+    .where(and(or(eq(bottlers.slug, slug), eq(bottlers.id, slug)), eq(bottlers.isActive, 1), sql`${bottlers.mergedIntoId} is null`))
     .limit(1)
 
   const header = headerRows?.[0]

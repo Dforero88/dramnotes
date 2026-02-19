@@ -8,6 +8,8 @@ type DbSchema = {
   bottlers: any
   whiskies: any
   slugRedirects: any
+  entityChangeLogs: any
+  entityChangeLogItems: any
   tastingNotes: any
   tags: any
   tagLang: any
@@ -65,6 +67,8 @@ function createSqliteSchema(): DbSchema {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
+    isActive: integer('is_active').notNull().default(1),
+    mergedIntoId: text('merged_into_id'),
     descriptionFr: text('description_fr'),
     descriptionEn: text('description_en'),
     imageUrl: text('image_url'),
@@ -76,6 +80,8 @@ function createSqliteSchema(): DbSchema {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
+    isActive: integer('is_active').notNull().default(1),
+    mergedIntoId: text('merged_into_id'),
     descriptionFr: text('description_fr'),
     descriptionEn: text('description_en'),
     imageUrl: text('image_url'),
@@ -118,6 +124,26 @@ function createSqliteSchema(): DbSchema {
     entityId: text('entity_id').notNull(),
     oldSlug: text('old_slug').notNull(),
     createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+  })
+
+  const entityChangeLogs = sqliteTable('entity_change_logs', {
+    id: text('id').primaryKey(),
+    eventType: text('event_type').notNull(),
+    actorUserId: text('actor_user_id').notNull(),
+    sourceEntityType: text('source_entity_type').notNull(),
+    sourceEntityId: text('source_entity_id').notNull(),
+    targetEntityType: text('target_entity_type'),
+    targetEntityId: text('target_entity_id'),
+    payloadJson: text('payload_json'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+  })
+
+  const entityChangeLogItems = sqliteTable('entity_change_log_items', {
+    id: text('id').primaryKey(),
+    logId: text('log_id').notNull(),
+    itemType: text('item_type').notNull(),
+    itemId: text('item_id').notNull(),
+    payloadJson: text('payload_json'),
   })
 
   const tastingNotes = sqliteTable('tasting_notes', {
@@ -223,6 +249,8 @@ function createSqliteSchema(): DbSchema {
     bottlers,
     whiskies,
     slugRedirects,
+    entityChangeLogs,
+    entityChangeLogItems,
     tastingNotes,
     tags,
     tagLang,
@@ -269,6 +297,8 @@ function createMysqlSchema(): DbSchema {
     id: varchar('id', { length: 36 }).primaryKey(),
     name: varchar('name', { length: 255 }).notNull(),
     slug: varchar('slug', { length: 160 }).notNull(),
+    isActive: int('is_active').notNull().default(1),
+    mergedIntoId: varchar('merged_into_id', { length: 36 }),
     descriptionFr: text('description_fr'),
     descriptionEn: text('description_en'),
     imageUrl: text('image_url'),
@@ -280,6 +310,8 @@ function createMysqlSchema(): DbSchema {
     id: varchar('id', { length: 36 }).primaryKey(),
     name: varchar('name', { length: 255 }).notNull(),
     slug: varchar('slug', { length: 160 }).notNull(),
+    isActive: int('is_active').notNull().default(1),
+    mergedIntoId: varchar('merged_into_id', { length: 36 }),
     descriptionFr: text('description_fr'),
     descriptionEn: text('description_en'),
     imageUrl: text('image_url'),
@@ -322,6 +354,26 @@ function createMysqlSchema(): DbSchema {
     entityId: varchar('entity_id', { length: 36 }).notNull(),
     oldSlug: varchar('old_slug', { length: 160 }).notNull(),
     createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+  })
+
+  const entityChangeLogs = mysqlTable('entity_change_logs', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    eventType: varchar('event_type', { length: 40 }).notNull(),
+    actorUserId: varchar('actor_user_id', { length: 36 }).notNull(),
+    sourceEntityType: varchar('source_entity_type', { length: 20 }).notNull(),
+    sourceEntityId: varchar('source_entity_id', { length: 36 }).notNull(),
+    targetEntityType: varchar('target_entity_type', { length: 20 }),
+    targetEntityId: varchar('target_entity_id', { length: 36 }),
+    payloadJson: text('payload_json'),
+    createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+  })
+
+  const entityChangeLogItems = mysqlTable('entity_change_log_items', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    logId: varchar('log_id', { length: 36 }).notNull(),
+    itemType: varchar('item_type', { length: 20 }).notNull(),
+    itemId: varchar('item_id', { length: 36 }).notNull(),
+    payloadJson: text('payload_json'),
   })
 
   const tastingNotes = mysqlTable('tasting_notes', {
@@ -427,6 +479,8 @@ function createMysqlSchema(): DbSchema {
     bottlers,
     whiskies,
     slugRedirects,
+    entityChangeLogs,
+    entityChangeLogItems,
     tastingNotes,
     tags,
     tagLang,
@@ -450,6 +504,8 @@ export const {
   bottlers,
   whiskies,
   slugRedirects,
+  entityChangeLogs,
+  entityChangeLogItems,
   tastingNotes,
   tags,
   tagLang,
@@ -612,6 +668,38 @@ function initSqlite(sqlite: any) {
   }
 
   sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS entity_change_logs (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      actor_user_id TEXT NOT NULL,
+      source_entity_type TEXT NOT NULL,
+      source_entity_id TEXT NOT NULL,
+      target_entity_type TEXT,
+      target_entity_id TEXT,
+      payload_json TEXT,
+      created_at INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+  `).run()
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS entity_change_log_items (
+      id TEXT PRIMARY KEY,
+      log_id TEXT NOT NULL,
+      item_type TEXT NOT NULL,
+      item_id TEXT NOT NULL,
+      payload_json TEXT
+    )
+  `).run()
+
+  try {
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_change_logs_source ON entity_change_logs(source_entity_type, source_entity_id)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_change_logs_target ON entity_change_logs(target_entity_type, target_entity_id)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_change_log_items_log ON entity_change_log_items(log_id)').run()
+  } catch (_e) {
+    // ignore
+  }
+
+  sqlite.prepare(`
     CREATE TABLE IF NOT EXISTS countries (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
@@ -624,6 +712,8 @@ function initSqlite(sqlite: any) {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       slug TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      merged_into_id TEXT,
       description_fr TEXT,
       description_en TEXT,
       image_url TEXT,
@@ -637,6 +727,8 @@ function initSqlite(sqlite: any) {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       slug TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      merged_into_id TEXT,
       description_fr TEXT,
       description_en TEXT,
       image_url TEXT,
@@ -649,6 +741,8 @@ function initSqlite(sqlite: any) {
   const distillerColumnNames = distillerColumns.map((col: any) => col.name)
   const distillerColumnsToAdd = [
     { name: 'slug', type: 'TEXT' },
+    { name: 'is_active', type: 'INTEGER NOT NULL DEFAULT 1' },
+    { name: 'merged_into_id', type: 'TEXT' },
     { name: 'description_fr', type: 'TEXT' },
     { name: 'description_en', type: 'TEXT' },
     { name: 'image_url', type: 'TEXT' },
@@ -665,6 +759,8 @@ function initSqlite(sqlite: any) {
   const bottlerColumnNames = bottlerColumns.map((col: any) => col.name)
   const bottlerColumnsToAdd = [
     { name: 'slug', type: 'TEXT' },
+    { name: 'is_active', type: 'INTEGER NOT NULL DEFAULT 1' },
+    { name: 'merged_into_id', type: 'TEXT' },
     { name: 'description_fr', type: 'TEXT' },
     { name: 'description_en', type: 'TEXT' },
     { name: 'image_url', type: 'TEXT' },
@@ -680,6 +776,8 @@ function initSqlite(sqlite: any) {
   try {
     sqlite.prepare('CREATE UNIQUE INDEX IF NOT EXISTS uniq_distillers_slug ON distillers(slug)').run()
     sqlite.prepare('CREATE UNIQUE INDEX IF NOT EXISTS uniq_bottlers_slug ON bottlers(slug)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_distillers_active ON distillers(is_active)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_bottlers_active ON bottlers(is_active)').run()
     sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_distillers_name ON distillers(name)').run()
     sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_bottlers_name ON bottlers(name)').run()
     sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_distillers_country ON distillers(country_id)').run()

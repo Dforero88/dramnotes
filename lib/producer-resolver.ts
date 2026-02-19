@@ -1,4 +1,5 @@
 import { db, distillers, bottlers } from '@/lib/db'
+import { and, eq, sql } from 'drizzle-orm'
 import { normalizeProducerName } from '@/lib/producer-name'
 
 type Confidence = 'high' | 'medium' | 'low'
@@ -116,11 +117,17 @@ async function resolveAgainst(names: string[], rawValue: string): Promise<Produc
 }
 
 export async function resolveDistillerName(rawValue: string) {
-  const rows = await db.select({ name: distillers.name }).from(distillers)
+  const rows = await db
+    .select({ name: distillers.name })
+    .from(distillers)
+    .where(and(eq(distillers.isActive, 1), sql`${distillers.mergedIntoId} is null`))
   return resolveAgainst(rows.map((r: { name: string | null }) => String(r.name || '')), rawValue)
 }
 
 export async function resolveBottlerName(rawValue: string) {
-  const rows = await db.select({ name: bottlers.name }).from(bottlers)
+  const rows = await db
+    .select({ name: bottlers.name })
+    .from(bottlers)
+    .where(and(eq(bottlers.isActive, 1), sql`${bottlers.mergedIntoId} is null`))
   return resolveAgainst(rows.map((r: { name: string | null }) => String(r.name || '')), rawValue)
 }

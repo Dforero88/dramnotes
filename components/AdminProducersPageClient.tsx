@@ -24,6 +24,8 @@ type ProducerItem = {
   bottledYear?: number | null
   alcoholVolume?: number | null
   bottlingType?: string | null
+  distillerId?: string | null
+  bottlerId?: string | null
   type?: string | null
   missingEan13?: boolean
   ageNotNormalized?: boolean
@@ -65,11 +67,17 @@ export default function AdminProducersPageClient() {
   const [items, setItems] = useState<ProducerItem[]>([])
   const [loading, setLoading] = useState(false)
   const [countries, setCountries] = useState<Country[]>([])
+  const [distillerOptions, setDistillerOptions] = useState<Array<{ id: string; name: string }>>([])
+  const [bottlerOptions, setBottlerOptions] = useState<Array<{ id: string; name: string }>>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
+  const [formMessage, setFormMessage] = useState('')
+  const [mergeMessage, setMergeMessage] = useState('')
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
   const [previewImageUrl, setPreviewImageUrl] = useState('')
+  const [mergeTargetId, setMergeTargetId] = useState('')
+  const [mergePreview, setMergePreview] = useState<{ movedCount: number; whiskies: Array<{ id: string; name: string }> } | null>(null)
+  const [mergeLoading, setMergeLoading] = useState(false)
 
   const selected = useMemo(() => items.find((x) => x.id === selectedId) || null, [items, selectedId])
 
@@ -85,6 +93,8 @@ export default function AdminProducersPageClient() {
     bottledYear: '',
     alcoholVolume: '',
     bottlingType: 'DB',
+    distillerId: '',
+    bottlerId: '',
     type: '',
   })
 
@@ -95,6 +105,24 @@ export default function AdminProducersPageClient() {
       setCountries(json?.countries || [])
     }
     loadCountries()
+  }, [locale])
+
+  useEffect(() => {
+    const loadProducersOptions = async () => {
+      try {
+        const [distillersRes, bottlersRes] = await Promise.all([
+          fetch(`/api/admin/producers/list?kind=distiller&page=1&pageSize=500&lang=${locale}`, { cache: 'no-store' }),
+          fetch(`/api/admin/producers/list?kind=bottler&page=1&pageSize=500&lang=${locale}`, { cache: 'no-store' }),
+        ])
+        const [distillersJson, bottlersJson] = await Promise.all([distillersRes.json(), bottlersRes.json()])
+        setDistillerOptions((distillersJson?.items || []).map((x: any) => ({ id: x.id, name: x.name })))
+        setBottlerOptions((bottlersJson?.items || []).map((x: any) => ({ id: x.id, name: x.name })))
+      } catch {
+        setDistillerOptions([])
+        setBottlerOptions([])
+      }
+    }
+    loadProducersOptions()
   }, [locale])
 
   const load = async () => {
@@ -120,7 +148,7 @@ export default function AdminProducersPageClient() {
         setSelectedId(json?.items?.[0]?.id || null)
       }
     } catch (e: any) {
-      setMessage(e?.message || t('common.error'))
+      setFormMessage(e?.message || t('common.error'))
       setItems([])
       setTotalPages(1)
     } finally {
@@ -137,6 +165,10 @@ export default function AdminProducersPageClient() {
     if (!selected) return
     setPendingImageFile(null)
     setPreviewImageUrl(kind === 'whisky' ? (selected.bottleImageUrl || selected.imageUrl || '') : (selected.imageUrl || ''))
+    setMergeTargetId('')
+    setMergePreview(null)
+    setFormMessage('')
+    setMergeMessage('')
     setForm({
       name: selected.name || '',
       countryId: selected.countryId || '',
@@ -149,6 +181,8 @@ export default function AdminProducersPageClient() {
       bottledYear: selected.bottledYear == null ? '' : String(selected.bottledYear),
       alcoholVolume: selected.alcoholVolume == null ? '' : String(selected.alcoholVolume),
       bottlingType: selected.bottlingType === 'IB' ? 'IB' : 'DB',
+      distillerId: selected.distillerId || '',
+      bottlerId: selected.bottlerId || '',
       type: selected.type || '',
     })
   }, [selected, kind])
@@ -161,7 +195,7 @@ export default function AdminProducersPageClient() {
   const save = async () => {
     if (!selected) return
     setSaving(true)
-    setMessage('')
+    setFormMessage('')
     try {
       const res = await fetch(`/api/admin/producers/${selected.id}?kind=${kind}`, {
         method: 'PATCH',
@@ -184,20 +218,64 @@ export default function AdminProducersPageClient() {
         setPreviewImageUrl(imageJson?.imageUrl || previewImageUrl)
       }
 
-      setMessage(t('account.addressSaved'))
+      setFormMessage(t('account.addressSaved'))
       await load()
     } catch (e: any) {
-      setMessage(e?.message || t('common.error'))
+      setFormMessage(e?.message || t('common.error'))
     } finally {
       setSaving(false)
     }
   }
 
   const onUpload = (file: File) => {
-    setMessage('')
+    setFormMessage('')
     setPendingImageFile(file)
     setPreviewImageUrl(URL.createObjectURL(file))
-    setMessage(t('adminProducers.imagePendingSave'))
+    setFormMessage(t('adminProducers.imagePendingSave'))
+  }
+
+  const previewMerge = async () => {
+    if (!selected || kind === 'whisky' || !mergeTargetId || mergeTargetId === selected.id) return
+    setMergeLoading(true)
+    setMergeMessage('')
+    try {
+      const res = await fetch('/api/admin/producers/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, sourceId: selected.id, targetId: mergeTargetId, dryRun: true }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Error')
+      setMergePreview({ movedCount: Number(json?.movedCount || 0), whiskies: json?.whiskies || [] })
+    } catch (e: any) {
+      setMergeMessage(e?.message || t('common.error'))
+      setMergePreview(null)
+    } finally {
+      setMergeLoading(false)
+    }
+  }
+
+  const confirmMerge = async () => {
+    if (!selected || kind === 'whisky' || !mergeTargetId || mergeTargetId === selected.id) return
+    setMergeLoading(true)
+    setMergeMessage('')
+    try {
+      const res = await fetch('/api/admin/producers/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, sourceId: selected.id, targetId: mergeTargetId, dryRun: false }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Error')
+      setMergePreview(null)
+      setMergeTargetId('')
+      setMergeMessage(`Merge OK (${json?.movedCount || 0})`)
+      await load()
+    } catch (e: any) {
+      setMergeMessage(e?.message || t('common.error'))
+    } finally {
+      setMergeLoading(false)
+    }
   }
 
   return (
@@ -343,13 +421,14 @@ export default function AdminProducersPageClient() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
-            {!selected ? (
-              <div className="text-gray-600 text-sm">{t('adminProducers.selectItem')}</div>
-            ) : (
-              <>
-                <h2 className="text-lg font-semibold">{selected.name}</h2>
-                <div className="space-y-3">
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+              {!selected ? (
+                <div className="text-gray-600 text-sm">{t('adminProducers.selectItem')}</div>
+              ) : (
+                <>
+                  <h2 className="text-lg font-semibold">{selected.name}</h2>
+                  <div className="space-y-3">
                   <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2" placeholder={t('catalogue.filterName')} />
                   <select value={form.countryId} onChange={(e) => setForm((p) => ({ ...p, countryId: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2">
                     <option value="">{t('common.selectEmpty')}</option>
@@ -376,6 +455,20 @@ export default function AdminProducersPageClient() {
                           ))}
                         </select>
                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <select value={form.distillerId} onChange={(e) => setForm((p) => ({ ...p, distillerId: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2">
+                          <option value="">{t('whisky.fieldDistiller')}</option>
+                          {distillerOptions.map((opt) => (
+                            <option key={opt.id} value={opt.id}>{opt.name}</option>
+                          ))}
+                        </select>
+                        <select value={form.bottlerId} onChange={(e) => setForm((p) => ({ ...p, bottlerId: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2">
+                          <option value="">{t('whisky.fieldBottler')}</option>
+                          {bottlerOptions.map((opt) => (
+                            <option key={opt.id} value={opt.id}>{opt.name}</option>
+                          ))}
+                        </select>
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <input value={form.distilledYear} onChange={(e) => setForm((p) => ({ ...p, distilledYear: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2" placeholder={t('whisky.fieldDistilledYear')} />
                         <input value={form.bottledYear} onChange={(e) => setForm((p) => ({ ...p, bottledYear: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2" placeholder={t('whisky.fieldBottledYear')} />
@@ -383,6 +476,12 @@ export default function AdminProducersPageClient() {
                       </div>
                       <div className="text-xs text-gray-500">
                         {t('adminProducers.currentSlug')}: {selected.slug || '-'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {t('whisky.fieldDistiller')}: {distillerOptions.find((x) => x.id === form.distillerId)?.name || '-'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {t('whisky.fieldBottler')}: {bottlerOptions.find((x) => x.id === form.bottlerId)?.name || '-'}
                       </div>
                     </>
                   ) : (
@@ -394,26 +493,72 @@ export default function AdminProducersPageClient() {
                       </div>
                     </>
                   )}
-                  <div className="space-y-2">
-                    <input
-                      key={`producer-image-${kind}-${selected.id}`}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) void onUpload(file)
-                      }}
-                    />
-                    <div className="text-xs text-gray-500">{t('adminProducers.imageSaveHint')}</div>
-                    {previewImageUrl ? <img src={previewImageUrl} alt={selected.name} className="w-28 h-28 object-contain border border-gray-200 rounded-lg bg-white" /> : null}
+                    <div className="space-y-2">
+                      <input
+                        key={`producer-image-${kind}-${selected.id}`}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) void onUpload(file)
+                        }}
+                      />
+                      <div className="text-xs text-gray-500">{t('adminProducers.imageSaveHint')}</div>
+                      {previewImageUrl ? <img src={previewImageUrl} alt={selected.name} className="w-28 h-28 object-contain border border-gray-200 rounded-lg bg-white" /> : null}
+                    </div>
+                    <button onClick={save} disabled={saving} className="w-full px-4 py-2 rounded-xl text-white disabled:opacity-50" style={{ backgroundColor: 'var(--color-primary)' }}>
+                      {saving ? t('common.saving') : t('account.save')}
+                    </button>
                   </div>
-                  <button onClick={save} disabled={saving} className="w-full px-4 py-2 rounded-xl text-white disabled:opacity-50" style={{ backgroundColor: 'var(--color-primary)' }}>
-                    {saving ? t('common.saving') : t('account.save')}
+                </>
+              )}
+              {formMessage ? <div className="text-sm text-gray-700">{formMessage}</div> : null}
+            </div>
+
+            {selected && kind !== 'whisky' ? (
+              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-3">
+                <div className="text-sm font-medium">
+                  Merge {kind === 'distiller' ? t('catalogue.viewDistillers') : t('catalogue.viewBottlers')}
+                </div>
+                <select value={mergeTargetId} onChange={(e) => setMergeTargetId(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2">
+                  <option value="">{t('common.selectEmpty')}</option>
+                  {(kind === 'distiller' ? distillerOptions : bottlerOptions)
+                    .filter((opt) => opt.id !== selected.id)
+                    .map((opt) => (
+                      <option key={opt.id} value={opt.id}>{opt.name}</option>
+                    ))}
+                </select>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={previewMerge}
+                    disabled={!mergeTargetId || mergeTargetId === selected.id || mergeLoading}
+                    className="px-3 py-2 rounded-lg border text-sm disabled:opacity-50"
+                  >
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmMerge}
+                    disabled={!mergePreview || mergeLoading}
+                    className="px-3 py-2 rounded-lg text-sm text-white disabled:opacity-50"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                  >
+                    Merge
                   </button>
                 </div>
-              </>
-            )}
-            {message ? <div className="text-sm text-gray-700">{message}</div> : null}
+                {mergePreview ? (
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <div>{mergePreview.movedCount} whiskies</div>
+                    {mergePreview.whiskies.slice(0, 8).map((w) => (
+                      <div key={w.id}>• {w.name}</div>
+                    ))}
+                    {mergePreview.whiskies.length > 8 ? <div>…</div> : null}
+                  </div>
+                ) : null}
+                {mergeMessage ? <div className="text-sm text-gray-700">{mergeMessage}</div> : null}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

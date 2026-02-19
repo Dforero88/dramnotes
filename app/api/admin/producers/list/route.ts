@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const kindParam = (searchParams.get('kind') || 'distiller').toLowerCase()
     const kind = kindParam === 'bottler' ? 'bottler' : kindParam === 'whisky' ? 'whisky' : 'distiller'
     const page = Math.max(1, Number(searchParams.get('page') || '1'))
-    const pageSize = Math.max(1, Math.min(50, Number(searchParams.get('pageSize') || '20')))
+    const pageSize = Math.max(1, Math.min(500, Number(searchParams.get('pageSize') || '20')))
     const offset = (page - 1) * pageSize
     const q = normalizeSearch(searchParams.get('q') || '', 120)
     const missingDescription = searchParams.get('missingDescription') === '1'
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const locale = (searchParams.get('lang') || 'fr').toLowerCase()
 
     if (kind === 'distiller') {
-      const filters: any[] = []
+      const filters: any[] = [eq(distillers.isActive, 1), sql`${distillers.mergedIntoId} is null`]
       if (q) filters.push(sql`lower(${distillers.name}) like ${buildLike(q)}`)
       if (missingDescription) {
         filters.push(
@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ items, total, totalPages, page, pageSize })
     }
 
-    const filters: any[] = []
+    const filters: any[] = [eq(bottlers.isActive, 1), sql`${bottlers.mergedIntoId} is null`]
     if (q) filters.push(sql`lower(${bottlers.name}) like ${buildLike(q)}`)
     if (missingDescription) {
       filters.push(

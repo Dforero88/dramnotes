@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { getServerSession } from 'next-auth'
 import { and, eq, sql } from 'drizzle-orm'
 import { authOptions } from '@/lib/auth'
-import { db, bottlers, distillers, whiskies } from '@/lib/db'
+import { db, bottlers, distillers, entityChangeLogItems, entityChangeLogs, whiskies } from '@/lib/db'
 import { isAdminEmail } from '@/lib/admin'
 import { normalizeProducerName } from '@/lib/producer-name'
 import { slugifyProducerName } from '@/lib/producer-url'
@@ -30,7 +31,12 @@ export async function PATCH(
 
     if (kind === 'whisky') {
       const existingRows = await db
-        .select({ id: whiskies.id, slug: whiskies.slug })
+        .select({
+          id: whiskies.id,
+          slug: whiskies.slug,
+          distillerId: whiskies.distillerId,
+          bottlerId: whiskies.bottlerId,
+        })
         .from(whiskies)
         .where(eq(whiskies.id, id))
         .limit(1)
@@ -60,6 +66,28 @@ export async function PATCH(
       const countryId = typeof body?.countryId === 'string' && body.countryId.trim() ? body.countryId.trim() : null
       const region = typeof body?.region === 'string' && body.region.trim() ? body.region.trim() : null
       const type = typeof body?.type === 'string' && body.type.trim() ? body.type.trim() : null
+      const distillerId =
+        typeof body?.distillerId === 'string' && body.distillerId.trim() ? body.distillerId.trim() : null
+      const bottlerId =
+        typeof body?.bottlerId === 'string' && body.bottlerId.trim() ? body.bottlerId.trim() : null
+
+      if (distillerId) {
+        const row = await db
+          .select({ id: distillers.id })
+          .from(distillers)
+          .where(and(eq(distillers.id, distillerId), eq(distillers.isActive, 1), sql`${distillers.mergedIntoId} is null`))
+          .limit(1)
+        if (!row.length) return NextResponse.json({ error: 'Invalid distiller' }, { status: 400 })
+      }
+
+      if (bottlerId) {
+        const row = await db
+          .select({ id: bottlers.id })
+          .from(bottlers)
+          .where(and(eq(bottlers.id, bottlerId), eq(bottlers.isActive, 1), sql`${bottlers.mergedIntoId} is null`))
+          .limit(1)
+        if (!row.length) return NextResponse.json({ error: 'Invalid bottler' }, { status: 400 })
+      }
 
       await db
         .update(whiskies)
@@ -73,6 +101,8 @@ export async function PATCH(
           bottledYear,
           alcoholVolume,
           bottlingType,
+          distillerId,
+          bottlerId,
           countryId,
           region,
           type,
@@ -81,6 +111,65 @@ export async function PATCH(
 
       if (existing.slug && existing.slug !== nextSlug) {
         await rememberOldSlug('whisky', id, existing.slug)
+      }
+
+      const actorId = session?.user?.id || 'system'
+      if ((existing.distillerId || null) !== (distillerId || null)) {
+        const logId = crypto.randomUUID()
+        await db.insert(entityChangeLogs).values({
+          id: logId,
+          eventType: 'reassign_distiller',
+          actorUserId: actorId,
+          sourceEntityType: 'whisky',
+          sourceEntityId: id,
+          targetEntityType: 'distiller',
+          targetEntityId: distillerId,
+          payloadJson: JSON.stringify({
+            whiskyId: id,
+            oldDistillerId: existing.distillerId,
+            newDistillerId: distillerId,
+          }),
+          createdAt: new Date(),
+        })
+        await db.insert(entityChangeLogItems).values({
+          id: crypto.randomUUID(),
+          logId,
+          itemType: 'whisky',
+          itemId: id,
+          payloadJson: JSON.stringify({
+            oldDistillerId: existing.distillerId,
+            newDistillerId: distillerId,
+          }),
+        })
+      }
+
+      if ((existing.bottlerId || null) !== (bottlerId || null)) {
+        const logId = crypto.randomUUID()
+        await db.insert(entityChangeLogs).values({
+          id: logId,
+          eventType: 'reassign_bottler',
+          actorUserId: actorId,
+          sourceEntityType: 'whisky',
+          sourceEntityId: id,
+          targetEntityType: 'bottler',
+          targetEntityId: bottlerId,
+          payloadJson: JSON.stringify({
+            whiskyId: id,
+            oldBottlerId: existing.bottlerId,
+            newBottlerId: bottlerId,
+          }),
+          createdAt: new Date(),
+        })
+        await db.insert(entityChangeLogItems).values({
+          id: crypto.randomUUID(),
+          logId,
+          itemType: 'whisky',
+          itemId: id,
+          payloadJson: JSON.stringify({
+            oldBottlerId: existing.bottlerId,
+            newBottlerId: bottlerId,
+          }),
+        })
       }
 
       return NextResponse.json({ success: true, slug: nextSlug })
@@ -98,17 +187,25 @@ export async function PATCH(
 
     if (kind === 'distiller') {
       const existingRows = await db
-        .select({ id: distillers.id, slug: distillers.slug })
+        .select({ id: distillers.id, slug: distillers.slug, isActive: distillers.isActive, mergedIntoId: distillers.mergedIntoId })
         .from(distillers)
         .where(eq(distillers.id, id))
         .limit(1)
       const existing = existingRows?.[0]
       if (!existing) return NextResponse.json({ error: 'Distiller not found' }, { status: 404 })
+      if (existing.isActive !== 1 || existing.mergedIntoId) {
+        return NextResponse.json({ error: 'Distiller merged/inactive' }, { status: 400 })
+      }
 
       const duplicate = await db
         .select({ id: distillers.id })
         .from(distillers)
-        .where(and(sql`lower(${distillers.name}) = ${nameCheck.value.toLowerCase()}`, sql`${distillers.id} <> ${id}`))
+        .where(and(
+          sql`lower(${distillers.name}) = ${nameCheck.value.toLowerCase()}`,
+          sql`${distillers.id} <> ${id}`,
+          eq(distillers.isActive, 1),
+          sql`${distillers.mergedIntoId} is null`
+        ))
         .limit(1)
       if (duplicate.length) {
         return NextResponse.json({ error: 'A distiller with this name already exists' }, { status: 409 })
@@ -141,17 +238,25 @@ export async function PATCH(
     }
 
     const existingRows = await db
-      .select({ id: bottlers.id, slug: bottlers.slug })
+      .select({ id: bottlers.id, slug: bottlers.slug, isActive: bottlers.isActive, mergedIntoId: bottlers.mergedIntoId })
       .from(bottlers)
       .where(eq(bottlers.id, id))
       .limit(1)
     const existing = existingRows?.[0]
     if (!existing) return NextResponse.json({ error: 'Bottler not found' }, { status: 404 })
+    if (existing.isActive !== 1 || existing.mergedIntoId) {
+      return NextResponse.json({ error: 'Bottler merged/inactive' }, { status: 400 })
+    }
 
     const duplicate = await db
       .select({ id: bottlers.id })
       .from(bottlers)
-      .where(and(sql`lower(${bottlers.name}) = ${nameCheck.value.toLowerCase()}`, sql`${bottlers.id} <> ${id}`))
+      .where(and(
+        sql`lower(${bottlers.name}) = ${nameCheck.value.toLowerCase()}`,
+        sql`${bottlers.id} <> ${id}`,
+        eq(bottlers.isActive, 1),
+        sql`${bottlers.mergedIntoId} is null`
+      ))
       .limit(1)
     if (duplicate.length) {
       return NextResponse.json({ error: 'A bottler with this name already exists' }, { status: 409 })

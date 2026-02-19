@@ -213,12 +213,17 @@ export async function POST(request: NextRequest) {
       }
       distillerName = check.value
       const existing = await db
-        .select({ id: distillers.id, countryId: distillers.countryId })
+        .select({
+          id: distillers.id,
+          countryId: distillers.countryId,
+          isActive: distillers.isActive,
+          mergedIntoId: distillers.mergedIntoId,
+        })
         .from(distillers)
-        .where(sql`lower(${distillers.name}) = ${distillerName.toLowerCase()}`)
+        .where(and(sql`lower(${distillers.name}) = ${distillerName.toLowerCase()}`, eq(distillers.isActive, 1), sql`${distillers.mergedIntoId} is null`))
         .limit(1)
       if (existing.length > 0) {
-        distillerId = existing[0].id
+        distillerId = existing[0].mergedIntoId || existing[0].id
         // Country ownership:
         // - DB: distiller country can be inferred from bottle country
         // - IB: distiller country is unknown by default, keep null
@@ -231,7 +236,7 @@ export async function POST(request: NextRequest) {
           await db
             .update(distillers)
             .set({ countryId: String(data.country_id).trim() })
-            .where(eq(distillers.id, existing[0].id))
+            .where(eq(distillers.id, distillerId))
         }
       } else {
         distillerId = generateId()
@@ -259,19 +264,24 @@ export async function POST(request: NextRequest) {
       }
       bottlerName = check.value
       const existing = await db
-        .select({ id: bottlers.id, countryId: bottlers.countryId })
+        .select({
+          id: bottlers.id,
+          countryId: bottlers.countryId,
+          isActive: bottlers.isActive,
+          mergedIntoId: bottlers.mergedIntoId,
+        })
         .from(bottlers)
-        .where(sql`lower(${bottlers.name}) = ${bottlerName.toLowerCase()}`)
+        .where(and(sql`lower(${bottlers.name}) = ${bottlerName.toLowerCase()}`, eq(bottlers.isActive, 1), sql`${bottlers.mergedIntoId} is null`))
         .limit(1)
       if (existing.length > 0) {
-        bottlerId = existing[0].id
+        bottlerId = existing[0].mergedIntoId || existing[0].id
         // Country ownership:
         // - IB: bottler country can be inferred from bottle country
         if (data?.country_id && String(data.country_id).trim() && !existing[0].countryId) {
           await db
             .update(bottlers)
             .set({ countryId: String(data.country_id).trim() })
-            .where(eq(bottlers.id, existing[0].id))
+            .where(eq(bottlers.id, bottlerId))
         }
       } else {
         bottlerId = generateId()

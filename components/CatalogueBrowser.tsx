@@ -96,6 +96,25 @@ const emptyFilters: Filters = {
   sort: 'name_asc',
 }
 
+async function fetchJsonWithRetry(url: string, attempts = 2) {
+  let lastError: unknown = null
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' })
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`)
+      }
+      return await res.json()
+    } catch (error) {
+      lastError = error
+      if (i < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 250))
+      }
+    }
+  }
+  throw lastError
+}
+
 export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   const t = getTranslations(locale)
   const [view, setView] = useState<CatalogueView>('whiskies')
@@ -167,8 +186,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             : view === 'distillers'
               ? '/api/distillers/list'
               : '/api/bottlers/list'
-        const res = await fetch(`${endpoint}?lang=${locale}&${queryString}`)
-        const json = await res.json()
+        const json = await fetchJsonWithRetry(`${endpoint}?lang=${locale}&${queryString}`)
         setItems(json?.items || [])
         setTotalPages(json?.totalPages || 1)
       } catch (e) {
@@ -185,8 +203,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   useEffect(() => {
     const loadCountries = async () => {
       try {
-        const res = await fetch(`/api/countries?lang=${locale}`)
-        const json = await res.json()
+        const json = await fetchJsonWithRetry(`/api/countries?lang=${locale}`)
         setCountries(json?.countries || [])
       } catch (e) {
         console.error('Erreur load countries', e)

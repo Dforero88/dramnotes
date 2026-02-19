@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { db, whiskies, distillers, bottlers, users, isMysql } from '@/lib/db'
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 
 export const dynamic = 'force-dynamic'
@@ -38,6 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const distillerRows = await db
       .select({ slug: distillers.slug, id: distillers.id })
       .from(distillers)
+      .where(and(eq(distillers.isActive, 1), sql`${distillers.mergedIntoId} is null`))
       .orderBy(sql`lower(${distillers.name}) asc`)
     type DistillerSitemapRow = { slug: string | null; id: string }
     const distillerEntries = locales.flatMap((locale) =>
@@ -54,6 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const bottlerRows = await db
       .select({ slug: bottlers.slug, id: bottlers.id })
       .from(bottlers)
+      .where(and(eq(bottlers.isActive, 1), sql`${bottlers.mergedIntoId} is null`))
       .orderBy(sql`lower(${bottlers.name}) asc`)
     type BottlerSitemapRow = { slug: string | null; id: string }
     const bottlerEntries = locales.flatMap((locale) =>

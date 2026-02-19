@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, distillers, bottlers } from '@/lib/db'
-import { sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { normalizeSearch } from '@/lib/moderation'
 
 export const dynamic = 'force-dynamic'
@@ -26,10 +26,14 @@ export async function GET(request: NextRequest) {
     const likePrefix = `${lowerQ}%`
 
     const source = kind === 'distiller' ? distillers : bottlers
+    const activeFilter =
+      kind === 'distiller'
+        ? and(eq(distillers.isActive, 1), sql`${distillers.mergedIntoId} is null`)
+        : and(eq(bottlers.isActive, 1), sql`${bottlers.mergedIntoId} is null`)
     const rows = await db
       .select({ name: source.name })
       .from(source)
-      .where(sql`lower(${source.name}) like ${likePrefix}`)
+      .where(and(sql`lower(${source.name}) like ${likePrefix}`, activeFilter))
       .orderBy(sql`length(${source.name}) asc, lower(${source.name}) asc`)
       .limit(limit)
 
@@ -42,4 +46,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ items: [] })
   }
 }
-

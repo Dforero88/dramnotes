@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const locale = (searchParams.get('lang') || 'fr').toLowerCase()
     const sort = searchParams.get('sort') || 'name_asc'
 
-    const filters: any[] = []
+    const filters: any[] = [eq(distillers.isActive, 1), sql`${distillers.mergedIntoId} is null`]
     if (name) filters.push(sql`lower(${distillers.name}) like ${buildLike(name)}`)
     if (region) filters.push(sql`lower(${distillers.region}) like ${buildLike(region)}`)
     if (countryId) filters.push(eq(distillers.countryId, countryId))
