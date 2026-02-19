@@ -51,3 +51,5 @@ next-env.d.ts
 !/public/uploads/bottles/.gitkeep
 !/public/uploads/producers/
 !/public/uploads/producers/.gitkeep
+
+dev.db
