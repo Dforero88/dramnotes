@@ -7,9 +7,7 @@ import { normalizeSearch } from '@/lib/moderation'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const viewerId = session?.user?.id || null
 
   const { searchParams } = new URL(request.url)
   const q = normalizeSearch((searchParams.get('q') || '').toLowerCase(), 40)
@@ -66,12 +64,12 @@ export async function GET(request: NextRequest) {
 
   const ids = baseItems.map((row) => row.id)
   let followingIds = new Set<string>()
-  if (ids.length > 0) {
+  if (ids.length > 0 && viewerId) {
     const followRows = await db
       .select({ followedId: follows.followedId })
       .from(follows)
       .where(and(
-        isMysql ? sql`binary ${follows.followerId} = binary ${session.user.id}` : eq(follows.followerId, session.user.id),
+        isMysql ? sql`binary ${follows.followerId} = binary ${viewerId}` : eq(follows.followerId, viewerId),
         inArray(follows.followedId, ids)
       ))
     followingIds = new Set((followRows as { followedId: string }[]).map((row) => row.followedId))

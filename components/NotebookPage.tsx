@@ -72,6 +72,21 @@ type DraftCard = {
   bottleImageUrl: string | null
 }
 
+type NotebookPreview = {
+  user: { id: string; pseudo: string; countryId?: string | null }
+  counts: { notes: number; shelf: number; followers: number; following: number }
+  notes: NoteCard[]
+  shelf: ShelfCard[]
+  followers: Array<{ id: string; pseudo: string; countryId?: string | null; notesCount: number }>
+  following: Array<{ id: string; pseudo: string; countryId?: string | null; notesCount: number }>
+  aroma: {
+    hasProfile: boolean
+    totalNotes: number
+    avgRating: number
+    top: Record<string, { name: string; score: number; count: number }[]>
+  }
+}
+
 type UserCard = {
   id: string
   pseudo: string
@@ -181,6 +196,10 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   const [draftPages, setDraftPages] = useState(1)
   const [draftSort, setDraftSort] = useState<'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc'>('updated_desc')
   const [loadingDrafts, setLoadingDrafts] = useState(false)
+  const [preview, setPreview] = useState<NotebookPreview | null>(null)
+  const [loadingPreview, setLoadingPreview] = useState(false)
+  const [previewTab, setPreviewTab] = useState<'notes' | 'aroma' | 'shelf' | 'followers' | 'following'>('notes')
+  const [previewNotesView, setPreviewNotesView] = useState<'list' | 'map'>('list')
 
   const hideSocialTabs = useMemo(() => {
     if (!summary) return false
@@ -381,6 +400,26 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   }, [isLoggedIn])
 
   useEffect(() => {
+    if (isLoading || isLoggedIn || mode !== 'self') return
+    let cancelled = false
+    const loadPreview = async () => {
+      setLoadingPreview(true)
+      try {
+        const res = await fetch(`/api/notebook/preview?lang=${locale}`, { cache: 'no-store' })
+        if (!res.ok) return
+        const json = await res.json()
+        if (!cancelled) setPreview(json)
+      } finally {
+        if (!cancelled) setLoadingPreview(false)
+      }
+    }
+    loadPreview()
+    return () => {
+      cancelled = true
+    }
+  }, [isLoading, isLoggedIn, locale, mode])
+
+  useEffect(() => {
     if (!summary || summary.private) return
     const isOwn = summary.isOwner
     // page_view is tracked automatically by GA; no custom view event needed
@@ -475,26 +514,283 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
 
   if (isLoading) return <div className="p-8">{t('common.loading')}</div>
   if (!isLoggedIn) {
+    const previewAvatar = preview ? avatarForPseudo(preview.user.pseudo) : null
+    const previewFlagUrl = getCountryFlagUrl(preview?.user?.countryId || null)
     return (
-      <div className="min-h-[60vh] flex items-center justify-center p-8">
-        <div className="max-w-md w-full p-8 bg-white rounded-2xl shadow-sm text-center border border-gray-200">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-3">{t('notebook.loginTitle')}</h2>
-          <p className="text-gray-600 mb-6">{t('notebook.loginSubtitle')}</p>
-          <div className="flex flex-col gap-3">
-            <Link
-              href={`/${locale}/login`}
-              className="block w-full py-3 rounded-full text-center text-white text-sm font-medium transition"
-              style={{ backgroundColor: 'var(--color-primary)' }}
-            >
-              {t('navigation.signIn')}
-            </Link>
-            <Link
-              href={`/${locale}/register`}
-              className="block w-full py-3 rounded-full text-center border text-sm font-medium transition"
-              style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-            >
-              {t('navigation.signUp')}
-            </Link>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 space-y-6">
+          {!loadingPreview && preview ? (
+            <div className="relative">
+              <div className="opacity-75 blur-[1.5px]">
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                  <div className="flex items-center gap-4 min-w-0">
+                    {previewAvatar ? (
+                      <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-semibold shrink-0"
+                        style={{ backgroundColor: previewAvatar.color }}
+                      >
+                        {previewAvatar.initial}
+                      </div>
+                    ) : null}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <div className="text-xl font-semibold text-gray-900 truncate">{preview.user.pseudo}</div>
+                        {previewFlagUrl ? <img src={previewFlagUrl} alt="" className="h-5 w-5 rounded-full" /> : null}
+                      </div>
+                      <div className="text-sm text-gray-500">{t('notebook.profileSubtitle')}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <button
+                      onClick={() => setPreviewTab('notes')}
+                      className={`rounded-xl h-20 border px-4 flex items-center gap-3 text-left ${previewTab === 'notes' ? 'border-transparent' : 'border-gray-200'}`}
+                      style={previewTab === 'notes' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
+                    >
+                      <span className="relative inline-flex items-center justify-center">
+                        <Notepad
+                          size={28}
+                          weight="duotone"
+                          aria-hidden
+                          style={{ color: 'var(--color-primary)', opacity: previewTab === 'notes' ? 1 : 0.68 }}
+                        />
+                        <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold leading-[18px] text-center">
+                          {preview.counts.notes}
+                        </span>
+                      </span>
+                      <span className={`text-sm font-medium ${previewTab === 'notes' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
+                        {t('notebook.notesCount')}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setPreviewTab('aroma')}
+                      className={`rounded-xl h-20 border px-4 flex items-center gap-3 text-left ${previewTab === 'aroma' ? 'border-transparent' : 'border-gray-200'}`}
+                      style={previewTab === 'aroma' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
+                    >
+                      <Sparkle
+                        size={28}
+                        weight="duotone"
+                        aria-hidden
+                        style={{ color: 'var(--color-primary)', opacity: previewTab === 'aroma' ? 1 : 0.68 }}
+                      />
+                      <span className={`text-sm font-medium ${previewTab === 'aroma' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
+                        {t('notebook.aromaTitle')}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setPreviewTab('shelf')}
+                      className={`rounded-xl h-20 border px-4 flex items-center gap-3 text-left ${previewTab === 'shelf' ? 'border-transparent' : 'border-gray-200'}`}
+                      style={previewTab === 'shelf' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
+                    >
+                      <span className="relative inline-flex items-center justify-center">
+                        <BeerBottle
+                          size={28}
+                          weight="duotone"
+                          aria-hidden
+                          style={{ color: 'var(--color-primary)', opacity: previewTab === 'shelf' ? 1 : 0.68 }}
+                        />
+                        <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold leading-[18px] text-center">
+                          {preview.counts.shelf}
+                        </span>
+                      </span>
+                      <span className={`text-sm font-medium ${previewTab === 'shelf' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
+                        {t('notebook.shelfTitle')}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setPreviewTab('followers')}
+                      className="rounded-xl px-4 py-2.5 text-left border border-gray-200"
+                      style={previewTab === 'followers' ? { backgroundColor: 'var(--color-primary-light)', borderColor: 'transparent' } : { backgroundColor: '#fff' }}
+                    >
+                      <div className="text-lg font-semibold text-gray-900">{preview.counts.followers}</div>
+                      <div className="text-xs text-gray-600">{t('notebook.followersCount')}</div>
+                    </button>
+                    <button
+                      onClick={() => setPreviewTab('following')}
+                      className="rounded-xl px-4 py-2.5 text-left border border-gray-200"
+                      style={previewTab === 'following' ? { backgroundColor: 'var(--color-primary-light)', borderColor: 'transparent' } : { backgroundColor: '#fff' }}
+                    >
+                      <div className="text-lg font-semibold text-gray-900">{preview.counts.following}</div>
+                      <div className="text-xs text-gray-600">{t('notebook.followingCount')}</div>
+                    </button>
+                  </div>
+
+                  <div className="mt-6">
+                    {previewTab === 'notes' ? (
+                      <div className="space-y-4">
+                        <div className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 p-1">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewNotesView('list')}
+                            className={`px-3 py-1.5 rounded-full text-sm transition ${previewNotesView === 'list' ? 'text-white' : 'text-gray-700'}`}
+                            style={{ backgroundColor: previewNotesView === 'list' ? 'var(--color-primary)' : 'transparent' }}
+                          >
+                            {t('notebook.notesListView')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewNotesView('map')}
+                            className={`px-3 py-1.5 rounded-full text-sm transition ${previewNotesView === 'map' ? 'text-white' : 'text-gray-700'}`}
+                            style={{ backgroundColor: previewNotesView === 'map' ? 'var(--color-primary)' : 'transparent' }}
+                          >
+                            {t('notebook.notesMapView')}
+                          </button>
+                        </div>
+                        {previewNotesView === 'list' ? (
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            {preview.notes.map((note) => (
+                              <div key={note.id} className="rounded-xl border border-gray-200 p-4 bg-white">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-12 h-12 rounded-lg bg-white border border-gray-100 flex items-center justify-center overflow-hidden">
+                                    {normalizeImage(note.bottleImageUrl) ? (
+                                      <img src={normalizeImage(note.bottleImageUrl)} alt={note.whiskyName || ''} className="w-full h-full object-contain" />
+                                    ) : null}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-semibold text-gray-900 truncate">{note.whiskyName || '-'}</div>
+                                    <div className="text-xs text-gray-500">
+                                      {note.rating != null ? `${t('notebook.ratingLabel')}: ${note.rating}/10` : t('notebook.ratingLabel')}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-xl border border-gray-200 overflow-hidden">
+                            <NotebookNotesMap
+                              notes={preview.notes}
+                              locale={locale}
+                              viewWhiskyLabel={t('map.viewWhisky')}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {previewTab === 'aroma' ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {(['nose', 'palate', 'finish'] as const).map((section) => (
+                          <div key={section} className="rounded-xl border border-gray-200 p-4 bg-white">
+                            <div className="text-sm font-semibold text-gray-900 capitalize">{section}</div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {(preview.aroma.top?.[section] || []).slice(0, 3).map((tag, idx) => (
+                                <span key={`${section}-${idx}`} className="px-2 py-1 rounded-full text-xs border border-gray-200 bg-gray-50 text-gray-700">
+                                  {tag.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {previewTab === 'shelf' ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {preview.shelf.map((item) => (
+                          <div key={item.id} className="rounded-xl border border-gray-200 p-4 bg-white">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-lg bg-white border border-gray-100 flex items-center justify-center overflow-hidden">
+                                {normalizeImage(item.bottleImageUrl) ? (
+                                  <img src={normalizeImage(item.bottleImageUrl)} alt={item.whiskyName || ''} className="w-full h-full object-contain" />
+                                ) : null}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-gray-900 truncate">{item.whiskyName || '-'}</div>
+                                <div className="text-xs text-gray-500">{statusLabel(item.status)}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {previewTab === 'followers' ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {preview.followers.map((user) => {
+                          const avatar = avatarForPseudo(user.pseudo)
+                          const flagUrl = getCountryFlagUrl(user.countryId || null)
+                          return (
+                            <div key={user.id} className="rounded-xl border border-gray-200 p-4 bg-white">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="w-11 h-11 rounded-full flex items-center justify-center text-white text-lg font-semibold shrink-0"
+                                  style={{ backgroundColor: avatar.color }}
+                                >
+                                  {avatar.initial}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <div className="text-sm font-semibold text-gray-900 truncate">{user.pseudo}</div>
+                                    {flagUrl ? <img src={flagUrl} alt="" className="h-4 w-4 rounded-full" /> : null}
+                                  </div>
+                                  <div className="text-xs text-gray-500">{user.notesCount} {t('home.notesCount')}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : null}
+
+                    {previewTab === 'following' ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {preview.following.map((user) => {
+                          const avatar = avatarForPseudo(user.pseudo)
+                          const flagUrl = getCountryFlagUrl(user.countryId || null)
+                          return (
+                            <div key={user.id} className="rounded-xl border border-gray-200 p-4 bg-white">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="w-11 h-11 rounded-full flex items-center justify-center text-white text-lg font-semibold shrink-0"
+                                  style={{ backgroundColor: avatar.color }}
+                                >
+                                  {avatar.initial}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <div className="text-sm font-semibold text-gray-900 truncate">{user.pseudo}</div>
+                                    {flagUrl ? <img src={flagUrl} alt="" className="h-4 w-4 rounded-full" /> : null}
+                                  </div>
+                                  <div className="text-xs text-gray-500">{user.notesCount} {t('home.notesCount')}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-gray-50 via-gray-50/65 to-transparent" />
+            </div>
+          ) : null}
+
+          <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm text-center">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-3">{t('notebook.loginTitle')}</h2>
+            <p className="text-gray-600 mb-6">{t('notebook.loginSubtitle')}</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href={`/${locale}/login`}
+                className="block py-3 px-6 rounded-full text-center text-white text-sm font-medium transition"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
+                {t('navigation.signIn')}
+              </Link>
+              <Link
+                href={`/${locale}/register`}
+                className="block py-3 px-6 rounded-full text-center border text-sm font-medium transition"
+                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+              >
+                {t('navigation.signUp')}
+              </Link>
+            </div>
           </div>
         </div>
       </div>

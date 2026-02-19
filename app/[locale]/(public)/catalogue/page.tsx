@@ -55,7 +55,7 @@ export default async function CataloguePage({
       
       <div className="mt-4 border-t">
         <div className="bg-primary-light">
-          <div className="max-w-4xl mx-auto px-4 md:px-8 pt-10 pb-3 md:pt-12 md:pb-3">
+          <div className="max-w-4xl mx-auto px-4 md:px-8 py-10 md:py-12">
           {session?.user ? (
             <div className="text-center">
               <h3 className="text-2xl font-bold text-primary mb-4">
@@ -75,7 +75,7 @@ export default async function CataloguePage({
           ) : (
             <div className="text-center">
               <h3 className="text-2xl font-bold text-gray-700 mb-4">
-                {t('catalogue.loginToAdd')}
+                {t('catalogue.missingWhisky')}
               </h3>
               <p className="text-gray-600 mb-2">
                 {t('catalogue.loginRequired')}

@@ -11,7 +11,9 @@ export default function TagInput({
   lang,
   placeholder,
   createLabel,
+  createDisabledLabel,
   allowCreate = true,
+  disabled = false,
 }: {
   label: string
   value: Tag[]
@@ -19,7 +21,9 @@ export default function TagInput({
   lang: string
   placeholder: string
   createLabel: string
+  createDisabledLabel?: string
   allowCreate?: boolean
+  disabled?: boolean
 }) {
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<Tag[]>([])
@@ -39,6 +43,10 @@ export default function TagInput({
 
   useEffect(() => {
     const run = async () => {
+      if (disabled) {
+        setSuggestions([])
+        return
+      }
       if (query.trim().length < 2) {
         setSuggestions([])
         return
@@ -49,7 +57,7 @@ export default function TagInput({
     }
     const t = setTimeout(run, 300)
     return () => clearTimeout(t)
-  }, [query, lang])
+  }, [query, lang, disabled])
 
   const addTag = (tag: Tag) => {
     if (value.some((t) => t.id === tag.id)) return
@@ -61,6 +69,7 @@ export default function TagInput({
 
   const createTag = async () => {
     if (!allowCreate) return
+    if (disabled) return
     const name = query.trim()
     if (!name) return
     const res = await fetch('/api/tags/create', {
@@ -78,6 +87,7 @@ export default function TagInput({
   }
 
   const removeTag = (id: string) => {
+    if (disabled) return
     onChange(value.filter((t) => t.id !== id))
   }
 
@@ -92,6 +102,7 @@ export default function TagInput({
               <button
                 type="button"
                 className="ml-2 text-gray-500"
+                disabled={disabled}
                 onClick={() => removeTag(tag.id)}
               >
                 ×
@@ -101,6 +112,7 @@ export default function TagInput({
         </div>
         <input
           value={query}
+          disabled={disabled}
           onChange={(e) => {
             setQuery(e.target.value)
             setOpen(true)
@@ -112,10 +124,10 @@ export default function TagInput({
             }
           }}
           placeholder={placeholder}
-          className="w-full outline-none text-sm"
+          className="w-full outline-none text-sm disabled:text-gray-400"
         />
       </div>
-      {open && (suggestions.length > 0 || (allowCreate && query.trim().length >= 2)) && (
+      {!disabled && open && (suggestions.length > 0 || query.trim().length >= 2) && (
         <div className="border rounded-xl bg-white shadow-sm overflow-hidden">
           {suggestions.map((s) => (
             <button
@@ -135,6 +147,11 @@ export default function TagInput({
             >
               {createLabel} "{query.trim()}"
             </button>
+          )}
+          {!allowCreate && suggestions.length === 0 && (
+            <div className="w-full px-3 py-2 text-sm text-gray-500 bg-gray-50">
+              {createDisabledLabel || createLabel}
+            </div>
           )}
         </div>
       )}

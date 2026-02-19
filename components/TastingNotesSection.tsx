@@ -146,20 +146,25 @@ export default function TastingNotesSection({
   }, [isAuthenticated, whiskyId, locale])
 
   useEffect(() => {
-    if (!isAuthenticated) return
     const loadOthers = async () => {
       const params = new URLSearchParams({
         whiskyId,
         lang: locale,
         page: String(page),
-        pageSize: '6',
+        pageSize: isAuthenticated ? '6' : '2',
         sort,
       })
       if (filterPseudo) params.set('user', filterPseudo)
       const res = await fetch(`/api/tasting-notes/public?${params.toString()}`, { cache: 'no-store' })
+      if (!res.ok) {
+        setOthers([])
+        setTotalPages(1)
+        return
+      }
       const json = await res.json()
-      setOthers(json?.items || [])
-      setTotalPages(json?.totalPages || 1)
+      const items = json?.items || []
+      setOthers(isAuthenticated ? items : items.slice(0, 2))
+      setTotalPages(isAuthenticated ? json?.totalPages || 1 : 1)
     }
     loadOthers()
   }, [isAuthenticated, whiskyId, locale, page, filterPseudo, sort])
@@ -191,10 +196,10 @@ export default function TastingNotesSection({
   }
 
   useEffect(() => {
-    if (!myNote && isAuthenticated) {
+    if (!myNote) {
       resetForm()
     }
-  }, [myNote, isAuthenticated])
+  }, [myNote])
 
   const saveNote = async (targetStatus: 'draft' | 'published') => {
     if (savingNote) return
@@ -367,31 +372,6 @@ export default function TastingNotesSection({
     }
   }, [googleMapsApiKey, editing])
 
-  if (!isAuthenticated) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm text-center mt-10">
-        <h3 className="text-xl font-semibold">{t('tasting.loginTitle')}</h3>
-        <p className="text-gray-600 mt-2">{t('tasting.loginSubtitle')}</p>
-        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href={`/${locale}/login`}
-            className="block w-full sm:w-auto px-6 py-3 rounded-full text-center text-white text-sm font-medium transition"
-            style={{ backgroundColor: 'var(--color-primary)' }}
-          >
-            {t('navigation.signIn')}
-          </Link>
-          <Link
-            href={`/${locale}/register`}
-            className="block w-full sm:w-auto px-6 py-3 rounded-full text-center border text-sm font-medium transition"
-            style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-          >
-            {t('navigation.signUp')}
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="mt-10 space-y-8">
       {googleMapsApiKey && (
@@ -529,7 +509,7 @@ export default function TastingNotesSection({
                   style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
                 />
               </div>
-              <div className={`grid grid-cols-1 gap-4 ${notesVisibilityPublic ? 'md:grid-cols-[minmax(0,1fr)_auto]' : ''}`}>
+              <div className={`grid grid-cols-1 gap-4 ${(notesVisibilityPublic || !isAuthenticated) ? 'md:grid-cols-[minmax(0,1fr)_auto]' : ''}`}>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">{t('tasting.location')}</label>
                   <input
@@ -542,7 +522,7 @@ export default function TastingNotesSection({
                     style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
                   />
                 </div>
-                {notesVisibilityPublic && (
+                {(notesVisibilityPublic || !isAuthenticated) && (
                   <div className="md:min-w-[280px]">
                     <label className="block text-sm font-medium text-gray-700">{t('tasting.locationVisibilityLabel')}</label>
                     <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-1">
@@ -575,6 +555,8 @@ export default function TastingNotesSection({
                 lang={locale}
                 placeholder={t('tasting.nosePlaceholder')}
                 createLabel={t('tasting.createTag')}
+                createDisabledLabel={t('tasting.createTagLoginHint')}
+                allowCreate={isAuthenticated}
               />
               <TagInput
                 label={t('tasting.palate')}
@@ -583,6 +565,8 @@ export default function TastingNotesSection({
                 lang={locale}
                 placeholder={t('tasting.palatePlaceholder')}
                 createLabel={t('tasting.createTag')}
+                createDisabledLabel={t('tasting.createTagLoginHint')}
+                allowCreate={isAuthenticated}
               />
               <TagInput
                 label={t('tasting.finish')}
@@ -591,6 +575,8 @@ export default function TastingNotesSection({
                 lang={locale}
                 placeholder={t('tasting.finishPlaceholder')}
                 createLabel={t('tasting.createTag')}
+                createDisabledLabel={t('tasting.createTagLoginHint')}
+                allowCreate={isAuthenticated}
               />
 
               <div>
@@ -624,7 +610,7 @@ export default function TastingNotesSection({
               <div className="flex gap-3">
                 <button
                   onClick={() => saveNote('published')}
-                  disabled={savingNote || deletingNote}
+                  disabled={!isAuthenticated || savingNote || deletingNote}
                   className="px-4 py-2 rounded-lg text-white"
                   style={{ backgroundColor: 'var(--color-primary)' }}
                 >
@@ -632,7 +618,7 @@ export default function TastingNotesSection({
                 </button>
                 <button
                   onClick={() => saveNote('draft')}
-                  disabled={savingNote || deletingNote}
+                  disabled={!isAuthenticated || savingNote || deletingNote}
                   className="px-4 py-2 rounded-lg border text-sm"
                   style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                 >
@@ -644,7 +630,7 @@ export default function TastingNotesSection({
                       if (myNote.status === 'draft') return
                       setEditing(false)
                     }}
-                    disabled={savingNote || deletingNote}
+                    disabled={!isAuthenticated || savingNote || deletingNote}
                     className="px-4 py-2 rounded-lg border"
                     style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                   >
@@ -654,7 +640,7 @@ export default function TastingNotesSection({
                 {myNote?.status === 'draft' && (
                   <button
                     onClick={handleDelete}
-                    disabled={savingNote || deletingNote}
+                    disabled={!isAuthenticated || savingNote || deletingNote}
                     className="px-4 py-2 rounded-lg border border-red-300 text-sm text-red-600"
                   >
                     {deletingNote ? t('common.saving') : t('tasting.deleteDraft')}
@@ -694,11 +680,17 @@ export default function TastingNotesSection({
             </div>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {others.map((note) => {
+            {others.map((note, idx) => {
               const pseudo = note.pseudo || 'User'
               const avatar = buildAvatar(pseudo)
+              const blurCard = !isAuthenticated && idx === 1
               return (
-                <div key={note.id} className="rounded-xl p-4 bg-gray-50 border border-gray-100">
+                <div
+                  key={note.id}
+                  className={`rounded-xl p-4 bg-gray-50 border border-gray-100 ${blurCard ? 'relative overflow-hidden' : ''}`}
+                >
+                  {blurCard ? <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white/80 to-transparent z-10" /> : null}
+                  <div className={blurCard ? 'blur-[1.5px]' : ''}>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: avatar.color }}>
                       {avatar.initial}
@@ -730,6 +722,7 @@ export default function TastingNotesSection({
                     </div>
                   </div>
                   {note.overall && <p className="text-sm text-gray-700 mt-2">{note.overall}</p>}
+                  </div>
                 </div>
               )
             })}
@@ -737,7 +730,7 @@ export default function TastingNotesSection({
               <p className="text-sm text-gray-600">{t('tasting.noOtherNotes')}</p>
             )}
           </div>
-          {totalPages > 1 && (
+          {isAuthenticated && totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-6">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -760,6 +753,28 @@ export default function TastingNotesSection({
           )}
         </div>
       </div>
+      {!isAuthenticated && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm text-center">
+          <h3 className="text-xl font-semibold">{t('tasting.loginTitle')}</h3>
+          <p className="text-gray-600 mt-2">{t('tasting.loginSubtitle')}</p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href={`/${locale}/login`}
+              className="block w-full sm:w-auto px-6 py-3 rounded-full text-center text-white text-sm font-medium transition"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            >
+              {t('navigation.signIn')}
+            </Link>
+            <Link
+              href={`/${locale}/register`}
+              className="block w-full sm:w-auto px-6 py-3 rounded-full text-center border text-sm font-medium transition"
+              style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+            >
+              {t('navigation.signUp')}
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

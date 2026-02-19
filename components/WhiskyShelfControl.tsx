@@ -95,8 +95,23 @@ export default function WhiskyShelfControl({
   if (!isLoggedIn) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <h2 className="text-lg font-semibold text-gray-900">{t('notebook.shelfTitle')}</h2>
-        <div className="text-sm text-gray-600 mt-1">{t('notebook.shelfLogin')}</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900">{t('notebook.shelfTitle')}:</h2>
+          {OPTIONS.map((opt) => (
+            <button
+              key={opt.status}
+              type="button"
+              disabled
+              className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs leading-none border bg-white text-gray-700 border-gray-200 opacity-80 cursor-not-allowed"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <ShelfStatusIcon status={opt.status} />
+                <span className="leading-none">{t(opt.key)}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="text-sm text-gray-600 mt-2">{t('notebook.shelfLogin')}</div>
       </div>
     )
   }

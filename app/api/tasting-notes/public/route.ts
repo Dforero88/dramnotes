@@ -7,10 +7,7 @@ import { normalizeSearch } from '@/lib/moderation'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
-  const userId = session?.user?.id
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const userId = session?.user?.id || null
 
   const { searchParams } = new URL(request.url)
   const whiskyId = searchParams.get('whiskyId')
@@ -29,8 +26,10 @@ export async function GET(request: NextRequest) {
     eq(tastingNotes.whiskyId, whiskyId),
     eq(tastingNotes.status, 'published'),
     isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'),
-    sql`${users.id} <> ${userId}`,
   ]
+  if (userId) {
+    filters.push(sql`${users.id} <> ${userId}`)
+  }
 
   if (pseudo) {
     filters.push(sql`lower(${users.pseudo}) = ${pseudo.toLowerCase()}`)

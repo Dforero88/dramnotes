@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import { db, tastingNotes, users, whiskies, follows, activities, countries, distillers, bottlers, isMysql, userShelf } from '@/lib/db'
-import { eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, gte, inArray, sql } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import HomeHeroCarousel from '@/components/HomeHeroCarousel'
 import HomeActivitiesFeed from '@/components/HomeActivitiesFeed'
@@ -23,6 +23,8 @@ type TopUser = {
   id: string
   pseudo: string
   notesCount: number
+  countryId: string | null
+  followersCount?: number
 }
 
 type ActivityItem = {
@@ -119,6 +121,31 @@ function normalizeImage(url?: string | null) {
   return `/${url}`
 }
 
+function getCountryFlagUrl(countryId?: string | null) {
+  if (!countryId) return ''
+  const code = String(countryId).trim().toLowerCase()
+  if (!code) return ''
+  if (code === 'sct') return '/flags/scotland.svg'
+  return `https://hatscripts.github.io/circle-flags/flags/${code}.svg`
+}
+
+function pickActivitiesByType<T extends { type: string }>(
+  source: T[],
+  types: string[],
+  maxPerType: number
+) {
+  const counters = new Map<string, number>()
+  const selected: T[] = []
+  for (const item of source) {
+    if (!types.includes(item.type)) continue
+    const current = counters.get(item.type) || 0
+    if (current >= maxPerType) continue
+    counters.set(item.type, current + 1)
+    selected.push(item)
+  }
+  return selected
+}
+
 export default async function HomePage({
   params,
 }: {
@@ -136,6 +163,7 @@ export default async function HomePage({
       id: users.id,
       pseudo: users.pseudo,
       notesCount: sql<number>`count(${tastingNotes.id})`,
+      countryId: users.countryId,
     })
     .from(users)
     .leftJoin(
@@ -148,6 +176,28 @@ export default async function HomePage({
     .groupBy(users.id)
     .orderBy(sql`count(${tastingNotes.id}) desc`)
     .limit(3)) as TopUser[]
+
+  const topUserIds = topUsers.map((user) => user.id)
+  const topUsersFollowers = topUserIds.length
+    ? await db
+        .select({
+          userId: follows.followedId,
+          followersCount: sql<number>`count(${follows.followerId})`,
+        })
+        .from(follows)
+        .where(inArray(follows.followedId, topUserIds))
+        .groupBy(follows.followedId)
+    : []
+  const topUsersFollowersMap = new Map(
+    topUsersFollowers.map((row: { userId: string; followersCount: number | string | null }) => [
+      row.userId,
+      Number(row.followersCount || 0),
+    ])
+  )
+  const topUsersWithMeta = topUsers.map((user) => ({
+    ...user,
+    followersCount: topUsersFollowersMap.get(user.id) || 0,
+  }))
 
   type LatestWhisky = {
     id: string
@@ -167,25 +217,28 @@ export default async function HomePage({
     .orderBy(sql`${whiskies.createdAt} desc`)
     .limit(5)) as LatestWhisky[]
 
+  const recentWindowStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
   const stats = await db
     .select({
       totalWhiskies: sql<number>`count(${whiskies.id})`,
     })
     .from(whiskies)
+    .where(gte(whiskies.createdAt, recentWindowStart))
 
   const noteStats = await db
     .select({
       totalNotes: sql<number>`count(${tastingNotes.id})`,
     })
     .from(tastingNotes)
-    .where(eq(tastingNotes.status, 'published'))
+    .where(and(eq(tastingNotes.status, 'published'), gte(tastingNotes.createdAt, recentWindowStart)))
 
   const publicUsers = await db
     .select({
       totalPublicUsers: sql<number>`count(${users.id})`,
     })
     .from(users)
-    .where(isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'))
+    .where(and(gte(users.confirmedAt, recentWindowStart), sql`${users.confirmedAt} is not null`))
 
   type FollowedRow = { followedId: string }
   const followedRows = (isLoggedIn
@@ -248,7 +301,60 @@ export default async function HomePage({
         .limit(8)
     : []) as ActivityItem[]
 
-  const activityUserIds = recentActivities.map((row: ActivityItem) => row.actorId)
+  const guestActivities = (!isLoggedIn
+    ? await db
+        .select({
+          id: activities.id,
+          type: activities.type,
+          createdAt: activities.createdAt,
+          actorId: activities.userId,
+          actorPseudo: users.pseudo,
+          targetId: activities.targetId,
+          whiskyName: whiskies.name,
+          whiskyImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
+          whiskyType: whiskies.type,
+          countryName: countries.name,
+          bottlingType: whiskies.bottlingType,
+          distillerName: distillers.name,
+          bottlerName: bottlers.name,
+          location: tastingNotes.location,
+          locationVisibility: tastingNotes.locationVisibility,
+          city: tastingNotes.city,
+          country: tastingNotes.country,
+          rating: tastingNotes.rating,
+          shelfStatus: userShelf.status,
+        })
+        .from(activities)
+        .leftJoin(
+          users,
+          isMysql ? sql`binary ${users.id} = binary ${activities.userId}` : eq(users.id, activities.userId)
+        )
+        .leftJoin(
+          whiskies,
+          isMysql ? sql`binary ${whiskies.id} = binary ${activities.targetId}` : eq(whiskies.id, activities.targetId)
+        )
+        .leftJoin(countries, eq(countries.id, whiskies.countryId))
+        .leftJoin(distillers, eq(distillers.id, whiskies.distillerId))
+        .leftJoin(bottlers, eq(bottlers.id, whiskies.bottlerId))
+        .leftJoin(
+          tastingNotes,
+          isMysql
+            ? sql`binary ${tastingNotes.userId} = binary ${activities.userId} and binary ${tastingNotes.whiskyId} = binary ${activities.targetId} and binary ${tastingNotes.status} = 'published'`
+            : sql`${tastingNotes.userId} = ${activities.userId} and ${tastingNotes.whiskyId} = ${activities.targetId} and ${tastingNotes.status} = 'published'`
+        )
+        .leftJoin(
+          userShelf,
+          isMysql
+            ? sql`binary ${userShelf.userId} = binary ${activities.userId} and binary ${userShelf.whiskyId} = binary ${activities.targetId}`
+            : sql`${userShelf.userId} = ${activities.userId} and ${userShelf.whiskyId} = ${activities.targetId}`
+        )
+        .where(inArray(activities.type, ['new_note', 'new_whisky', 'shelf_add']))
+        .orderBy(sql`${activities.createdAt} desc`)
+        .limit(60)
+    : []) as ActivityItem[]
+
+  const sourceActivities = isLoggedIn ? recentActivities : guestActivities
+  const activityUserIds = sourceActivities.map((row: ActivityItem) => row.actorId)
   type ActivityUserRow = { id: string; pseudo: string | null; visibility: string | null; shelfVisibility: string | null }
   const activityUsers = activityUserIds.length
     ? await db
@@ -261,7 +367,7 @@ export default async function HomePage({
     return acc
   }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null; shelfVisibility: string | null }>)
 
-  const activitiesVisible = recentActivities
+  const activitiesVisible = sourceActivities
     .filter((row) => row.type === 'new_note' || row.type === 'new_whisky' || row.type === 'shelf_add')
     .filter((row) => (row.type === 'new_note' ? row.rating !== null : true))
     .filter((row) => activityUsersMap[row.actorId]?.visibility === 'public')
@@ -280,6 +386,9 @@ export default async function HomePage({
           ? row.location
           : [row.city, row.country].filter(Boolean).join(', ') || row.country || null,
     }))
+  const activitiesToDisplay = isLoggedIn
+    ? activitiesVisible
+    : pickActivitiesByType(activitiesVisible, ['new_note', 'new_whisky', 'shelf_add'], 2)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -329,10 +438,9 @@ export default async function HomePage({
                 src="/images/hero/home-hero-catalogue.webp"
                 alt=""
                 aria-hidden="true"
-                className="absolute inset-0 h-full w-full object-cover opacity-80"
+                className="absolute inset-0 h-full w-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/45 to-black/25" />
-              <div className="relative z-10">
+              <div className="relative z-10 rounded-xl bg-black/35 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="text-lg font-semibold text-white">{t('home.actionCatalogueTitle')}</div>
                 <span
@@ -353,10 +461,9 @@ export default async function HomePage({
                 src="/images/hero/home-hero-explorer.webp"
                 alt=""
                 aria-hidden="true"
-                className="absolute inset-0 h-full w-full object-cover opacity-80"
+                className="absolute inset-0 h-full w-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/45 to-black/25" />
-              <div className="relative z-10">
+              <div className="relative z-10 rounded-xl bg-black/35 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="text-lg font-semibold text-white">{t('home.actionExploreTitle')}</div>
                 <span
@@ -375,20 +482,33 @@ export default async function HomePage({
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">{t('home.topUsersTitle')}</h2>
+              <Link
+                href={`/${safeLocale}/explorer`}
+                className="text-sm font-medium"
+                style={{ color: 'var(--color-primary)' }}
+              >
+                {t('home.topUsersCta')}
+              </Link>
             </div>
             <div className="space-y-4">
-              {topUsers.map((user) => {
+              {topUsersWithMeta.map((user) => {
                 const avatar = buildAvatar(user.pseudo)
+                const flagUrl = getCountryFlagUrl(user.countryId)
                 const isSelf = currentUserId && user.id === currentUserId
                 const content = (
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold" style={{ backgroundColor: avatar.color }}>
+                  <div className="flex items-center gap-4 rounded-xl border border-gray-100 px-3 py-2">
+                    <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white text-lg font-semibold" style={{ backgroundColor: avatar.color }}>
                       {avatar.initial}
                     </div>
                     <div>
-                      <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
-                      <div className="text-sm text-gray-500">
+                      <div className="flex items-center gap-2">
+                        <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
+                        {flagUrl ? <img src={flagUrl} alt="" className="h-4 w-4 rounded-full" /> : null}
+                      </div>
+                      <div className="text-sm text-gray-500 flex flex-wrap items-center gap-x-3 gap-y-1">
                         {Number(user.notesCount || 0)} {t('home.notesCount')}
+                        <span>·</span>
+                        <span>{Number(user.followersCount || 0)} {t('home.topUsersFollowers')}</span>
                       </div>
                     </div>
                   </div>
@@ -458,23 +578,26 @@ export default async function HomePage({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <div className="text-2xl font-semibold text-gray-900">{Number(stats?.[0]?.totalWhiskies || 0)}</div>
-            <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
-              {t('home.statsWhiskies')}
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900">{t('home.recentStatsTitle')}</h2>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <div className="text-2xl font-semibold text-gray-900">{Number(stats?.[0]?.totalWhiskies || 0)}</div>
+              <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
+                {t('home.statsWhiskies')}
+              </div>
             </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <div className="text-2xl font-semibold text-gray-900">{Number(noteStats?.[0]?.totalNotes || 0)}</div>
-            <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
-              {t('home.statsNotes')}
+            <div>
+              <div className="text-2xl font-semibold text-gray-900">{Number(noteStats?.[0]?.totalNotes || 0)}</div>
+              <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
+                {t('home.statsNotes')}
+              </div>
             </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <div className="text-2xl font-semibold text-gray-900">{Number(publicUsers?.[0]?.totalPublicUsers || 0)}</div>
-            <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
-              {t('home.statsContributors')}
+            <div>
+              <div className="text-2xl font-semibold text-gray-900">{Number(publicUsers?.[0]?.totalPublicUsers || 0)}</div>
+              <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
+                {t('home.statsContributors')}
+              </div>
             </div>
           </div>
         </div>
@@ -487,7 +610,7 @@ export default async function HomePage({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <HomeActivitiesFeed
                 locale={safeLocale}
-                activities={activitiesVisible}
+                activities={activitiesToDisplay}
                 labels={{
                   noActivity: t('home.noActivity'),
                   activityNote: t('home.activityNote'),
@@ -498,23 +621,38 @@ export default async function HomePage({
               />
             </div>
           ) : (
-            <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-5 text-center">
-              <div className="text-sm text-gray-600">{t('home.activityLoginSubtitle')}</div>
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-                <Link
-                  href={`/${safeLocale}/login`}
-                  className="px-4 py-2 rounded-full text-white text-sm font-medium transition"
-                  style={{ backgroundColor: 'var(--color-primary)' }}
-                >
-                  {t('auth.loginButton')}
-                </Link>
-                <Link
-                  href={`/${safeLocale}/register`}
-                  className="px-4 py-2 rounded-full border text-sm font-medium transition"
-                  style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-                >
-                  {t('auth.register')}
-                </Link>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <HomeActivitiesFeed
+                  locale={safeLocale}
+                  activities={activitiesToDisplay}
+                  labels={{
+                    noActivity: t('home.noActivity'),
+                    activityNote: t('home.activityNote'),
+                    activityWhiskyAdded: t('home.activityWhiskyAdded'),
+                    activityShelfAdded: t('home.activityShelfAdded'),
+                    activityShelfWishlist: t('home.activityShelfWishlist'),
+                  }}
+                />
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-5 text-center">
+                <div className="text-sm text-gray-600">{t('home.activityLoginSubtitle')}</div>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                  <Link
+                    href={`/${safeLocale}/login`}
+                    className="px-4 py-2 rounded-full text-white text-sm font-medium transition"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                  >
+                    {t('auth.loginButton')}
+                  </Link>
+                  <Link
+                    href={`/${safeLocale}/register`}
+                    className="px-4 py-2 rounded-full border text-sm font-medium transition"
+                    style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                  >
+                    {t('auth.register')}
+                  </Link>
+                </div>
               </div>
             </div>
           )}

@@ -179,12 +179,14 @@ export default function Navigation() {
             >
               {t('navigation.explorer')}
             </Link>
-            <Link 
-              href={`/${locale}/account`} 
-              className="text-primary-light hover:text-white py-2 transition-colors"
-            >
-              {t('navigation.myAccount')}
-            </Link>
+            {session && (
+              <Link 
+                href={`/${locale}/account`} 
+                className="text-primary-light hover:text-white py-2 transition-colors"
+              >
+                {t('navigation.myAccount')}
+              </Link>
+            )}
           </div>
         </div>
       </nav>
@@ -215,9 +217,11 @@ export default function Navigation() {
             <Link href={`/${locale}/explorer`} className="block text-primary" onClick={() => setMobileOpen(false)}>
               {t('navigation.explorer')}
             </Link>
-            <Link href={`/${locale}/account`} className="block text-primary" onClick={() => setMobileOpen(false)}>
-              {t('navigation.myAccount')}
-            </Link>
+            {session && (
+              <Link href={`/${locale}/account`} className="block text-primary" onClick={() => setMobileOpen(false)}>
+                {t('navigation.myAccount')}
+              </Link>
+            )}
           </div>
         </div>
       )}

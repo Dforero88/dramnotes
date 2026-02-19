@@ -69,11 +69,10 @@ export default function ExplorerPageClient() {
   const trimmedQuery = useMemo(() => query.trim(), [query])
 
   useEffect(() => {
-    if (!isLoggedIn) return
     const run = async () => {
       setLoading(true)
       const params = new URLSearchParams()
-      params.set('q', appliedQuery)
+      params.set('q', isLoggedIn ? appliedQuery : '')
       params.set('page', String(page))
       params.set('pageSize', '12')
       const res = await fetch(`/api/explorer/users?${params.toString()}`, { cache: 'no-store' })
@@ -124,32 +123,6 @@ export default function ExplorerPageClient() {
   }
 
   if (isLoading) return <div className="p-8">{t('common.loading')}</div>
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center p-8">
-        <div className="max-w-md w-full p-8 bg-white rounded-2xl shadow-sm text-center border border-gray-200">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-3">{t('explorer.loginTitle')}</h2>
-          <p className="text-gray-600 mb-6">{t('explorer.loginSubtitle')}</p>
-          <div className="flex flex-col gap-3">
-            <Link
-              href={`/${locale}/login`}
-              className="block w-full py-3 rounded-full text-center text-white text-sm font-medium transition"
-              style={{ backgroundColor: 'var(--color-primary)' }}
-            >
-              {t('navigation.signIn')}
-            </Link>
-            <Link
-              href={`/${locale}/register`}
-              className="block w-full py-3 rounded-full text-center border text-sm font-medium transition"
-              style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-            >
-              {t('navigation.signUp')}
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
@@ -164,17 +137,20 @@ export default function ExplorerPageClient() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('explorer.searchPlaceholder')}
-            className="w-full outline-none text-sm"
+            disabled={!isLoggedIn}
+            className="w-full outline-none text-sm disabled:text-gray-400 disabled:cursor-not-allowed"
           />
           <button
             type="button"
             onClick={() => {
+              if (!isLoggedIn) return
               pendingSearchRef.current = { queryLength: trimmedQuery.length }
               setAppliedQuery(trimmedQuery)
               setPage(1)
             }}
+            disabled={!isLoggedIn}
             className="px-4 py-2 rounded-lg text-white text-sm"
-            style={{ backgroundColor: 'var(--color-primary)' }}
+            style={{ backgroundColor: !isLoggedIn ? '#9ca3af' : 'var(--color-primary)' }}
           >
             {t('explorer.searchButton')}
           </button>
@@ -200,7 +176,7 @@ export default function ExplorerPageClient() {
             >
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  {isSelf ? (
+                  {isSelf || !isLoggedIn ? (
                     <div
                       className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
                       style={{ backgroundColor: avatar.color }}
@@ -217,7 +193,7 @@ export default function ExplorerPageClient() {
                     </Link>
                   )}
                   <div className="space-y-0.5">
-                    {isSelf ? (
+                    {isSelf || !isLoggedIn ? (
                       <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
                     ) : (
                       <Link
@@ -233,7 +209,7 @@ export default function ExplorerPageClient() {
                   </div>
                 </div>
 
-                {!isSelf && (
+                {!isSelf && isLoggedIn && (
                   <button
                     type="button"
                     onClick={() => handleToggleFollow(user.id)}
@@ -276,6 +252,29 @@ export default function ExplorerPageClient() {
           >
             {t('catalogue.next')}
           </button>
+        </div>
+      )}
+
+      {!isLoggedIn && (
+        <div className="mt-10 max-w-md mx-auto w-full p-8 bg-white rounded-2xl shadow-sm text-center border border-gray-200">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-3">{t('explorer.loginTitle')}</h2>
+          <p className="text-gray-600 mb-6">{t('explorer.loginSubtitle')}</p>
+          <div className="flex flex-col gap-3">
+            <Link
+              href={`/${locale}/login`}
+              className="block w-full py-3 rounded-full text-center text-white text-sm font-medium transition"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            >
+              {t('navigation.signIn')}
+            </Link>
+            <Link
+              href={`/${locale}/register`}
+              className="block w-full py-3 rounded-full text-center border text-sm font-medium transition"
+              style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+            >
+              {t('navigation.signUp')}
+            </Link>
+          </div>
         </div>
       )}
     </div>

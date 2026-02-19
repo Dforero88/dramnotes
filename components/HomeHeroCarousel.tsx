@@ -31,7 +31,7 @@ export default function HomeHeroCarousel({ slides }: HomeHeroCarouselProps) {
   const goNext = () => setIndex((prev) => (prev + 1) % slides.length)
 
   return (
-    <div className="relative overflow-hidden bg-gray-900">
+    <div className="relative overflow-hidden">
       <div
         className="flex transition-transform duration-500 ease-out"
         style={{ transform: `translateX(-${index * 100}%)` }}
@@ -47,11 +47,15 @@ export default function HomeHeroCarousel({ slides }: HomeHeroCarouselProps) {
               alt={slide.title}
               className="absolute inset-0 h-full w-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/10" />
             <div className="relative z-10 flex h-full items-end p-8">
-              <div className="max-w-xl">
-                <div className="text-3xl font-semibold text-white">{slide.title}</div>
-                <div className="mt-2 text-sm text-white/90">{slide.description}</div>
+              <div className="max-w-2xl rounded-2xl bg-black/40 px-5 py-4 backdrop-blur-[1px]">
+                <div
+                  className="text-4xl xl:text-5xl font-semibold text-white"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  {slide.title}
+                </div>
+                <div className="mt-2 text-lg text-white/95">{slide.description}</div>
               </div>
             </div>
           </Link>
