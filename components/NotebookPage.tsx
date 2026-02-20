@@ -201,6 +201,11 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [previewTab, setPreviewTab] = useState<'notes' | 'aroma' | 'shelf' | 'followers' | 'following'>('notes')
   const [previewNotesView, setPreviewNotesView] = useState<'list' | 'map'>('list')
+  const noteCountLabel = (count: number) => (count <= 1 ? t('notebook.noteCountSingular') : t('notebook.noteCountPlural'))
+  const shelfCountLabel = (count: number) => (count <= 1 ? t('notebook.shelfCountSingular') : t('notebook.shelfCountPlural'))
+  const followersCountLabel = (count: number) => (count <= 1 ? t('notebook.followerCountSingular') : t('notebook.followerCountPlural'))
+  const followingCountLabel = (count: number) => (count <= 1 ? t('notebook.followingCountSingular') : t('notebook.followingCountPlural'))
+  const noteCountText = (count: number) => `${count} ${count <= 1 ? t('notebook.noteCountSingular') : t('notebook.noteCountPlural')}`
 
   const hideSocialTabs = useMemo(() => {
     if (!summary) return false
@@ -560,7 +565,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                         </span>
                       </span>
                       <span className={`text-sm font-medium ${previewTab === 'notes' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
-                        {t('notebook.notesCount')}
+                        {noteCountLabel(preview.counts.notes)}
                       </span>
                     </button>
 
@@ -597,7 +602,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                         </span>
                       </span>
                       <span className={`text-sm font-medium ${previewTab === 'shelf' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
-                        {t('notebook.shelfTitle')}
+                        {shelfCountLabel(preview.counts.shelf)}
                       </span>
                     </button>
                   </div>
@@ -609,7 +614,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                       style={previewTab === 'followers' ? { backgroundColor: 'var(--color-primary-light)', borderColor: 'transparent' } : { backgroundColor: '#fff' }}
                     >
                       <div className="text-lg font-semibold text-gray-900">{preview.counts.followers}</div>
-                      <div className="text-xs text-gray-600">{t('notebook.followersCount')}</div>
+                      <div className="text-xs text-gray-600">{followersCountLabel(preview.counts.followers)}</div>
                     </button>
                     <button
                       onClick={() => setPreviewTab('following')}
@@ -617,7 +622,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                       style={previewTab === 'following' ? { backgroundColor: 'var(--color-primary-light)', borderColor: 'transparent' } : { backgroundColor: '#fff' }}
                     >
                       <div className="text-lg font-semibold text-gray-900">{preview.counts.following}</div>
-                      <div className="text-xs text-gray-600">{t('notebook.followingCount')}</div>
+                      <div className="text-xs text-gray-600">{followingCountLabel(preview.counts.following)}</div>
                     </button>
                   </div>
 
@@ -730,7 +735,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                                     <div className="text-sm font-semibold text-gray-900 truncate">{user.pseudo}</div>
                                     {flagUrl ? <img src={flagUrl} alt="" className="h-4 w-4 rounded-full" /> : null}
                                   </div>
-                                  <div className="text-xs text-gray-500">{user.notesCount} {t('home.notesCount')}</div>
+                                  <div className="text-xs text-gray-500">{noteCountText(user.notesCount)}</div>
                                 </div>
                               </div>
                             </div>
@@ -758,7 +763,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                                     <div className="text-sm font-semibold text-gray-900 truncate">{user.pseudo}</div>
                                     {flagUrl ? <img src={flagUrl} alt="" className="h-4 w-4 rounded-full" /> : null}
                                   </div>
-                                  <div className="text-xs text-gray-500">{user.notesCount} {t('home.notesCount')}</div>
+                                  <div className="text-xs text-gray-500">{noteCountText(user.notesCount)}</div>
                                 </div>
                               </div>
                             </div>
@@ -920,8 +925,8 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
           <div className={`mt-6 grid grid-cols-1 sm:grid-cols-2 ${kpiGridLgClass} gap-4`}>
             <button
               onClick={() => setActiveTab('notes')}
-              aria-label={`${t('notebook.notesCount')} (${summary.counts.notes})`}
-              title={`${t('notebook.notesCount')} (${summary.counts.notes})`}
+              aria-label={`${noteCountLabel(summary.counts.notes)} (${summary.counts.notes})`}
+              title={`${noteCountLabel(summary.counts.notes)} (${summary.counts.notes})`}
               className={`rounded-xl h-20 border px-4 flex items-center gap-3 text-left ${activeTab === 'notes' ? 'border-transparent' : 'border-gray-200'}`}
               style={activeTab === 'notes' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
             >
@@ -937,7 +942,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                 </span>
               </span>
               <span className={`text-sm font-medium ${activeTab === 'notes' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
-                {t('notebook.notesCount')}
+                {noteCountLabel(summary.counts.notes)}
               </span>
             </button>
 
@@ -1004,7 +1009,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                   </span>
                 </span>
                 <span className={`text-sm font-medium ${activeTab === 'shelf' ? 'text-[var(--color-primary)]' : 'text-gray-700'}`}>
-                  {t('notebook.shelfTitle')}
+                  {shelfCountLabel(summary.counts.shelf || 0)}
                 </span>
               </button>
             )}
@@ -1018,7 +1023,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                 style={activeTab === 'followers' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
               >
                 <div className="text-lg font-semibold text-gray-900">{summary.counts.followers}</div>
-                <div className="text-xs text-gray-600">{t('notebook.followersCount')}</div>
+                <div className="text-xs text-gray-600">{followersCountLabel(summary.counts.followers)}</div>
               </button>
               <button
                 onClick={() => setActiveTab('following')}
@@ -1026,7 +1031,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                 style={activeTab === 'following' ? { backgroundColor: 'var(--color-primary-light)' } : { backgroundColor: '#fff' }}
               >
                 <div className="text-lg font-semibold text-gray-900">{summary.counts.following}</div>
-                <div className="text-xs text-gray-600">{t('notebook.followingCount')}</div>
+                <div className="text-xs text-gray-600">{followingCountLabel(summary.counts.following)}</div>
               </button>
             </div>
           )}
@@ -1478,7 +1483,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                               <div className="space-y-0.5">
                                 <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
                                 <div className="text-sm text-gray-500">
-                                  {user.notesCount} {t('notebook.notesCount')}
+                                  {noteCountText(user.notesCount)}
                                 </div>
                               </div>
                             </div>
@@ -1558,7 +1563,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                               <div className="space-y-0.5">
                                 <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
                                 <div className="text-sm text-gray-500">
-                                  {user.notesCount} {t('notebook.notesCount')}
+                                  {noteCountText(user.notesCount)}
                                 </div>
                               </div>
                             </div>
@@ -1643,7 +1648,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                     </div>
                     <div className="rounded-2xl border border-gray-200 bg-white p-5">
                       <div className="text-3xl font-semibold text-gray-900">{aromaData.totalNotes}</div>
-                      <div className="text-sm text-gray-500 mt-1">{t('notebook.notesCount')}</div>
+                      <div className="text-sm text-gray-500 mt-1">{noteCountLabel(aromaData.totalNotes)}</div>
                     </div>
                   </div>
 

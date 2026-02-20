@@ -390,6 +390,15 @@ export default async function HomePage({
   const activitiesToDisplay = isLoggedIn
     ? activitiesVisible
     : pickActivitiesByType(activitiesVisible, ['new_note', 'new_whisky', 'shelf_add'], 2)
+  const whiskiesRecentCount = Number(stats?.[0]?.totalWhiskies || 0)
+  const notesRecentCount = Number(noteStats?.[0]?.totalNotes || 0)
+  const membersRecentCount = Number(publicUsers?.[0]?.totalPublicUsers || 0)
+  const formatUserNotesText = (count: number) => {
+    return `${count} ${count <= 1 ? t('home.noteCountSingular') : t('home.noteCountPlural')}`
+  }
+  const formatFollowersText = (count: number) => {
+    return `${count} ${count <= 1 ? t('home.topUsersFollowerSingular') : t('home.topUsersFollowerPlural')}`
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -508,9 +517,9 @@ export default async function HomePage({
                         {flagUrl ? <img src={flagUrl} alt="" className="h-4 w-4 rounded-full" /> : null}
                       </div>
                       <div className="text-sm text-gray-500 flex flex-wrap items-center gap-x-3 gap-y-1">
-                        {Number(user.notesCount || 0)} {t('home.notesCount')}
+                        {formatUserNotesText(Number(user.notesCount || 0))}
                         <span>·</span>
-                        <span>{Number(user.followersCount || 0)} {t('home.topUsersFollowers')}</span>
+                        <span>{formatFollowersText(Number(user.followersCount || 0))}</span>
                       </div>
                     </div>
                   </div>
@@ -584,21 +593,21 @@ export default async function HomePage({
           <h2 className="text-xl font-semibold text-gray-900">{t('home.recentStatsTitle')}</h2>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <div className="text-2xl font-semibold text-gray-900">{Number(stats?.[0]?.totalWhiskies || 0)}</div>
+              <div className="text-2xl font-semibold text-gray-900">{whiskiesRecentCount}</div>
               <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
-                {t('home.statsWhiskies')}
+                {whiskiesRecentCount <= 1 ? t('home.statsWhiskiesSingular') : t('home.statsWhiskiesPlural')}
               </div>
             </div>
             <div>
-              <div className="text-2xl font-semibold text-gray-900">{Number(noteStats?.[0]?.totalNotes || 0)}</div>
+              <div className="text-2xl font-semibold text-gray-900">{notesRecentCount}</div>
               <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
-                {t('home.statsNotes')}
+                {notesRecentCount <= 1 ? t('home.statsNotesSingular') : t('home.statsNotesPlural')}
               </div>
             </div>
             <div>
-              <div className="text-2xl font-semibold text-gray-900">{Number(publicUsers?.[0]?.totalPublicUsers || 0)}</div>
+              <div className="text-2xl font-semibold text-gray-900">{membersRecentCount}</div>
               <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
-                {t('home.statsContributors')}
+                {membersRecentCount <= 1 ? t('home.statsContributorsSingular') : t('home.statsContributorsPlural')}
               </div>
             </div>
           </div>

@@ -379,7 +379,9 @@ export default async function WhiskyDetailPage({
 
                   <div className="w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
                     <div className="text-base font-semibold text-gray-900">{analyticsData.totalReviews}</div>
-                    <div className="text-xs text-gray-500 mt-1">{t('whisky.analyticsReviewsLabel')}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {analyticsData.totalReviews === 1 ? t('whisky.analyticsReviewLabelSingular') : t('whisky.analyticsReviewLabelPlural')}
+                    </div>
                   </div>
                 </div>
 

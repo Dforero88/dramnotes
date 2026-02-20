@@ -805,7 +805,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
                           </span>
                         )}
                         <span className="text-xs text-gray-500">
-                          {Number(whisky.totalReviews || 0)} {t('catalogue.notesCount')}
+                          {Number(whisky.totalReviews || 0)} {Number(whisky.totalReviews || 0) === 1 ? t('catalogue.noteCountSingular') : t('catalogue.noteCountPlural')}
                         </span>
                       </div>
                     )}
@@ -846,7 +846,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
                     </div>
                     <div className="pt-1">
                       <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-700 px-2 py-0.5 text-xs font-semibold">
-                        {Number(producer.whiskyCount || 0)} {t('catalogue.whiskiesCount')}
+                        {Number(producer.whiskyCount || 0)} {Number(producer.whiskyCount || 0) === 1 ? t('catalogue.whiskyCountSingular') : t('catalogue.whiskyCountPlural')}
                       </span>
                     </div>
                   </div>

@@ -227,13 +227,13 @@ export default async function BottlerPage({ params, searchParams }: Props) {
                 </span>
               ) : null}
               <span className="px-3 py-1 rounded-full text-sm border border-gray-200 bg-white">
-                {total} {t('catalogue.whiskiesCount')}
+                {total} {total === 1 ? t('catalogue.whiskyCountSingular') : t('catalogue.whiskyCountPlural')}
               </span>
             </div>
             <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
               <h2 className="text-lg font-semibold mb-3">{t('catalogue.producerDescriptionTitle')}</h2>
               <p className="text-sm text-gray-600 whitespace-pre-line">
-                {localizedDescription || `${header.name} — ${total} ${t('catalogue.whiskiesCount')}.`}
+                {localizedDescription || `${header.name} — ${total} ${total === 1 ? t('catalogue.whiskyCountSingular') : t('catalogue.whiskyCountPlural')}.`}
               </p>
             </div>
           </div>
@@ -285,7 +285,7 @@ export default async function BottlerPage({ params, searchParams }: Props) {
                         </span>
                       )}
                       <span className="text-xs text-gray-500">
-                        {Number(item.totalReviews || 0)} {t('catalogue.notesCount')}
+                        {Number(item.totalReviews || 0)} {Number(item.totalReviews || 0) === 1 ? t('catalogue.noteCountSingular') : t('catalogue.noteCountPlural')}
                       </span>
                     </div>
                   )}

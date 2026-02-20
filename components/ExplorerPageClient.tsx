@@ -66,6 +66,9 @@ export default function ExplorerPageClient() {
   const [loading, setLoading] = useState(false)
   const [followLoadingId, setFollowLoadingId] = useState<string | null>(null)
   const pendingSearchRef = useRef<{ queryLength: number } | null>(null)
+  const noteCountText = (count: number) => {
+    return `${count} ${count <= 1 ? t('explorer.noteCountSingular') : t('explorer.noteCountPlural')}`
+  }
 
   const trimmedQuery = useMemo(() => query.trim(), [query])
 
@@ -205,7 +208,7 @@ export default function ExplorerPageClient() {
                       </Link>
                     )}
                     <div className="text-sm text-gray-500">
-                      {user.notesCount} {t('explorer.notesCount')}
+                      {noteCountText(user.notesCount)}
                     </div>
                   </div>
                 </div>
