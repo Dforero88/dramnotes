@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import TagInput from '@/components/TagInput'
+import SignupCtaLink from '@/components/SignupCtaLink'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Script from 'next/script'
 import { trackEvent, trackEventOnce } from '@/lib/analytics-client'
@@ -82,6 +83,7 @@ export default function TastingNotesSection({
   const [formError, setFormError] = useState('')
 
   const [others, setOthers] = useState<Note[]>([])
+  const [totalOtherNotes, setTotalOtherNotes] = useState(0)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [sort, setSort] = useState('recent')
@@ -158,11 +160,13 @@ export default function TastingNotesSection({
       const res = await fetch(`/api/tasting-notes/public?${params.toString()}`, { cache: 'no-store' })
       if (!res.ok) {
         setOthers([])
+        setTotalOtherNotes(0)
         setTotalPages(1)
         return
       }
       const json = await res.json()
       const items = json?.items || []
+      setTotalOtherNotes(Number(json?.total || 0))
       setOthers(isAuthenticated ? items : items.slice(0, 2))
       setTotalPages(isAuthenticated ? json?.totalPages || 1 : 1)
     }
@@ -383,6 +387,30 @@ export default function TastingNotesSection({
       )}
 
       <div className="space-y-8">
+        {!isAuthenticated && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm text-center">
+            <h3 className="text-xl font-semibold">{t('tasting.loginTitle')}</h3>
+            <p className="text-gray-600 mt-2">{t('tasting.loginSubtitle')}</p>
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href={`/${locale}/login`}
+                className="block w-full sm:w-auto px-6 py-3 rounded-full text-center text-white text-sm font-medium transition"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
+                {t('navigation.signIn')}
+              </Link>
+              <SignupCtaLink
+                href={`/${locale}/register`}
+                sourceContext="whisky_tasting_section"
+                className="block w-full sm:w-auto px-6 py-3 rounded-full text-center border text-sm font-medium transition"
+                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+              >
+                {t('navigation.signUp')}
+              </SignupCtaLink>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold">{t('tasting.myNoteTitle')}</h3>
@@ -730,6 +758,11 @@ export default function TastingNotesSection({
               <p className="text-sm text-gray-600">{t('tasting.noOtherNotes')}</p>
             )}
           </div>
+          {!isAuthenticated && totalOtherNotes > others.length && (
+            <div className="mt-4 text-sm text-gray-600">
+              {t('tasting.moreNotesHint').replace('{count}', String(totalOtherNotes - others.length))}
+            </div>
+          )}
           {isAuthenticated && totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-6">
               <button
@@ -753,28 +786,6 @@ export default function TastingNotesSection({
           )}
         </div>
       </div>
-      {!isAuthenticated && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm text-center">
-          <h3 className="text-xl font-semibold">{t('tasting.loginTitle')}</h3>
-          <p className="text-gray-600 mt-2">{t('tasting.loginSubtitle')}</p>
-          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href={`/${locale}/login`}
-              className="block w-full sm:w-auto px-6 py-3 rounded-full text-center text-white text-sm font-medium transition"
-              style={{ backgroundColor: 'var(--color-primary)' }}
-            >
-              {t('navigation.signIn')}
-            </Link>
-            <Link
-              href={`/${locale}/register`}
-              className="block w-full sm:w-auto px-6 py-3 rounded-full text-center border text-sm font-medium transition"
-              style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-            >
-              {t('navigation.signUp')}
-            </Link>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

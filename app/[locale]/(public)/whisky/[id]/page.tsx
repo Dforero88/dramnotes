@@ -113,7 +113,9 @@ export default async function WhiskyDetailPage({
       name: whiskies.name,
       bottleImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
       distillerName: distillers.name,
+      distillerSlug: distillers.slug,
       bottlerName: bottlers.name,
+      bottlerSlug: bottlers.slug,
       countryName: countries.name,
       countryNameFr: countries.nameFr,
       bottlingType: whiskies.bottlingType,
@@ -176,11 +178,13 @@ export default async function WhiskyDetailPage({
   const imageSrc = normalizeImage(whisky.bottleImageUrl)
   const countryLabel =
     locale === 'fr' ? whisky.countryNameFr || whisky.countryName : whisky.countryName
+  const distillerPath = whisky.distillerSlug ? `/${locale}/distiller/${encodeURIComponent(String(whisky.distillerSlug))}` : null
+  const bottlerPath = whisky.bottlerSlug ? `/${locale}/bottler/${encodeURIComponent(String(whisky.bottlerSlug))}` : null
 
   const detailItems = [
     { label: t('whisky.fieldCountry'), value: countryLabel },
-    { label: t('whisky.fieldDistiller'), value: whisky.distillerName },
-    { label: t('whisky.fieldBottler'), value: whisky.bottlerName },
+    { label: t('whisky.fieldDistiller'), value: whisky.distillerName, href: distillerPath },
+    { label: t('whisky.fieldBottler'), value: whisky.bottlerName, href: bottlerPath },
     {
       label: t('whisky.fieldBottlingType'),
       value:
@@ -302,9 +306,19 @@ export default async function WhiskyDetailPage({
                   </span>
                 )}
                 {(whisky.bottlingType === 'DB' ? whisky.distillerName : whisky.bottlerName) && (
-                  <span className="px-3 py-1 rounded-full text-sm border border-gray-200 bg-white">
-                    {whisky.bottlingType === 'DB' ? whisky.distillerName : whisky.bottlerName}
-                  </span>
+                  whisky.bottlingType === 'DB' && distillerPath ? (
+                    <Link href={distillerPath} className="px-3 py-1 rounded-full text-sm border border-gray-200 bg-white hover:bg-gray-50">
+                      {whisky.distillerName}
+                    </Link>
+                  ) : whisky.bottlingType === 'IB' && bottlerPath ? (
+                    <Link href={bottlerPath} className="px-3 py-1 rounded-full text-sm border border-gray-200 bg-white hover:bg-gray-50">
+                      {whisky.bottlerName}
+                    </Link>
+                  ) : (
+                    <span className="px-3 py-1 rounded-full text-sm border border-gray-200 bg-white">
+                      {whisky.bottlingType === 'DB' ? whisky.distillerName : whisky.bottlerName}
+                    </span>
+                  )
                 )}
                 {countryLabel && (
                   <span className="px-3 py-1 rounded-full text-sm border border-gray-200 bg-white">
@@ -404,7 +418,13 @@ export default async function WhiskyDetailPage({
               {detailItems.map((item) => (
                 <div key={item.label} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                   <p className="text-xs uppercase tracking-wide text-gray-500">{item.label}</p>
-                  <p className="text-sm font-medium text-gray-900 mt-1">{item.value}</p>
+                  {item.href ? (
+                    <Link href={item.href} className="text-sm font-medium text-gray-900 mt-1 inline-block hover:underline">
+                      {item.value}
+                    </Link>
+                  ) : (
+                    <p className="text-sm font-medium text-gray-900 mt-1">{item.value}</p>
+                  )}
                 </div>
               ))}
             </div>

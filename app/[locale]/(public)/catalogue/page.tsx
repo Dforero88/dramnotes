@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import CatalogueBrowser from '@/components/CatalogueBrowser'
+import SignupCtaLink from '@/components/SignupCtaLink'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -87,12 +88,13 @@ export default async function CataloguePage({
                 >
                   {t('navigation.signIn')}
                 </Link>
-                <Link
+                <SignupCtaLink
                   href={`/${locale}/register`}
+                  sourceContext="catalogue_guest_block"
                   className="py-2 px-6 bg-white text-primary border border-primary rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   {t('navigation.signUp')}
-                </Link>
+                </SignupCtaLink>
               </div>
             </div>
           )}

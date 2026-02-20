@@ -5,6 +5,7 @@ import Navigation from '@/components/Navigation'
 import SessionProvider from '@/components/providers/SessionProvider'
 import Script from 'next/script'
 import SiteFooter from '@/components/SiteFooter'
+import GuestSignupNudge from '@/components/GuestSignupNudge'
 
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-body' })
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-heading' })
@@ -65,6 +66,7 @@ export default function RootLayout({
           <main className="min-h-screen">
             {children}
           </main>
+          <GuestSignupNudge />
           <SiteFooter buildLabel={buildLabel} />
         </SessionProvider>
       </body>

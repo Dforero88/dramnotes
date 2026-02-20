@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
+import SignupCtaLink from '@/components/SignupCtaLink'
 
 export default function AuthBlock({ 
   title,
@@ -32,13 +33,14 @@ export default function AuthBlock({
           >
             {t('auth.loginButton')}
           </Link>
-          <Link
+          <SignupCtaLink
             href={`/${locale}/register`}
+            sourceContext="auth_block"
             className="block w-full py-3 border rounded-full hover:bg-gray-50 transition"
             style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
           >
             {t('auth.signUp')}
-          </Link>
+          </SignupCtaLink>
         </div>
 
         <p className="mt-6 text-sm text-gray-500">

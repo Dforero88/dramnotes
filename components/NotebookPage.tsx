@@ -9,6 +9,7 @@ import { trackEvent } from '@/lib/analytics-client'
 import NotebookNotesMap from '@/components/NotebookNotesMap'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 import { Notepad, Sparkle, BeerBottle, PencilSimple } from '@phosphor-icons/react'
+import SignupCtaLink from '@/components/SignupCtaLink'
 
 type Summary = {
   user: { id: string; pseudo: string; countryId?: string | null; visibility: 'public' | 'private'; shelfVisibility?: 'public' | 'private' }
@@ -783,13 +784,14 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
               >
                 {t('navigation.signIn')}
               </Link>
-              <Link
+              <SignupCtaLink
                 href={`/${locale}/register`}
+                sourceContext="notebook_guest_block"
                 className="block py-3 px-6 rounded-full text-center border text-sm font-medium transition"
                 style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
               >
                 {t('navigation.signUp')}
-              </Link>
+              </SignupCtaLink>
             </div>
           </div>
         </div>

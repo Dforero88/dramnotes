@@ -139,13 +139,38 @@ But:
 | `onboarding_started` | début onboarding post-inscription | `user_id` (si dispo), `entry_point`, `source_context`, `locale` |
 | `onboarding_completed` | 1re valeur atteinte (1re note publiée) | `user_id`, `completion_type`, `source_context`, `locale` |
 | `whisky_created` | création whisky réussie | `whisky_id` |
+| `cta_signup_click` | clic sur un CTA “Créer un compte” (visiteur non connecté) | `source_context` |
 | `tasting_note_published` | publication note réussie | `whisky_id`, `published_from`, `source_context` |
+| `tasting_note_draft_created` | brouillon créé | `whisky_id` |
+| `tasting_note_draft_deleted` | brouillon supprimé | `whisky_id` ou `note_id` selon contexte |
+| `tasting_note_deleted` | note publiée supprimée | `whisky_id` |
+| `shelf_status_set` | changement statut étagère | `whisky_id`, `status` |
 | `search_performed` | recherche lancée (catalogue/explorer) | `query_length`, `filters_count`, `filter_types`, `source_context`, `search_view`, `results_count` |
 | `catalogue_view_selected` | affichage/changement de vue catalogue | `source_context`, `selected_view`, `previous_view`, `trigger` |
 | `follow_user` | follow réussi | `target_user_id` |
 | `unfollow_user` | unfollow réussi | `target_user_id` |
 | `notebook_section_view` | changement section notebook (hors `notes`) | `section`, `viewer_is_owner`, `profile_pseudo` |
 | `notebook_notes_map_viewed` | vue map activée dans notebook | `viewer_is_owner`, `profile_pseudo` |
+| `activity_click` | clic sur une activité home feed | `activity_type`, `target_kind`, `target_id`, `is_logged_in`, `source_context` |
+| `activity_new_note_click` | clic activité type “new_note” | `target_id`, `is_logged_in`, `source_context` |
+| `activity_new_whisky_click` | clic activité type “new_whisky” | `target_id`, `is_logged_in`, `source_context` |
+| `activity_shelf_add_click` | clic activité type “shelf_add” | `target_id`, `is_logged_in`, `source_context` |
+| `account_data_exported` | export RGPD réussi | `files_count` |
+| `account_deleted` | suppression compte réussie | - |
+
+### 7.3 Source contexts `cta_signup_click` (actuels)
+
+- `navigation_header`
+- `home_hero`
+- `home_activity_block`
+- `catalogue_guest_block`
+- `explorer_guest_block`
+- `map_guest_block`
+- `notebook_guest_block`
+- `whisky_tasting_section`
+- `login_page`
+- `forgot_password_page`
+- `auth_block`
 
 Fichier client tracking:
 - `lib/analytics-client.ts`
@@ -156,6 +181,10 @@ Principaux points d’émission:
 - `components/TastingNotesSection.tsx`
 - `components/ExplorerPageClient.tsx`
 - `components/NotebookPage.tsx`
+- `components/CatalogueBrowser.tsx`
+- `components/WhiskyShelfControl.tsx`
+- `components/HomeActivitiesFeed.tsx`
+- `components/SignupCtaLink.tsx`
 
 ## 8) Sentry (détail monitoring)
 

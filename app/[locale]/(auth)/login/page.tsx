@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import { trackEvent } from '@/lib/analytics-client'
+import SignupCtaLink from '@/components/SignupCtaLink'
 
 export default function LoginPage() {
   const params = useParams()
@@ -113,9 +114,13 @@ export default function LoginPage() {
         </form>
         
         <div className="mt-6 text-center">
-          <Link href={`/${locale}/register`} className="text-primary hover:underline">
+          <SignupCtaLink
+            href={`/${locale}/register`}
+            sourceContext="login_page"
+            className="text-primary hover:underline"
+          >
             {t('auth.noAccountCta')}
-          </Link>
+          </SignupCtaLink>
         </div>
         
         <div className="mt-4 text-center">

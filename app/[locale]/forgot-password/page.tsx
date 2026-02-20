@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getTranslations, type Locale } from '@/lib/i18n'
+import SignupCtaLink from '@/components/SignupCtaLink'
 
 export default function ForgotPasswordPage() {
   const params = useParams()
@@ -100,12 +101,13 @@ export default function ForgotPasswordPage() {
             {t('auth.backToLogin')}
           </Link>
           
-          <Link 
+          <SignupCtaLink
             href={`/${locale}/register`} 
+            sourceContext="forgot_password_page"
             className="block text-primary hover:underline"
           >
             {t('auth.noAccountCta')}
-          </Link>
+          </SignupCtaLink>
         </div>
       </div>
     </div>

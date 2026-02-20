@@ -6,6 +6,7 @@ import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics-client'
+import SignupCtaLink from '@/components/SignupCtaLink'
 
 type ExplorerUser = {
   id: string
@@ -267,13 +268,14 @@ export default function ExplorerPageClient() {
             >
               {t('navigation.signIn')}
             </Link>
-            <Link
+            <SignupCtaLink
               href={`/${locale}/register`}
+              sourceContext="explorer_guest_block"
               className="block w-full py-3 rounded-full text-center border text-sm font-medium transition"
               style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
             >
               {t('navigation.signUp')}
-            </Link>
+            </SignupCtaLink>
           </div>
         </div>
       )}

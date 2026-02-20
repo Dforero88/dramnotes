@@ -6,6 +6,7 @@ import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
+import SignupCtaLink from '@/components/SignupCtaLink'
 
 export default function Navigation() {
   const { data: session } = useSession()
@@ -106,13 +107,14 @@ export default function Navigation() {
                   >
                     {t('navigation.signIn')}
                   </Link>
-                  <Link 
+                  <SignupCtaLink 
                     href={`/${locale}/register`} 
+                    sourceContext="navigation_header"
                     className="px-4 py-2 rounded-full text-sm font-medium border transition"
                     style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                   >
                     {t('navigation.signUp')}
-                  </Link>
+                  </SignupCtaLink>
                 </>
               )}
             </div>

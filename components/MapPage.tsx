@@ -6,6 +6,7 @@ import { getTranslations, type Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { buildWhiskyPath } from '@/lib/whisky-url'
+import SignupCtaLink from '@/components/SignupCtaLink'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -237,13 +238,14 @@ export default function MapPage() {
             >
               {t('navigation.signIn')}
             </Link>
-            <Link
+            <SignupCtaLink
               href={`/${locale}/register`}
+              sourceContext="map_guest_block"
               className="block w-full py-3 rounded-full text-center border text-sm font-medium transition"
               style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
             >
               {t('navigation.signUp')}
-            </Link>
+            </SignupCtaLink>
           </div>
         </div>
       </div>

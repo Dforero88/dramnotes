@@ -7,6 +7,7 @@ import { and, eq, gte, inArray, sql } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import HomeHeroCarousel from '@/components/HomeHeroCarousel'
 import HomeActivitiesFeed from '@/components/HomeActivitiesFeed'
+import SignupCtaLink from '@/components/SignupCtaLink'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 
 export const dynamic = 'force-dynamic'
@@ -402,13 +403,14 @@ export default async function HomePage({
           </p>
           {!isLoggedIn ? (
             <div className="mt-5">
-              <Link
+              <SignupCtaLink
                 href={`/${locale}/register`}
+                sourceContext="home_hero"
                 className="inline-flex items-center rounded-xl px-4 py-2 text-sm font-medium text-white"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 {t('home.ctaJoinCommunity')}
-              </Link>
+              </SignupCtaLink>
             </div>
           ) : null}
           <div className="mt-6 hidden lg:block -mx-8 -mb-8">
@@ -645,13 +647,14 @@ export default async function HomePage({
                   >
                     {t('auth.loginButton')}
                   </Link>
-                  <Link
+                  <SignupCtaLink
                     href={`/${safeLocale}/register`}
+                    sourceContext="home_activity_block"
                     className="px-4 py-2 rounded-full border text-sm font-medium transition"
                     style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                   >
                     {t('auth.register')}
-                  </Link>
+                  </SignupCtaLink>
                 </div>
               </div>
             </div>
