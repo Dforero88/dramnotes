@@ -22,27 +22,59 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const pseudo = normalizeSearch(
-      searchParams.get('pseudo') || process.env.NEXT_PUBLIC_NOTEBOOK_PREVIEW_PSEUDO || 'dforero',
-      40
-    )
+    const previewEmail = (process.env.NEXT_PUBLIC_NOTEBOOK_PREVIEW_EMAIL || 'forerodavid88@gmail.com').trim().toLowerCase()
+    const pseudo = normalizeSearch(searchParams.get('pseudo') || process.env.NEXT_PUBLIC_NOTEBOOK_PREVIEW_PSEUDO || 'dforero', 40)
     const lang = (searchParams.get('lang') || 'fr').trim().toLowerCase()
 
-    if (!pseudo) return NextResponse.json({ error: 'Pseudo missing' }, { status: 400 })
+    const selectUser = {
+      id: users.id,
+      pseudo: users.pseudo,
+      countryId: users.countryId,
+      visibility: users.visibility,
+      shelfVisibility: users.shelfVisibility,
+    } as const
 
-    const userRows = await db
-      .select({
-        id: users.id,
-        pseudo: users.pseudo,
-        countryId: users.countryId,
-        visibility: users.visibility,
-        shelfVisibility: users.shelfVisibility,
-      })
-      .from(users)
-      .where(and(sql`lower(${users.pseudo}) = ${pseudo.toLowerCase()}`, eq(users.visibility, 'public')))
-      .limit(1)
+    let userRows: Array<{
+      id: string
+      pseudo: string
+      countryId: string | null
+      visibility: 'public' | 'private'
+      shelfVisibility: 'public' | 'private'
+    }> = []
 
-    const user = userRows?.[0]
+    if (!searchParams.get('pseudo')) {
+      userRows = await db
+        .select(selectUser)
+        .from(users)
+        .where(and(sql`lower(${users.email}) = ${previewEmail}`, eq(users.visibility, 'public')))
+        .limit(1)
+    }
+
+    if (!userRows.length && pseudo) {
+      userRows = await db
+        .select(selectUser)
+        .from(users)
+        .where(and(sql`lower(${users.pseudo}) = ${pseudo.toLowerCase()}`, eq(users.visibility, 'public')))
+        .limit(1)
+    }
+
+    let user = userRows?.[0]
+    if (!user) {
+      const fallbackRows = await db
+        .select({
+          id: users.id,
+          pseudo: users.pseudo,
+          countryId: users.countryId,
+          visibility: users.visibility,
+          shelfVisibility: users.shelfVisibility,
+        })
+        .from(users)
+        .where(eq(users.visibility, 'public'))
+        .orderBy(sql`${users.createdAt} desc`)
+        .limit(1)
+      user = fallbackRows?.[0]
+    }
+
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const notesCountRes = await db
