@@ -9,6 +9,7 @@ import HomeHeroCarousel from '@/components/HomeHeroCarousel'
 import HomeActivitiesFeed from '@/components/HomeActivitiesFeed'
 import SignupCtaLink from '@/components/SignupCtaLink'
 import { buildWhiskyPath } from '@/lib/whisky-url'
+import HomeOnboardingChecklist from '@/components/HomeOnboardingChecklist'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -435,6 +436,32 @@ export default async function HomePage({
   const whiskiesRecentCount = Number(stats?.[0]?.totalWhiskies || 0)
   const notesRecentCount = Number(noteStats?.[0]?.totalNotes || 0)
   const membersRecentCount = Number(publicUsers?.[0]?.totalPublicUsers || 0)
+
+  const onboardingAddedWhisky = isLoggedIn && currentUserId
+    ? await db
+        .select({ id: whiskies.id })
+        .from(whiskies)
+        .where(eq(whiskies.addedById, currentUserId))
+        .limit(1)
+    : []
+  const onboardingPublishedNote = isLoggedIn && currentUserId
+    ? await db
+        .select({ id: tastingNotes.id })
+        .from(tastingNotes)
+        .where(and(eq(tastingNotes.userId, currentUserId), eq(tastingNotes.status, 'published')))
+        .limit(1)
+    : []
+  const onboardingShelf = isLoggedIn && currentUserId
+    ? await db
+        .select({ userId: userShelf.userId })
+        .from(userShelf)
+        .where(eq(userShelf.userId, currentUserId))
+        .limit(1)
+    : []
+
+  const hasAddedWhisky = onboardingAddedWhisky.length > 0
+  const hasPublishedNote = onboardingPublishedNote.length > 0
+  const hasShelfItem = onboardingShelf.length > 0
   const formatUserNotesText = (count: number) => {
     return `${count} ${count <= 1 ? t('home.noteCountSingular') : t('home.noteCountPlural')}`
   }
@@ -530,6 +557,15 @@ export default async function HomePage({
             </Link>
           </div>
         </div>
+
+        <HomeOnboardingChecklist
+          locale={safeLocale}
+          userId={currentUserId}
+          isLoggedIn={isLoggedIn}
+          hasAddedWhisky={hasAddedWhisky}
+          hasPublishedNote={hasPublishedNote}
+          hasShelfItem={hasShelfItem}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">

@@ -8,7 +8,16 @@ import { useParams } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics-client'
 import NotebookNotesMap from '@/components/NotebookNotesMap'
 import { buildWhiskyPath } from '@/lib/whisky-url'
-import { Notepad, Sparkle, BeerBottle, PencilSimple } from '@phosphor-icons/react'
+import {
+  Notepad,
+  Sparkle,
+  BeerBottle,
+  PencilSimple,
+  Heart,
+  Drop,
+  DropHalfBottom,
+  DropSlash,
+} from '@phosphor-icons/react'
 import SignupCtaLink from '@/components/SignupCtaLink'
 
 type Summary = {
@@ -232,35 +241,17 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
   }
 
   const statusIcon = (status: ShelfCard['status']) => {
+    const iconStyle = { color: 'var(--color-primary)' }
     if (status === 'wishlist') {
-      return (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 20s-6.5-4.2-8.5-7A5.2 5.2 0 0 1 12 6.4 5.2 5.2 0 0 1 20.5 13c-2 2.8-8.5 7-8.5 7z" />
-        </svg>
-      )
+      return <Heart size={18} weight="duotone" aria-hidden style={iconStyle} />
     }
     if (status === 'owned_unopened') {
-      return (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M10.5 4.5C8.2 7.6 7 9.7 7 12a3.5 3.5 0 0 0 7 0c0-2.3-1.2-4.4-3.5-7.5z" />
-          <path d="M17.2 8.2c-1.6 2.1-2.4 3.6-2.4 5a2.4 2.4 0 0 0 4.8 0c0-1.4-.8-2.9-2.4-5z" />
-        </svg>
-      )
+      return <Drop size={18} weight="duotone" aria-hidden style={iconStyle} />
     }
     if (status === 'owned_opened') {
-      return (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 4.5C9.2 8.2 7.5 10.7 7.5 13.3a4.5 4.5 0 0 0 9 0c0-2.6-1.7-5.1-4.5-8.8z" />
-          <path d="M8.8 14h6.4" />
-        </svg>
-      )
+      return <DropHalfBottom size={18} weight="duotone" aria-hidden style={iconStyle} />
     }
-    return (
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M12 4.5C9.2 8.2 7.5 10.7 7.5 13.3a4.5 4.5 0 0 0 9 0c0-2.6-1.7-5.1-4.5-8.8z" />
-        <path d="M5 19 19 5" />
-      </svg>
-    )
+    return <DropSlash size={18} weight="duotone" aria-hidden style={iconStyle} />
   }
 
   const handleShare = async () => {
