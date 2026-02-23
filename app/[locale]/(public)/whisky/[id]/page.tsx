@@ -183,6 +183,7 @@ export default async function WhiskyDetailPage({
 
   const detailItems = [
     { label: t('whisky.fieldCountry'), value: countryLabel },
+    { label: t('whisky.fieldRegion'), value: whisky.region },
     { label: t('whisky.fieldDistiller'), value: whisky.distillerName, href: distillerPath },
     { label: t('whisky.fieldBottler'), value: whisky.bottlerName, href: bottlerPath },
     {
@@ -194,7 +195,7 @@ export default async function WhiskyDetailPage({
             ? t('whisky.bottlingIB')
             : whisky.bottlingType,
     },
-    { label: t('whisky.fieldBarcode'), value: whisky.barcode },
+    { label: t('whisky.fieldType'), value: whisky.type },
     { label: t('whisky.fieldDistilledYear'), value: formatYear(whisky.distilledYear) },
     { label: t('whisky.fieldBottledYear'), value: formatYear(whisky.bottledYear) },
     { label: t('whisky.fieldAge'), value: whisky.age ? `${whisky.age}y` : null },
@@ -202,8 +203,7 @@ export default async function WhiskyDetailPage({
     { label: t('whisky.fieldCaskType'), value: whisky.caskType },
     { label: t('whisky.fieldBatchId'), value: whisky.batchId },
     { label: t('whisky.fieldBottledFor'), value: whisky.bottledFor },
-    { label: t('whisky.fieldRegion'), value: whisky.region },
-    { label: t('whisky.fieldType'), value: whisky.type },
+    { label: t('whisky.fieldBarcode'), value: whisky.barcode },
   ].filter((item) => item.value !== null && item.value !== undefined && String(item.value).trim() !== '')
 
   let analyticsData: {
@@ -274,10 +274,10 @@ export default async function WhiskyDetailPage({
       </div>
 
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-8">
-          <div className="order-2 lg:order-1 lg:row-span-2 lg:self-stretch bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex items-center justify-center">
+        <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] lg:grid-cols-[420px_1fr] gap-8">
+          <div className="order-2 md:order-1 md:row-span-2 md:self-stretch bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex items-center justify-center">
             <div className="w-full">
-              <div className="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden">
+              <div className="aspect-square md:max-h-[360px] lg:max-h-none bg-white rounded-xl flex items-center justify-center overflow-hidden">
               {imageSrc ? (
                 <img
                   src={imageSrc}
@@ -296,7 +296,7 @@ export default async function WhiskyDetailPage({
             </div>
           </div>
 
-          <div className="order-1 lg:order-2 flex flex-col gap-5">
+          <div className="order-1 md:order-2 flex flex-col gap-5">
             <div className="space-y-4">
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">{whisky.name}</h1>
               <div className="flex flex-wrap gap-2">
@@ -328,7 +328,7 @@ export default async function WhiskyDetailPage({
               </div>
             </div>
 
-            <div className="hidden lg:block">
+            <div className="hidden md:block">
               <WhiskyShelfControl
                 locale={locale}
                 whiskyId={whisky.id}
@@ -343,7 +343,7 @@ export default async function WhiskyDetailPage({
             )}
           </div>
 
-          <div className="order-3 lg:hidden">
+          <div className="order-3 md:hidden">
             <WhiskyShelfControl
               locale={locale}
               whiskyId={whisky.id}
@@ -351,7 +351,27 @@ export default async function WhiskyDetailPage({
             />
           </div>
 
-          <div className="order-4 lg:order-3 lg:col-start-2 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <div className="order-4 md:order-3 md:col-start-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-4">{t('whisky.detailsTitle')}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {detailItems.map((item) => (
+                <div key={item.label} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">{item.label}</p>
+                  {item.href ? (
+                    <Link href={item.href} className="text-sm font-medium text-gray-900 mt-1 inline-block hover:underline">
+                      {item.value}
+                    </Link>
+                  ) : (
+                    <p className="text-sm font-medium text-gray-900 mt-1">{item.value}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h2 className="text-lg font-semibold mb-4">{t('whisky.analyticsTitle')}</h2>
             {analyticsData ? (
               <>
@@ -410,26 +430,6 @@ export default async function WhiskyDetailPage({
             ) : (
               <div className="text-sm text-gray-600">{t('whisky.analyticsFirstNote')}</div>
             )}
-          </div>
-        </div>
-
-        <div className="mt-8">
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">{t('whisky.detailsTitle')}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {detailItems.map((item) => (
-                <div key={item.label} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">{item.label}</p>
-                  {item.href ? (
-                    <Link href={item.href} className="text-sm font-medium text-gray-900 mt-1 inline-block hover:underline">
-                      {item.value}
-                    </Link>
-                  ) : (
-                    <p className="text-sm font-medium text-gray-900 mt-1">{item.value}</p>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
