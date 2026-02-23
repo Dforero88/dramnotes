@@ -594,6 +594,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                         <BeerBottle
                           size={28}
                           weight="duotone"
+                          className="-rotate-45"
                           aria-hidden
                           style={{ color: 'var(--color-primary)', opacity: previewTab === 'shelf' ? 1 : 0.68 }}
                         />
@@ -1001,6 +1002,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
                   <BeerBottle
                     size={28}
                     weight="duotone"
+                    className="-rotate-45"
                     aria-hidden
                     style={{ color: activeTab === 'shelf' ? 'var(--color-primary)' : 'var(--color-primary)', opacity: activeTab === 'shelf' ? 1 : 0.68 }}
                   />
