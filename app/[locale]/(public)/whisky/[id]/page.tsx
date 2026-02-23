@@ -275,7 +275,7 @@ export default async function WhiskyDetailPage({
 
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-10">
         <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] lg:grid-cols-[420px_1fr] gap-8">
-          <div className="order-2 md:order-1 md:row-span-2 md:self-stretch bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex items-center justify-center">
+          <div className="order-2 md:order-1 md:row-span-3 md:self-stretch bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex items-center justify-center">
             <div className="w-full">
               <div className="aspect-square md:max-h-[360px] lg:max-h-none bg-white rounded-xl flex items-center justify-center overflow-hidden">
               {imageSrc ? (
@@ -328,14 +328,6 @@ export default async function WhiskyDetailPage({
               </div>
             </div>
 
-            <div className="hidden md:block">
-              <WhiskyShelfControl
-                locale={locale}
-                whiskyId={whisky.id}
-                isLoggedIn={isLoggedIn}
-              />
-            </div>
-
             {whisky.description && (
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="text-sm text-gray-600">{whisky.description}</p>
@@ -367,6 +359,14 @@ export default async function WhiskyDetailPage({
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="hidden md:block order-5 md:order-4 md:col-start-2">
+            <WhiskyShelfControl
+              locale={locale}
+              whiskyId={whisky.id}
+              isLoggedIn={isLoggedIn}
+            />
           </div>
         </div>
 
