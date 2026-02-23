@@ -210,8 +210,20 @@ export default async function HomePage({
           createdAt: tastingNotes.createdAt,
         })
         .from(tastingNotes)
-        .innerJoin(whiskies, eq(whiskies.id, tastingNotes.whiskyId))
-        .where(and(inArray(tastingNotes.userId, topUserIds), eq(tastingNotes.status, 'published')))
+        .innerJoin(
+          whiskies,
+          isMysql
+            ? sql`binary ${whiskies.id} = binary ${tastingNotes.whiskyId}`
+            : eq(whiskies.id, tastingNotes.whiskyId)
+        )
+        .where(
+          isMysql
+            ? and(
+                sql`binary ${tastingNotes.status} = 'published'`,
+                sql`binary ${tastingNotes.userId} in (${sql.join(topUserIds.map((id) => sql`${id}`), sql`, `)})`
+              )
+            : and(inArray(tastingNotes.userId, topUserIds), eq(tastingNotes.status, 'published'))
+        )
         .orderBy(sql`${tastingNotes.createdAt} desc`)
     : []
   const lastWhiskyByUser = new Map<string, { name: string; imageUrl: string | null }>()
