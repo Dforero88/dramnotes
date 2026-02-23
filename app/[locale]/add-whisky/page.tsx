@@ -14,6 +14,21 @@ import { trackEvent } from '@/lib/analytics-client'
 import { normalizeProducerName } from '@/lib/producer-name'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 
+type InlineFieldKey =
+  | 'name'
+  | 'bottling_type'
+  | 'type'
+  | 'distiller'
+  | 'bottler'
+  | 'country_id'
+  | 'distilled_year'
+  | 'bottled_year'
+  | 'age'
+  | 'alcohol_volume'
+  | 'bottle_image'
+
+type InlineErrors = Partial<Record<InlineFieldKey, string>>
+
 export default function AddWhiskyPage() {
   const routeParams = useParams<{ locale?: string }>()
   const locale = (routeParams?.locale === 'en' ? 'en' : 'fr') as Locale
@@ -55,9 +70,17 @@ export default function AddWhiskyPage() {
     distiller: null,
     bottler: null,
   })
+  const [fieldErrors, setFieldErrors] = useState<InlineErrors>({})
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<InlineFieldKey, boolean>>>({})
+  const [submitAttempted, setSubmitAttempted] = useState(false)
   const selectedBottlingType = String(whiskyData?.bottling_type || '').trim()
   const isDb = selectedBottlingType === 'DB'
   const isIb = selectedBottlingType === 'IB'
+  const ageInvalidMessage = locale === 'fr' ? 'L’âge doit être un entier positif.' : 'Age must be a positive integer.'
+  const alcoholInvalidMessage = locale === 'fr' ? 'Le taux d’alcool doit être compris entre 0 et 100.' : 'Alcohol by volume must be between 0 and 100.'
+  const distilledYearInvalidMessage = locale === 'fr' ? 'L’année de distillation doit être une année valide (ex: 2012).' : 'Distilled year must be a valid year (e.g. 2012).'
+  const bottledYearInvalidMessage = locale === 'fr' ? 'L’année d’embouteillage doit être une année valide (ex: 2020).' : 'Bottled year must be a valid year (e.g. 2020).'
+  const requiredFieldsMessage = locale === 'fr' ? 'Champs obligatoires' : 'Required fields'
 
   const getCreateWhiskyErrorMessage = (errorCode?: string, fallback?: string) => {
     switch (errorCode) {
@@ -134,6 +157,80 @@ export default function AddWhiskyPage() {
     )
     return match?.id || ''
   }
+
+  const trimValue = (value: unknown) => String(value ?? '').trim()
+
+  const getInlineError = (field: InlineFieldKey, values: any, bottle: File | null): string => {
+    const value = trimValue(values[field])
+    if (field === 'name' && !value) return t('whisky.errorNameRequired')
+    if (field === 'type' && !value) return t('whisky.errorTypeRequired')
+    if (field === 'country_id' && !value) return t('whisky.errorCountryRequired')
+    if (field === 'bottling_type' && !value) return t('whisky.errorBottlingTypeRequired')
+    if (field === 'distiller' && trimValue(values.bottling_type) === 'DB' && !value) return t('whisky.errorDistillerRequiredDb')
+    if (field === 'bottler' && trimValue(values.bottling_type) === 'IB' && !value) return t('whisky.errorBottlerRequiredIb')
+    if (field === 'bottle_image' && !bottle) return t('whisky.errorBottlePhotoRequired')
+
+    if (field === 'age' && value) {
+      const parsed = Number(value)
+      if (!Number.isInteger(parsed) || parsed <= 0) return ageInvalidMessage
+    }
+    if (field === 'alcohol_volume' && value) {
+      const parsed = Number(value)
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) return alcoholInvalidMessage
+    }
+    if (field === 'distilled_year' && value) {
+      const parsed = Number(value)
+      if (!Number.isInteger(parsed) || parsed < 1800 || parsed > 2100) return distilledYearInvalidMessage
+    }
+    if (field === 'bottled_year' && value) {
+      const parsed = Number(value)
+      if (!Number.isInteger(parsed) || parsed < 1800 || parsed > 2100) return bottledYearInvalidMessage
+    }
+    return ''
+  }
+
+  const computeInlineErrors = (values: any, bottle: File | null): InlineErrors => {
+    const keys: InlineFieldKey[] = [
+      'name',
+      'bottling_type',
+      'type',
+      'distiller',
+      'bottler',
+      'country_id',
+      'distilled_year',
+      'bottled_year',
+      'age',
+      'alcohol_volume',
+      'bottle_image',
+    ]
+    const nextErrors: InlineErrors = {}
+    keys.forEach((key) => {
+      const err = getInlineError(key, values, bottle)
+      if (err) nextErrors[key] = err
+    })
+    return nextErrors
+  }
+
+  const validateInlineField = (field: InlineFieldKey, values: any, bottle: File | null) => {
+    const err = getInlineError(field, values, bottle)
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      if (err) next[field] = err
+      else delete next[field]
+      if (field === 'bottling_type') {
+        const distillerErr = getInlineError('distiller', values, bottle)
+        const bottlerErr = getInlineError('bottler', values, bottle)
+        if (distillerErr) next.distiller = distillerErr
+        else delete next.distiller
+        if (bottlerErr) next.bottler = bottlerErr
+        else delete next.bottler
+      }
+      return next
+    })
+  }
+
+  const shouldShowFieldError = (field: InlineFieldKey) =>
+    Boolean(fieldErrors[field] && (submitAttempted || touchedFields[field]))
 
   useEffect(() => {
     const loadCountries = async () => {
@@ -225,6 +322,7 @@ export default function AddWhiskyPage() {
     setBottleFile(file)
     if (!file) {
       setBottlePreview('')
+      validateInlineField('bottle_image', whiskyData, null)
       return
     }
     const reader = new FileReader()
@@ -232,6 +330,7 @@ export default function AddWhiskyPage() {
       setBottlePreview(String(e.target?.result || ''))
     }
     reader.readAsDataURL(file)
+    validateInlineField('bottle_image', whiskyData, file)
   }
 
   const handleLabelProcess = async () => {
@@ -295,16 +394,16 @@ export default function AddWhiskyPage() {
   const handleCreateWhisky = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (creatingWhisky) return
+    setSubmitAttempted(true)
     setCreateError('')
     setCreateStatus(null)
     if (!session?.user?.id) {
       setCreateError(t('whisky.errorAuthRequired'))
       return
     }
-    if (!bottleFile) {
-      setCreateError(t('whisky.errorBottlePhotoRequired'))
-      return
-    }
+    const inlineErrors = computeInlineErrors(whiskyData, bottleFile)
+    setFieldErrors(inlineErrors)
+    if (Object.keys(inlineErrors).length > 0) return
 
     const formData = new FormData(e.currentTarget)
     const payload: any = {}
@@ -347,6 +446,10 @@ export default function AddWhiskyPage() {
     if (payload.bottling_type === 'DB') {
       payload.bottler = ''
     }
+    if (!bottleFile) {
+      setCreateError(t('whisky.errorBottlePhotoRequired'))
+      return
+    }
 
     const upload = new FormData()
     upload.append('whisky_data', JSON.stringify(payload))
@@ -381,6 +484,8 @@ export default function AddWhiskyPage() {
       setCreatingWhisky(false)
     }
   }
+
+  const hasBlockingInlineErrors = Object.keys(computeInlineErrors(whiskyData, bottleFile)).length > 0
 
   const resolveProducerField = async (kind: 'distiller' | 'bottler', value: string) => {
     const input = String(value || '').trim()
@@ -639,17 +744,32 @@ export default function AddWhiskyPage() {
               {step === 'edit' && (
                 <form className="space-y-4" onSubmit={handleCreateWhisky}>
                   <h2 className="text-2xl font-bold">{t('whisky.step3Title')}</h2>
+                  <p className="text-sm text-gray-500">* {requiredFieldsMessage}</p>
                   <div className="rounded-xl border border-gray-200 p-4 space-y-4">
                     <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
                       {t('whisky.sectionIdentity')}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldName')}</label>
-                        <input name="name" defaultValue={whiskyData.name || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldName')} *</label>
+                        <input
+                          name="name"
+                          value={whiskyData.name || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setWhiskyData((prev: any) => ({ ...prev, name: value }))
+                            if (touchedFields.name || submitAttempted) validateInlineField('name', { ...whiskyData, name: value }, bottleFile)
+                          }}
+                          onBlur={() => {
+                            setTouchedFields((prev) => ({ ...prev, name: true }))
+                            validateInlineField('name', whiskyData, bottleFile)
+                          }}
+                          className={`w-full border rounded px-3 py-2 ${shouldShowFieldError('name') ? 'border-red-400' : 'border-gray-300'}`}
+                        />
+                        {shouldShowFieldError('name') ? <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p> : null}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottlingType')}</label>
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottlingType')} *</label>
                         <select
                           name="bottling_type"
                           value={whiskyData.bottling_type || ''}
@@ -660,25 +780,51 @@ export default function AddWhiskyPage() {
                               bottling_type: value,
                               bottler: value === 'DB' ? '' : prev?.bottler || '',
                             }))
+                            if (touchedFields.bottling_type || submitAttempted) {
+                              validateInlineField(
+                                'bottling_type',
+                                { ...whiskyData, bottling_type: value, bottler: value === 'DB' ? '' : whiskyData?.bottler || '' },
+                                bottleFile
+                              )
+                            }
                             if (value === 'DB') {
                               setProducerHints((prev) => ({ ...prev, bottler: null }))
                             }
                           }}
-                          className="w-full border border-gray-300 rounded px-3 py-2"
+                          onBlur={() => {
+                            setTouchedFields((prev) => ({ ...prev, bottling_type: true }))
+                            validateInlineField('bottling_type', whiskyData, bottleFile)
+                          }}
+                          className={`w-full border rounded px-3 py-2 ${shouldShowFieldError('bottling_type') ? 'border-red-400' : 'border-gray-300'}`}
                         >
                           <option value="">{t('common.selectEmpty')}</option>
                           <option value="DB">{t('whisky.bottlingDB')}</option>
                           <option value="IB">{t('whisky.bottlingIB')}</option>
                         </select>
+                        {shouldShowFieldError('bottling_type') ? <p className="mt-1 text-xs text-red-600">{fieldErrors.bottling_type}</p> : null}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldType')}</label>
-                        <select name="type" defaultValue={whiskyData.type || ''} className="w-full border rounded px-3 py-2">
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldType')} *</label>
+                        <select
+                          name="type"
+                          value={whiskyData.type || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setWhiskyData((prev: any) => ({ ...prev, type: value }))
+                            if (touchedFields.type || submitAttempted) validateInlineField('type', { ...whiskyData, type: value }, bottleFile)
+                          }}
+                          onBlur={() => {
+                            setTouchedFields((prev) => ({ ...prev, type: true }))
+                            validateInlineField('type', whiskyData, bottleFile)
+                          }}
+                          className={`w-full border rounded px-3 py-2 ${shouldShowFieldError('type') ? 'border-red-400' : 'border-gray-300'}`}
+                        >
                           <option value="">{t('common.selectEmpty')}</option>
                           {typeOptions.map((opt) => (
                             <option key={opt} value={opt}>{opt}</option>
                           ))}
                         </select>
+                        {shouldShowFieldError('type') ? <p className="mt-1 text-xs text-red-600">{fieldErrors.type}</p> : null}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">
@@ -689,12 +835,19 @@ export default function AddWhiskyPage() {
                           name="distiller"
                           value={whiskyData.distiller || ''}
                           onChange={(e) => {
-                            setWhiskyData((prev: any) => ({ ...prev, distiller: e.target.value }))
+                            const value = e.target.value
+                            setWhiskyData((prev: any) => ({ ...prev, distiller: value }))
                             setProducerHints((prev) => ({ ...prev, distiller: null }))
+                            if (touchedFields.distiller || submitAttempted) validateInlineField('distiller', { ...whiskyData, distiller: value }, bottleFile)
                           }}
-                          onBlur={(e) => void resolveProducerField('distiller', e.target.value)}
-                        className="w-full border border-gray-300 rounded px-3 py-2"
+                          onBlur={(e) => {
+                            setTouchedFields((prev) => ({ ...prev, distiller: true }))
+                            validateInlineField('distiller', { ...whiskyData, distiller: e.target.value }, bottleFile)
+                            void resolveProducerField('distiller', e.target.value)
+                          }}
+                        className={`w-full border rounded px-3 py-2 ${shouldShowFieldError('distiller') ? 'border-red-400' : 'border-gray-300'}`}
                       />
+                        {shouldShowFieldError('distiller') ? <p className="mt-1 text-xs text-red-600">{fieldErrors.distiller}</p> : null}
                         {producerHints.distiller ? (
                           <button
                             type="button"
@@ -715,12 +868,19 @@ export default function AddWhiskyPage() {
                             name="bottler"
                             value={whiskyData.bottler || ''}
                             onChange={(e) => {
-                              setWhiskyData((prev: any) => ({ ...prev, bottler: e.target.value }))
+                              const value = e.target.value
+                              setWhiskyData((prev: any) => ({ ...prev, bottler: value }))
                               setProducerHints((prev) => ({ ...prev, bottler: null }))
+                              if (touchedFields.bottler || submitAttempted) validateInlineField('bottler', { ...whiskyData, bottler: value }, bottleFile)
                             }}
-                            onBlur={(e) => void resolveProducerField('bottler', e.target.value)}
-                            className="w-full border border-gray-300 rounded px-3 py-2"
+                            onBlur={(e) => {
+                              setTouchedFields((prev) => ({ ...prev, bottler: true }))
+                              validateInlineField('bottler', { ...whiskyData, bottler: e.target.value }, bottleFile)
+                              void resolveProducerField('bottler', e.target.value)
+                            }}
+                            className={`w-full border rounded px-3 py-2 ${shouldShowFieldError('bottler') ? 'border-red-400' : 'border-gray-300'}`}
                           />
+                          {shouldShowFieldError('bottler') ? <p className="mt-1 text-xs text-red-600">{fieldErrors.bottler}</p> : null}
                           {producerHints.bottler ? (
                             <button
                               type="button"
@@ -736,13 +896,27 @@ export default function AddWhiskyPage() {
                         </div>
                       ) : null}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldCountry')}</label>
-                        <select name="country_id" defaultValue={whiskyData.country_id || ''} className="w-full border border-gray-300 rounded px-3 py-2">
+                        <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldCountry')} *</label>
+                        <select
+                          name="country_id"
+                          value={whiskyData.country_id || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setWhiskyData((prev: any) => ({ ...prev, country_id: value }))
+                            if (touchedFields.country_id || submitAttempted) validateInlineField('country_id', { ...whiskyData, country_id: value }, bottleFile)
+                          }}
+                          onBlur={() => {
+                            setTouchedFields((prev) => ({ ...prev, country_id: true }))
+                            validateInlineField('country_id', whiskyData, bottleFile)
+                          }}
+                          className={`w-full border rounded px-3 py-2 ${shouldShowFieldError('country_id') ? 'border-red-400' : 'border-gray-300'}`}
+                        >
                           <option value="">{t('common.selectEmpty')}</option>
                           {countries.map((c) => (
                             <option key={c.id} value={c.id}>{c.displayName || c.nameFr || c.name}</option>
                           ))}
                         </select>
+                        {shouldShowFieldError('country_id') ? <p className="mt-1 text-xs text-red-600">{fieldErrors.country_id}</p> : null}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldRegion')}</label>
@@ -762,19 +936,75 @@ export default function AddWhiskyPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldDistilledYear')}</label>
-                        <input name="distilled_year" defaultValue={whiskyData.distilled_year || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                        <input
+                          name="distilled_year"
+                          value={whiskyData.distilled_year || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setWhiskyData((prev: any) => ({ ...prev, distilled_year: value }))
+                            if (touchedFields.distilled_year || submitAttempted) validateInlineField('distilled_year', { ...whiskyData, distilled_year: value }, bottleFile)
+                          }}
+                          onBlur={() => {
+                            setTouchedFields((prev) => ({ ...prev, distilled_year: true }))
+                            validateInlineField('distilled_year', whiskyData, bottleFile)
+                          }}
+                          className={`w-full border rounded px-3 py-2 ${shouldShowFieldError('distilled_year') ? 'border-red-400' : 'border-gray-300'}`}
+                        />
+                        {shouldShowFieldError('distilled_year') ? <p className="mt-1 text-xs text-red-600">{fieldErrors.distilled_year}</p> : null}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldBottledYear')}</label>
-                        <input name="bottled_year" defaultValue={whiskyData.bottled_year || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                        <input
+                          name="bottled_year"
+                          value={whiskyData.bottled_year || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setWhiskyData((prev: any) => ({ ...prev, bottled_year: value }))
+                            if (touchedFields.bottled_year || submitAttempted) validateInlineField('bottled_year', { ...whiskyData, bottled_year: value }, bottleFile)
+                          }}
+                          onBlur={() => {
+                            setTouchedFields((prev) => ({ ...prev, bottled_year: true }))
+                            validateInlineField('bottled_year', whiskyData, bottleFile)
+                          }}
+                          className={`w-full border rounded px-3 py-2 ${shouldShowFieldError('bottled_year') ? 'border-red-400' : 'border-gray-300'}`}
+                        />
+                        {shouldShowFieldError('bottled_year') ? <p className="mt-1 text-xs text-red-600">{fieldErrors.bottled_year}</p> : null}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldAge')}</label>
-                        <input name="age" defaultValue={whiskyData.age || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                        <input
+                          name="age"
+                          value={whiskyData.age || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setWhiskyData((prev: any) => ({ ...prev, age: value }))
+                            if (touchedFields.age || submitAttempted) validateInlineField('age', { ...whiskyData, age: value }, bottleFile)
+                          }}
+                          onBlur={() => {
+                            setTouchedFields((prev) => ({ ...prev, age: true }))
+                            validateInlineField('age', whiskyData, bottleFile)
+                          }}
+                          className={`w-full border rounded px-3 py-2 ${shouldShowFieldError('age') ? 'border-red-400' : 'border-gray-300'}`}
+                        />
+                        {shouldShowFieldError('age') ? <p className="mt-1 text-xs text-red-600">{fieldErrors.age}</p> : null}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">{t('whisky.fieldAlcoholVolume')}</label>
-                        <input name="alcohol_volume" defaultValue={whiskyData.alcohol_volume || ''} className="w-full border border-gray-300 rounded px-3 py-2" />
+                        <input
+                          name="alcohol_volume"
+                          value={whiskyData.alcohol_volume || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setWhiskyData((prev: any) => ({ ...prev, alcohol_volume: value }))
+                            if (touchedFields.alcohol_volume || submitAttempted) validateInlineField('alcohol_volume', { ...whiskyData, alcohol_volume: value }, bottleFile)
+                          }}
+                          onBlur={() => {
+                            setTouchedFields((prev) => ({ ...prev, alcohol_volume: true }))
+                            validateInlineField('alcohol_volume', whiskyData, bottleFile)
+                          }}
+                          className={`w-full border rounded px-3 py-2 ${shouldShowFieldError('alcohol_volume') ? 'border-red-400' : 'border-gray-300'}`}
+                        />
+                        {shouldShowFieldError('alcohol_volume') ? <p className="mt-1 text-xs text-red-600">{fieldErrors.alcohol_volume}</p> : null}
                       </div>
                     </div>
                   </div>
@@ -833,6 +1063,9 @@ export default function AddWhiskyPage() {
                       ) : (
                         <div className="text-sm text-gray-500">{t('whisky.bottlePhotoRequired')}</div>
                       )}
+                      {shouldShowFieldError('bottle_image') ? (
+                        <p className="text-xs text-red-600">{fieldErrors.bottle_image}</p>
+                      ) : null}
                     </div>
                   </div>
                   {createError && <p className="text-red-600">{createError}</p>}
@@ -840,7 +1073,7 @@ export default function AddWhiskyPage() {
                     type="submit"
                     className="px-6 py-2 text-white rounded-lg disabled:opacity-50"
                     style={{ backgroundColor: 'var(--color-primary)' }}
-                    disabled={status !== 'authenticated' || creatingWhisky || !bottleFile}
+                    disabled={status !== 'authenticated' || creatingWhisky || hasBlockingInlineErrors}
                   >
                     {creatingWhisky ? t('common.saving') : t('whisky.createWhisky')}
                   </button>

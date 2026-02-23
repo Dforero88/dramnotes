@@ -121,6 +121,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   const [draftFilters, setDraftFilters] = useState<Filters>(emptyFilters)
   const [appliedFilters, setAppliedFilters] = useState<Filters>(emptyFilters)
   const [items, setItems] = useState<Array<WhiskyCard | ProducerCard>>([])
+  const [totalResults, setTotalResults] = useState(0)
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -188,10 +189,12 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
               : '/api/bottlers/list'
         const json = await fetchJsonWithRetry(`${endpoint}?lang=${locale}&${queryString}`)
         setItems(json?.items || [])
+        setTotalResults(Number(json?.total || 0))
         setTotalPages(json?.totalPages || 1)
       } catch (e) {
         console.error('Erreur chargement catalogue', e)
         setItems([])
+        setTotalResults(0)
         setTotalPages(1)
       } finally {
         setLoading(false)
@@ -201,16 +204,24 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   }, [queryString, locale, view])
 
   useEffect(() => {
+    let cancelled = false
     const loadCountries = async () => {
       try {
         const json = await fetchJsonWithRetry(`/api/countries?lang=${locale}`)
-        setCountries(json?.countries || [])
-      } catch (e) {
-        console.error('Erreur load countries', e)
+        if (!cancelled) {
+          setCountries(json?.countries || [])
+        }
+      } catch {
+        if (!cancelled) {
+          setCountries([])
+        }
       }
     }
     loadCountries()
-  }, [])
+    return () => {
+      cancelled = true
+    }
+  }, [locale])
 
   useEffect(() => {
     if (view !== 'whiskies') return
@@ -719,36 +730,43 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
 
         <section>
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm font-semibold text-gray-700">{t('catalogue.sortLabel')}</div>
-            <select
-              value={draftFilters.sort}
-              onChange={(e) => {
-                const value = e.target.value
-                setDraftFilters({ ...draftFilters, sort: value })
-                setAppliedFilters((prev) => ({ ...prev, sort: value }))
-                setPage(1)
-              }}
-              className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm shadow-sm"
-              style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
-            >
-              <option value="name_asc">{t('catalogue.sortNameAsc')}</option>
-              <option value="name_desc">{t('catalogue.sortNameDesc')}</option>
-              {view === 'whiskies' ? (
-                <>
-                  <option value="created_desc">{t('catalogue.sortCreatedDesc')}</option>
-                  <option value="created_asc">{t('catalogue.sortCreatedAsc')}</option>
-                  <option value="notes_desc">{t('catalogue.sortNotesDesc')}</option>
-                  <option value="notes_asc">{t('catalogue.sortNotesAsc')}</option>
-                  <option value="rating_desc">{t('catalogue.sortRatingDesc')}</option>
-                  <option value="rating_asc">{t('catalogue.sortRatingAsc')}</option>
-                </>
-              ) : (
-                <>
-                  <option value="count_desc">{t('catalogue.sortWhiskiesCountDesc')}</option>
-                  <option value="count_asc">{t('catalogue.sortWhiskiesCountAsc')}</option>
-                </>
-              )}
-            </select>
+            <div className="text-sm text-gray-500">
+              {!loading
+                ? `${totalResults} ${totalResults <= 1 ? t('catalogue.resultsCountSingular') : t('catalogue.resultsCountPlural')}`
+                : ''}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:block text-sm font-semibold text-gray-700">{t('catalogue.sortLabel')}</div>
+              <select
+                value={draftFilters.sort}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setDraftFilters({ ...draftFilters, sort: value })
+                  setAppliedFilters((prev) => ({ ...prev, sort: value }))
+                  setPage(1)
+                }}
+                className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm shadow-sm"
+                style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+              >
+                <option value="name_asc">{t('catalogue.sortNameAsc')}</option>
+                <option value="name_desc">{t('catalogue.sortNameDesc')}</option>
+                {view === 'whiskies' ? (
+                  <>
+                    <option value="created_desc">{t('catalogue.sortCreatedDesc')}</option>
+                    <option value="created_asc">{t('catalogue.sortCreatedAsc')}</option>
+                    <option value="notes_desc">{t('catalogue.sortNotesDesc')}</option>
+                    <option value="notes_asc">{t('catalogue.sortNotesAsc')}</option>
+                    <option value="rating_desc">{t('catalogue.sortRatingDesc')}</option>
+                    <option value="rating_asc">{t('catalogue.sortRatingAsc')}</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="count_desc">{t('catalogue.sortWhiskiesCountDesc')}</option>
+                    <option value="count_asc">{t('catalogue.sortWhiskiesCountAsc')}</option>
+                  </>
+                )}
+              </select>
+            </div>
           </div>
           {loading && (
             <div className="p-6 bg-white rounded-xl border border-gray-200 text-center">

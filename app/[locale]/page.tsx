@@ -26,6 +26,8 @@ type TopUser = {
   notesCount: number
   countryId: string | null
   followersCount?: number
+  lastWhiskyName?: string | null
+  lastWhiskyImageUrl?: string | null
 }
 
 type ActivityItem = {
@@ -198,6 +200,34 @@ export default async function HomePage({
   const topUsersWithMeta = topUsers.map((user) => ({
     ...user,
     followersCount: topUsersFollowersMap.get(user.id) || 0,
+  }))
+  const topUsersLatestNotes = topUserIds.length
+    ? await db
+        .select({
+          userId: tastingNotes.userId,
+          whiskyName: whiskies.name,
+          whiskyImageUrl: sql<string | null>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
+          createdAt: tastingNotes.createdAt,
+        })
+        .from(tastingNotes)
+        .innerJoin(whiskies, eq(whiskies.id, tastingNotes.whiskyId))
+        .where(and(inArray(tastingNotes.userId, topUserIds), eq(tastingNotes.status, 'published')))
+        .orderBy(sql`${tastingNotes.createdAt} desc`)
+    : []
+  const lastWhiskyByUser = new Map<string, { name: string; imageUrl: string | null }>()
+  topUsersLatestNotes.forEach((row: { userId: string; whiskyName: string | null; whiskyImageUrl: string | null }) => {
+    if (!row.whiskyName) return
+    if (!lastWhiskyByUser.has(row.userId)) {
+      lastWhiskyByUser.set(row.userId, {
+        name: row.whiskyName,
+        imageUrl: row.whiskyImageUrl ? normalizeImage(row.whiskyImageUrl) : null,
+      })
+    }
+  })
+  const topUsersWithLatest = topUsersWithMeta.map((user) => ({
+    ...user,
+    lastWhiskyName: lastWhiskyByUser.get(user.id)?.name || null,
+    lastWhiskyImageUrl: lastWhiskyByUser.get(user.id)?.imageUrl || null,
   }))
 
   type LatestWhisky = {
@@ -502,26 +532,43 @@ export default async function HomePage({
               </Link>
             </div>
             <div className="space-y-4">
-              {topUsersWithMeta.map((user) => {
+              {topUsersWithLatest.map((user) => {
                 const avatar = buildAvatar(user.pseudo)
                 const flagUrl = getCountryFlagUrl(user.countryId)
                 const isSelf = currentUserId && user.id === currentUserId
                 const content = (
-                  <div className="flex items-center gap-4 rounded-xl border border-gray-100 px-3 py-2">
-                    <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white text-lg font-semibold" style={{ backgroundColor: avatar.color }}>
-                      {avatar.initial}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-base font-semibold text-gray-900">{user.pseudo}</div>
-                        {flagUrl ? <img src={flagUrl} alt="" className="h-4 w-4 rounded-full" /> : null}
+                  <div className="rounded-xl border border-gray-200 bg-white p-3 transition hover:shadow-sm hover:border-gray-300">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white text-lg font-semibold" style={{ backgroundColor: avatar.color }}>
+                        {avatar.initial}
                       </div>
-                      <div className="text-sm text-gray-500 flex flex-wrap items-center gap-x-3 gap-y-1">
-                        {formatUserNotesText(Number(user.notesCount || 0))}
-                        <span>·</span>
-                        <span>{formatFollowersText(Number(user.followersCount || 0))}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="text-base font-semibold text-gray-900 truncate">{user.pseudo}</div>
+                          {flagUrl ? <img src={flagUrl} alt="" className="h-4 w-4 rounded-full shrink-0" /> : null}
+                        </div>
+                        <div className="text-sm text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span>{formatUserNotesText(Number(user.notesCount || 0))}</span>
+                          <span>·</span>
+                          <span>{formatFollowersText(Number(user.followersCount || 0))}</span>
+                        </div>
                       </div>
                     </div>
+                    {user.lastWhiskyName ? (
+                      <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          {user.lastWhiskyImageUrl ? (
+                            <span className="h-9 w-9 rounded-md bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
+                              <img src={user.lastWhiskyImageUrl} alt="" className="h-full w-full object-contain" />
+                            </span>
+                          ) : null}
+                          <div className="text-sm text-gray-700 truncate">
+                            <span className="text-gray-500">{t('home.topUsersLastWhisky')}:</span>{' '}
+                            <span className="font-medium">{user.lastWhiskyName}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 )
                 return (

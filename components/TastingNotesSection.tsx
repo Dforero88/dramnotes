@@ -30,6 +30,8 @@ type Note = {
 }
 
 type Tag = { id: string; name: string }
+type PublishFieldKey = 'tastingDate' | 'location' | 'overall' | 'rating' | 'nose' | 'palate' | 'finish'
+type PublishErrors = Partial<Record<PublishFieldKey, string>>
 
 const emptyTags: { nose: Tag[]; palate: Tag[]; finish: Tag[] } = { nose: [], palate: [], finish: [] }
 
@@ -81,6 +83,9 @@ export default function TastingNotesSection({
   const [rating, setRating] = useState(0)
   const [locationVisibility, setLocationVisibility] = useState<'public_city' | 'public_precise'>('public_city')
   const [formError, setFormError] = useState('')
+  const [publishErrors, setPublishErrors] = useState<PublishErrors>({})
+  const [publishTouched, setPublishTouched] = useState<Partial<Record<PublishFieldKey, boolean>>>({})
+  const [publishAttempted, setPublishAttempted] = useState(false)
 
   const [others, setOthers] = useState<Note[]>([])
   const [totalOtherNotes, setTotalOtherNotes] = useState(0)
@@ -197,7 +202,83 @@ export default function TastingNotesSection({
     setRating(0)
     setLocationVisibility('public_city')
     setMyTags(emptyTags)
+    setPublishErrors({})
+    setPublishTouched({})
+    setPublishAttempted(false)
   }
+
+  const dateRequiredMessage = locale === 'fr' ? 'La date est obligatoire.' : 'Date is required.'
+  const noseRequiredMessage = locale === 'fr' ? 'Ajoutez au moins un tag nez.' : 'Add at least one nose tag.'
+  const palateRequiredMessage = locale === 'fr' ? 'Ajoutez au moins un tag bouche.' : 'Add at least one palate tag.'
+  const finishRequiredMessage = locale === 'fr' ? 'Ajoutez au moins un tag finale.' : 'Add at least one finish tag.'
+  const publishRequiredHint =
+    locale === 'fr'
+      ? 'Champs obligatoires pour publier'
+      : 'Required fields to publish'
+  const draftHint =
+    locale === 'fr'
+      ? 'Vous pouvez enregistrer un brouillon même incomplet.'
+      : 'You can save an incomplete draft.'
+
+  const getPublishFieldError = (
+    field: PublishFieldKey,
+    values: {
+      tastingDate: string
+      location: string
+      overall: string
+      rating: number
+      tags: typeof myTags
+    }
+  ): string => {
+    if (field === 'tastingDate' && !values.tastingDate.trim()) return dateRequiredMessage
+    if (field === 'location' && !values.location.trim()) return t('tasting.errorLocationRequired')
+    if (field === 'overall' && !values.overall.trim()) return t('tasting.errorOverallRequired')
+    if (field === 'rating' && (!values.rating || values.rating < 1 || values.rating > 10)) return t('tasting.errorRatingInvalid')
+    if (field === 'nose' && values.tags.nose.length === 0) return noseRequiredMessage
+    if (field === 'palate' && values.tags.palate.length === 0) return palateRequiredMessage
+    if (field === 'finish' && values.tags.finish.length === 0) return finishRequiredMessage
+    return ''
+  }
+
+  const collectPublishErrors = (
+    values: {
+      tastingDate: string
+      location: string
+      overall: string
+      rating: number
+      tags: typeof myTags
+    }
+  ): PublishErrors => {
+    const fields: PublishFieldKey[] = ['tastingDate', 'location', 'overall', 'rating', 'nose', 'palate', 'finish']
+    const next: PublishErrors = {}
+    fields.forEach((field) => {
+      const error = getPublishFieldError(field, values)
+      if (error) next[field] = error
+    })
+    return next
+  }
+
+  const validatePublishField = (
+    field: PublishFieldKey,
+    values: {
+      tastingDate: string
+      location: string
+      overall: string
+      rating: number
+      tags: typeof myTags
+    }
+  ) => {
+    const error = getPublishFieldError(field, values)
+    setPublishErrors((prev) => {
+      const next = { ...prev }
+      if (error) next[field] = error
+      else delete next[field]
+      return next
+    })
+  }
+
+  const shouldShowPublishError = (field: PublishFieldKey) =>
+    Boolean(publishErrors[field] && (publishAttempted || publishTouched[field]))
 
   useEffect(() => {
     if (!myNote) {
@@ -209,10 +290,10 @@ export default function TastingNotesSection({
     if (savingNote) return
     setFormError('')
     if (targetStatus === 'published') {
-      const hasTags =
-        myTags.nose.length > 0 && myTags.palate.length > 0 && myTags.finish.length > 0
-      if (!tastingDate || !location || !overall || rating < 1 || !hasTags) {
-        setFormError(t('tasting.validationRequired'))
+      setPublishAttempted(true)
+      const nextErrors = collectPublishErrors({ tastingDate, location, overall, rating, tags: myTags })
+      setPublishErrors(nextErrors)
+      if (Object.keys(nextErrors).length > 0) {
         return
       }
     }
@@ -299,6 +380,7 @@ export default function TastingNotesSection({
   }
 
   const stars = useMemo(() => Array.from({ length: 10 }, (_, i) => i + 1), [])
+  const canPublish = Object.keys(collectPublishErrors({ tastingDate, location, overall, rating, tags: myTags })).length === 0
 
   const renderTagChips = (tags: Tag[]) => {
     if (!tags.length) return <span className="text-gray-500">—</span>
@@ -522,33 +604,84 @@ export default function TastingNotesSection({
             </div>
           ) : (
             <div className="space-y-4">
+              <p className="text-sm text-gray-500">* {publishRequiredHint}</p>
               {formError && (
                 <div className="text-sm text-red-600 border border-red-200 bg-red-50 rounded-xl px-3 py-2">
                   {formError}
                 </div>
               )}
               <div className="max-w-xs">
-                <label className="block text-sm font-medium text-gray-700">{t('tasting.date')}</label>
+                <label className="block text-sm font-medium text-gray-700">{t('tasting.date')} *</label>
                 <input
                   type="date"
                   value={tastingDate}
-                  onChange={(e) => setTastingDate(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+                  onChange={(e) => {
+                    const nextValue = e.target.value
+                    setTastingDate(nextValue)
+                    if (publishTouched.tastingDate || publishAttempted) {
+                      validatePublishField('tastingDate', {
+                        tastingDate: nextValue,
+                        location,
+                        overall,
+                        rating,
+                        tags: myTags,
+                      })
+                    }
+                  }}
+                  onBlur={() => {
+                    setPublishTouched((prev) => ({ ...prev, tastingDate: true }))
+                    validatePublishField('tastingDate', {
+                      tastingDate,
+                      location,
+                      overall,
+                      rating,
+                      tags: myTags,
+                    })
+                  }}
+                  className={`w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 ${shouldShowPublishError('tastingDate') ? 'border-red-400' : 'border-gray-200'}`}
                   style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
                 />
+                {shouldShowPublishError('tastingDate') ? (
+                  <p className="mt-1 text-xs text-red-600">{publishErrors.tastingDate}</p>
+                ) : null}
               </div>
               <div className={`grid grid-cols-1 gap-4 ${(notesVisibilityPublic || !isAuthenticated) ? 'md:grid-cols-[minmax(0,1fr)_auto]' : ''}`}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">{t('tasting.location')}</label>
+                  <label className="block text-sm font-medium text-gray-700">{t('tasting.location')} *</label>
                   <input
                     ref={locationRef}
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+                    onChange={(e) => {
+                      const nextValue = e.target.value
+                      setLocation(nextValue)
+                      if (publishTouched.location || publishAttempted) {
+                        validatePublishField('location', {
+                          tastingDate,
+                          location: nextValue,
+                          overall,
+                          rating,
+                          tags: myTags,
+                        })
+                      }
+                    }}
+                    onBlur={() => {
+                      setPublishTouched((prev) => ({ ...prev, location: true }))
+                      validatePublishField('location', {
+                        tastingDate,
+                        location,
+                        overall,
+                        rating,
+                        tags: myTags,
+                      })
+                    }}
+                    className={`w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 ${shouldShowPublishError('location') ? 'border-red-400' : 'border-gray-200'}`}
                     placeholder={t('tasting.locationPlaceholder')}
                     autoComplete="off"
                     style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
                   />
+                  {shouldShowPublishError('location') ? (
+                    <p className="mt-1 text-xs text-red-600">{publishErrors.location}</p>
+                  ) : null}
                 </div>
                 {(notesVisibilityPublic || !isAuthenticated) && (
                   <div className="md:min-w-[280px]">
@@ -577,56 +710,148 @@ export default function TastingNotesSection({
               </div>
 
               <TagInput
-                label={t('tasting.nose')}
+                label={`${t('tasting.nose')} *`}
                 value={myTags.nose}
-                onChange={(tags) => setMyTags({ ...myTags, nose: tags })}
+                onChange={(tags) => {
+                  const nextTags = { ...myTags, nose: tags }
+                  setMyTags(nextTags)
+                  setPublishTouched((prev) => ({ ...prev, nose: true }))
+                  if (publishTouched.nose || publishAttempted) {
+                    validatePublishField('nose', {
+                      tastingDate,
+                      location,
+                      overall,
+                      rating,
+                      tags: nextTags,
+                    })
+                  }
+                }}
                 lang={locale}
                 placeholder={t('tasting.nosePlaceholder')}
                 createLabel={t('tasting.createTag')}
                 createDisabledLabel={t('tasting.createTagLoginHint')}
                 allowCreate={isAuthenticated}
+                invalid={shouldShowPublishError('nose')}
               />
+              {shouldShowPublishError('nose') ? <p className="-mt-2 text-xs text-red-600">{publishErrors.nose}</p> : null}
               <TagInput
-                label={t('tasting.palate')}
+                label={`${t('tasting.palate')} *`}
                 value={myTags.palate}
-                onChange={(tags) => setMyTags({ ...myTags, palate: tags })}
+                onChange={(tags) => {
+                  const nextTags = { ...myTags, palate: tags }
+                  setMyTags(nextTags)
+                  setPublishTouched((prev) => ({ ...prev, palate: true }))
+                  if (publishTouched.palate || publishAttempted) {
+                    validatePublishField('palate', {
+                      tastingDate,
+                      location,
+                      overall,
+                      rating,
+                      tags: nextTags,
+                    })
+                  }
+                }}
                 lang={locale}
                 placeholder={t('tasting.palatePlaceholder')}
                 createLabel={t('tasting.createTag')}
                 createDisabledLabel={t('tasting.createTagLoginHint')}
                 allowCreate={isAuthenticated}
+                invalid={shouldShowPublishError('palate')}
               />
+              {shouldShowPublishError('palate') ? <p className="-mt-2 text-xs text-red-600">{publishErrors.palate}</p> : null}
               <TagInput
-                label={t('tasting.finish')}
+                label={`${t('tasting.finish')} *`}
                 value={myTags.finish}
-                onChange={(tags) => setMyTags({ ...myTags, finish: tags })}
+                onChange={(tags) => {
+                  const nextTags = { ...myTags, finish: tags }
+                  setMyTags(nextTags)
+                  setPublishTouched((prev) => ({ ...prev, finish: true }))
+                  if (publishTouched.finish || publishAttempted) {
+                    validatePublishField('finish', {
+                      tastingDate,
+                      location,
+                      overall,
+                      rating,
+                      tags: nextTags,
+                    })
+                  }
+                }}
                 lang={locale}
                 placeholder={t('tasting.finishPlaceholder')}
                 createLabel={t('tasting.createTag')}
                 createDisabledLabel={t('tasting.createTagLoginHint')}
                 allowCreate={isAuthenticated}
+                invalid={shouldShowPublishError('finish')}
               />
+              {shouldShowPublishError('finish') ? <p className="-mt-2 text-xs text-red-600">{publishErrors.finish}</p> : null}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">{t('tasting.overall')}</label>
+                <label className="block text-sm font-medium text-gray-700">{t('tasting.overall')} *</label>
                 <textarea
                   value={overall}
-                  onChange={(e) => setOverall(e.target.value)}
+                  onChange={(e) => {
+                    const nextValue = e.target.value
+                    setOverall(nextValue)
+                    if (publishTouched.overall || publishAttempted) {
+                      validatePublishField('overall', {
+                        tastingDate,
+                        location,
+                        overall: nextValue,
+                        rating,
+                        tags: myTags,
+                      })
+                    }
+                  }}
+                  onBlur={() => {
+                    setPublishTouched((prev) => ({ ...prev, overall: true }))
+                    validatePublishField('overall', {
+                      tastingDate,
+                      location,
+                      overall,
+                      rating,
+                      tags: myTags,
+                    })
+                  }}
                   rows={3}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+                  className={`w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 ${shouldShowPublishError('overall') ? 'border-red-400' : 'border-gray-200'}`}
                   placeholder={t('tasting.overallPlaceholder')}
                   style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
                 />
+                {shouldShowPublishError('overall') ? (
+                  <p className="mt-1 text-xs text-red-600">{publishErrors.overall}</p>
+                ) : null}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">{t('tasting.rating')}</label>
+                <label className="block text-sm font-medium text-gray-700">{t('tasting.rating')} *</label>
                 <div className="flex gap-1 text-yellow-500 text-lg">
                   {stars.map((s) => (
                     <button
                       type="button"
                       key={s}
                       disabled={savingNote || deletingNote}
-                      onClick={() => setRating(s)}
+                      onClick={() => {
+                        setRating(s)
+                        setPublishTouched((prev) => ({ ...prev, rating: true }))
+                        if (publishTouched.rating || publishAttempted) {
+                          validatePublishField('rating', {
+                            tastingDate,
+                            location,
+                            overall,
+                            rating: s,
+                            tags: myTags,
+                          })
+                        }
+                      }}
+                      onBlur={() => {
+                        setPublishTouched((prev) => ({ ...prev, rating: true }))
+                        validatePublishField('rating', {
+                          tastingDate,
+                          location,
+                          overall,
+                          rating,
+                          tags: myTags,
+                        })
+                      }}
                       className="hover:scale-110 transition-transform"
                     >
                       {s <= rating ? '★' : '☆'}
@@ -634,12 +859,15 @@ export default function TastingNotesSection({
                   ))}
                   <span className="text-xs text-gray-500 ml-2">({rating}/10)</span>
                 </div>
+                {shouldShowPublishError('rating') ? (
+                  <p className="mt-1 text-xs text-red-600">{publishErrors.rating}</p>
+                ) : null}
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => saveNote('published')}
-                  disabled={!isAuthenticated || savingNote || deletingNote}
-                  className="px-4 py-2 rounded-lg text-white"
+                  disabled={!isAuthenticated || savingNote || deletingNote || !canPublish}
+                  className="px-4 py-2 rounded-lg text-white disabled:opacity-50"
                   style={{ backgroundColor: 'var(--color-primary)' }}
                 >
                   {savingNote ? t('common.saving') : t('tasting.publish')}
@@ -675,6 +903,7 @@ export default function TastingNotesSection({
                   </button>
                 )}
               </div>
+              <p className="text-xs text-gray-500">{draftHint}</p>
             </div>
           )}
         </div>
