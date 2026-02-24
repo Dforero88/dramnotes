@@ -26,7 +26,7 @@ function normalizeText(value: string | null | undefined): string | null {
 function scoreWhiskyPair(source: WhiskyCore, candidate: WhiskyCore): number {
   let score = 0
 
-  if (normalizeText(source.type) && normalizeText(source.type) === normalizeText(candidate.type)) score += 4
+  if (normalizeText(source.type) && normalizeText(source.type) === normalizeText(candidate.type)) score += 1
 
   if (
     source.bottlingType === 'DB' &&
@@ -34,7 +34,7 @@ function scoreWhiskyPair(source: WhiskyCore, candidate: WhiskyCore): number {
     candidate.distillerId &&
     source.distillerId === candidate.distillerId
   ) {
-    score += 3
+    score += 4
   }
 
   if (
@@ -43,7 +43,7 @@ function scoreWhiskyPair(source: WhiskyCore, candidate: WhiskyCore): number {
     candidate.bottlerId &&
     source.bottlerId === candidate.bottlerId
   ) {
-    score += 3
+    score += 4
   }
 
   if (source.countryId && candidate.countryId && source.countryId === candidate.countryId) score += 1
