@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "i18n:extract": "node scripts/extract-i18n.js"
+    "i18n:extract": "node scripts/extract-i18n.js",
+    "whisky-related:rebuild": "node scripts/rebuild-whisky-related.js"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",

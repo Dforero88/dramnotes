@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm'
 import { authOptions } from '@/lib/auth'
 import { isAdminEmail } from '@/lib/admin'
 import { db, bottlers, distillers, entityChangeLogItems, entityChangeLogs, isMysql, slugRedirects, whiskies } from '@/lib/db'
+import { rebuildWhiskyRelatedForMany } from '@/lib/whisky-related'
 
 export const dynamic = 'force-dynamic'
 
@@ -170,6 +171,12 @@ export async function POST(request: NextRequest) {
         })
       }
 
+      try {
+        await rebuildWhiskyRelatedForMany(movedWhiskies.map((w: { id: string }) => w.id))
+      } catch (error) {
+        console.error('⚠️ whisky-related recompute after distiller merge failed:', error)
+      }
+
       return NextResponse.json({ success: true, movedCount: movedWhiskies.length })
     }
 
@@ -298,6 +305,12 @@ export async function POST(request: NextRequest) {
           }).run()
         }
       })
+    }
+
+    try {
+      await rebuildWhiskyRelatedForMany(movedWhiskies.map((w: { id: string }) => w.id))
+    } catch (error) {
+      console.error('⚠️ whisky-related recompute after bottler merge failed:', error)
     }
 
     return NextResponse.json({ success: true, movedCount: movedWhiskies.length })

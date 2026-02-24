@@ -12,6 +12,7 @@ import { resolveBottlerName, resolveDistillerName } from '@/lib/producer-resolve
 import { slugifyProducerName } from '@/lib/producer-url'
 import { slugifyWhiskyName } from '@/lib/whisky-url'
 import { normalizeWhiskyName } from '@/lib/whisky-name'
+import { rebuildWhiskyRelatedForImpactCluster } from '@/lib/whisky-related'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -389,6 +390,12 @@ export async function POST(request: NextRequest) {
         bottlingType,
       },
     })
+
+    try {
+      await rebuildWhiskyRelatedForImpactCluster(id)
+    } catch (error) {
+      console.error('⚠️ whisky-related recompute after create failed:', error)
+    }
 
     return NextResponse.json({ success: true, id, slug, bottleImageUrl })
   } catch (error) {

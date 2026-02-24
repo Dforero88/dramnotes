@@ -11,6 +11,7 @@ import { validateDisplayName, validateWhiskyName } from '@/lib/moderation'
 import { normalizeWhiskyName } from '@/lib/whisky-name'
 import { slugifyWhiskyName } from '@/lib/whisky-url'
 import { isSlugReserved, rememberOldSlug } from '@/lib/slug-redirects'
+import { rebuildWhiskyRelatedForImpactCluster } from '@/lib/whisky-related'
 
 export const dynamic = 'force-dynamic'
 
@@ -170,6 +171,12 @@ export async function PATCH(
             newBottlerId: bottlerId,
           }),
         })
+      }
+
+      try {
+        await rebuildWhiskyRelatedForImpactCluster(id)
+      } catch (error) {
+        console.error('⚠️ whisky-related recompute after whisky patch failed:', error)
       }
 
       return NextResponse.json({ success: true, slug: nextSlug })

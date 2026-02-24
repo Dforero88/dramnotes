@@ -10,6 +10,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { buildWhiskyPath, extractWhiskyUuidFromParam } from '@/lib/whisky-url'
 import { resolveCurrentSlugFromLegacy } from '@/lib/slug-redirects'
+import { getRelatedWhiskiesForDisplay } from '@/lib/whisky-related'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -258,6 +259,13 @@ export default async function WhiskyDetailPage({
     }
   }
 
+  let relatedWhiskies: Awaited<ReturnType<typeof getRelatedWhiskiesForDisplay>> = []
+  try {
+    relatedWhiskies = await getRelatedWhiskiesForDisplay(whisky.id, 4)
+  } catch (error) {
+    console.error('⚠️ whisky-related fetch failed:', error)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div
@@ -441,6 +449,44 @@ export default async function WhiskyDetailPage({
           filterPseudo={filterPseudo}
           notesVisibilityPublic={notesVisibilityPublic}
         />
+
+        <div className="mt-8">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-4">{t('whisky.relatedTitle')}</h2>
+            {relatedWhiskies.length ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                {relatedWhiskies.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={buildWhiskyPath(locale, item.id, item.name, item.slug)}
+                    className="rounded-xl border border-gray-100 bg-gray-50 p-3 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="aspect-square bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                      {item.imageUrl ? (
+                        <img
+                          src={normalizeImage(item.imageUrl)}
+                          alt={item.name}
+                          className="max-w-full max-h-full object-contain object-center"
+                        />
+                      ) : (
+                        <div className="text-gray-400 text-sm">{t('catalogue.noImage')}</div>
+                      )}
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-sm font-semibold text-gray-900 line-clamp-2">{item.name}</div>
+                      {item.type ? <div className="text-xs text-gray-500 mt-1">{item.type}</div> : null}
+                      <div className="text-xs text-gray-500 mt-1 line-clamp-1">
+                        {item.bottlingType === 'DB' ? item.distillerName : item.bottlerName}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-600">{t('whisky.relatedEmpty')}</div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

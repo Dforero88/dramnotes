@@ -17,6 +17,7 @@ type DbSchema = {
   follows: any
   activities: any
   whiskyAnalyticsCache: any
+  whiskyRelated: any
   whiskyTagStats: any
   userAromaProfile: any
   userTagStats: any
@@ -211,6 +212,14 @@ function createSqliteSchema(): DbSchema {
     lastCalculated: integer('last_calculated', { mode: 'timestamp' }),
   })
 
+  const whiskyRelated = sqliteTable('whisky_related', {
+    whiskyId: text('whisky_id').notNull(),
+    relatedWhiskyId: text('related_whisky_id').notNull(),
+    score: integer('score').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(() => new Date()),
+  })
+
   const whiskyTagStats = sqliteTable('whisky_tag_stats', {
     whiskyId: text('whisky_id').notNull(),
     tagId: text('tag_id').notNull(),
@@ -258,6 +267,7 @@ function createSqliteSchema(): DbSchema {
     follows,
     activities,
     whiskyAnalyticsCache,
+    whiskyRelated,
     whiskyTagStats,
     userAromaProfile,
     userTagStats,
@@ -441,6 +451,14 @@ function createMysqlSchema(): DbSchema {
     lastCalculated: datetime('last_calculated', { mode: 'date' }),
   })
 
+  const whiskyRelated = mysqlTable('whisky_related', {
+    whiskyId: varchar('whisky_id', { length: 36 }).notNull(),
+    relatedWhiskyId: varchar('related_whisky_id', { length: 36 }).notNull(),
+    score: int('score').notNull(),
+    createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: datetime('updated_at', { mode: 'date' }).$onUpdate(() => new Date()),
+  })
+
   const whiskyTagStats = mysqlTable('whisky_tag_stats', {
     whiskyId: varchar('whisky_id', { length: 36 }).notNull(),
     tagId: varchar('tag_id', { length: 36 }).notNull(),
@@ -488,6 +506,7 @@ function createMysqlSchema(): DbSchema {
     follows,
     activities,
     whiskyAnalyticsCache,
+    whiskyRelated,
     whiskyTagStats,
     userAromaProfile,
     userTagStats,
@@ -513,6 +532,7 @@ export const {
   follows,
   activities,
   whiskyAnalyticsCache,
+  whiskyRelated,
   whiskyTagStats,
   userAromaProfile,
   userTagStats,
@@ -869,6 +889,17 @@ function initSqlite(sqlite: any) {
   `).run()
 
   sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS whisky_related (
+      whisky_id TEXT NOT NULL,
+      related_whisky_id TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+      PRIMARY KEY (whisky_id, related_whisky_id)
+    )
+  `).run()
+
+  sqlite.prepare(`
     CREATE TABLE IF NOT EXISTS user_aroma_profile (
       user_id TEXT PRIMARY KEY,
       avg_rating REAL,
@@ -876,6 +907,13 @@ function initSqlite(sqlite: any) {
       last_updated INTEGER
     )
   `).run()
+
+  try {
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_whisky_related_whisky ON whisky_related(whisky_id, score)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_whisky_related_related ON whisky_related(related_whisky_id)').run()
+  } catch (_e) {
+    // ignore
+  }
 
   sqlite.prepare(`
     CREATE TABLE IF NOT EXISTS user_tag_stats (
