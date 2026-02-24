@@ -4,6 +4,7 @@ const databaseUrl = process.env.DATABASE_URL || ''
 const isMysql = databaseUrl.startsWith('mysql://') || databaseUrl.startsWith('mariadb://')
 const topLimitArg = process.argv.find((arg) => arg.startsWith('--top='))
 const topLimit = Math.max(1, Number(topLimitArg?.split('=')[1] || '20'))
+const minScore = 2
 
 function normalizeText(value) {
   if (!value || typeof value !== 'string') return null
@@ -16,8 +17,8 @@ function score(source, candidate) {
   if (normalizeText(source.type) && normalizeText(source.type) === normalizeText(candidate.type)) result += 4
   if (source.bottling_type === 'DB' && source.distiller_id && source.distiller_id === candidate.distiller_id) result += 3
   if (source.bottling_type === 'IB' && source.bottler_id && source.bottler_id === candidate.bottler_id) result += 3
-  if (source.country_id && source.country_id === candidate.country_id) result += 2
-  if (normalizeText(source.region) && normalizeText(source.region) === normalizeText(candidate.region)) result += 1
+  if (source.country_id && source.country_id === candidate.country_id) result += 1
+  if (normalizeText(source.region) && normalizeText(source.region) === normalizeText(candidate.region)) result += 2
   return result
 }
 
@@ -31,7 +32,7 @@ function buildRows(whiskies) {
         relatedId: candidate.id,
         score: score(source, candidate),
       }))
-      .filter((item) => item.score > 0)
+      .filter((item) => item.score >= minScore)
       .sort((a, b) => (b.score !== a.score ? b.score - a.score : a.relatedId.localeCompare(b.relatedId)))
       .slice(0, topLimit)
 

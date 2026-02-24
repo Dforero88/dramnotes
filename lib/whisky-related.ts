@@ -15,6 +15,7 @@ type WhiskyCore = {
 type DbClient = any
 
 const DEFAULT_TOP_LIMIT = 20
+const MIN_SIMILARITY_SCORE = 2
 
 function normalizeText(value: string | null | undefined): string | null {
   if (!value) return null
@@ -45,9 +46,9 @@ function scoreWhiskyPair(source: WhiskyCore, candidate: WhiskyCore): number {
     score += 3
   }
 
-  if (source.countryId && candidate.countryId && source.countryId === candidate.countryId) score += 2
+  if (source.countryId && candidate.countryId && source.countryId === candidate.countryId) score += 1
 
-  if (normalizeText(source.region) && normalizeText(source.region) === normalizeText(candidate.region)) score += 1
+  if (normalizeText(source.region) && normalizeText(source.region) === normalizeText(candidate.region)) score += 2
 
   return score
 }
@@ -112,7 +113,7 @@ export async function rebuildWhiskyRelatedForOne(
   const candidates = await getCandidateWhiskies(source, qx)
   const ranked = candidates
     .map((candidate) => ({ candidate, score: scoreWhiskyPair(source, candidate) }))
-    .filter((entry) => entry.score > 0)
+    .filter((entry) => entry.score >= MIN_SIMILARITY_SCORE)
     .sort((a, b) => (b.score !== a.score ? b.score - a.score : a.candidate.name.localeCompare(b.candidate.name)))
     .slice(0, topLimit)
 
