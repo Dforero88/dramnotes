@@ -4,12 +4,30 @@ import { authOptions } from '@/lib/auth'
 import { db, tastingNotes, users, follows, isMysql } from '@/lib/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { normalizeSearch } from '@/lib/moderation'
+import { getRouteCache, setRouteCache } from '@/lib/server-route-cache'
+
+const CACHE_TTL_SECONDS = 60
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
   const viewerId = session?.user?.id || null
 
   const { searchParams } = new URL(request.url)
+  const cacheKey = `explorer:users:${viewerId || 'anon'}:${searchParams.toString()}`
+  const cached = getRouteCache<{
+    items: unknown[]
+    total: number
+    totalPages: number
+    page: number
+    pageSize: number
+    isTop: boolean
+  }>(cacheKey)
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: { 'Cache-Control': `public, max-age=0, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=30` },
+    })
+  }
+
   const q = normalizeSearch((searchParams.get('q') || '').toLowerCase(), 40)
   const requestedPage = Math.max(1, Number(searchParams.get('page') || '1'))
   const requestedPageSize = Math.max(1, Math.min(24, Number(searchParams.get('pageSize') || '12')))
@@ -80,5 +98,9 @@ export async function GET(request: NextRequest) {
     isFollowing: followingIds.has(row.id),
   }))
 
-  return NextResponse.json({ items, total, totalPages, page, pageSize, isTop: isEmptyQuery })
+  const payload = { items, total, totalPages, page, pageSize, isTop: isEmptyQuery }
+  setRouteCache(cacheKey, payload, CACHE_TTL_SECONDS)
+  return NextResponse.json(payload, {
+    headers: { 'Cache-Control': `public, max-age=0, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=30` },
+  })
 }

@@ -4,12 +4,30 @@ import { authOptions } from '@/lib/auth'
 import { db, tastingNotes, tastingNoteTags, tagLang, users, isMysql } from '@/lib/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { normalizeSearch } from '@/lib/moderation'
+import { getRouteCache, setRouteCache } from '@/lib/server-route-cache'
+
+const CACHE_TTL_SECONDS = 30
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id || null
 
   const { searchParams } = new URL(request.url)
+  const cacheKey = `tasting-notes:public:${userId || 'anon'}:${searchParams.toString()}`
+  const cached = getRouteCache<{
+    items: unknown[]
+    total: number
+    totalPages: number
+    page: number
+    pageSize: number
+    filteredUser: string | null
+  }>(cacheKey)
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: { 'Cache-Control': `public, max-age=0, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=15` },
+    })
+  }
+
   const whiskyId = searchParams.get('whiskyId')
   const lang = (searchParams.get('lang') || 'fr').trim()
   const pseudo = normalizeSearch(searchParams.get('user') || '', 40)
@@ -120,12 +138,16 @@ export async function GET(request: NextRequest) {
     tags: tagsByNote[note.id] || { nose: [], palate: [], finish: [] },
   }))
 
-  return NextResponse.json({
+  const payload = {
     items,
     total,
     totalPages,
     page,
     pageSize,
     filteredUser: pseudo || null,
+  }
+  setRouteCache(cacheKey, payload, CACHE_TTL_SECONDS)
+  return NextResponse.json(payload, {
+    headers: { 'Cache-Control': `public, max-age=0, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=15` },
   })
 }

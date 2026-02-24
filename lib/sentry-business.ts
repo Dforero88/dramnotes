@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/nextjs'
-
 type BusinessLevel = 'debug' | 'info' | 'warning' | 'error' | 'fatal' | 'log'
 
 type BusinessEventOptions = {
@@ -23,7 +21,7 @@ export async function captureBusinessEvent(
   console.info(`[business] ${JSON.stringify(payload)}`)
 
   const enabled = process.env.ENABLE_SENTRY_BUSINESS_LOGS === '1'
-  if (!enabled) {
+  if (!enabled || process.env.NODE_ENV !== 'production') {
     return
   }
 
@@ -34,6 +32,8 @@ export async function captureBusinessEvent(
   }
 
   try {
+    const Sentry = await import('@sentry/nextjs')
+
     const normalizedTags: Record<string, string> = {
       business_event: message,
       ...(tags || {}),

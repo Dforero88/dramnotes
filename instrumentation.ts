@@ -1,18 +1,14 @@
-import * as Sentry from '@sentry/nextjs'
+export async function register() {
+  // Keep local/dev as light as possible and avoid OpenTelemetry warning noise.
+  if (process.env.NODE_ENV !== 'production') return
 
-export function register() {
-  if (process.env.NEXT_RUNTIME === 'edge') {
-    Sentry.init({
-      dsn: process.env.SENTRY_DSN || '',
-      tracesSampleRate: 0.1,
-      enabled: Boolean(process.env.SENTRY_DSN),
-    })
-    return
-  }
+  const dsn = process.env.SENTRY_DSN || ''
+  if (!dsn) return
 
+  const Sentry = await import('@sentry/nextjs')
   Sentry.init({
-    dsn: process.env.SENTRY_DSN || '',
+    dsn,
     tracesSampleRate: 0.1,
-    enabled: Boolean(process.env.SENTRY_DSN),
+    enabled: true,
   })
 }

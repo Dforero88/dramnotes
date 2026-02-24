@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db, whiskies, distillers, bottlers, countries, whiskyAnalyticsCache, whiskyTagStats, isMysql } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { normalizeSearch } from '@/lib/moderation'
+import { getRouteCache, setRouteCache } from '@/lib/server-route-cache'
 
 export const dynamic = 'force-dynamic'
+const CACHE_TTL_SECONDS = 60
 
 function buildLike(value: string) {
   return `%${value.toLowerCase()}%`
@@ -12,6 +14,19 @@ function buildLike(value: string) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const cacheKey = `whisky:list:${searchParams.toString()}`
+    const cached = getRouteCache<{
+      items: unknown[]
+      total: number
+      totalPages: number
+      page: number
+      pageSize: number
+    }>(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { 'Cache-Control': `public, max-age=0, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=30` },
+      })
+    }
     const page = Math.max(1, Number(searchParams.get('page') || '1'))
     const pageSize = Math.max(1, Math.min(24, Number(searchParams.get('pageSize') || '12')))
     const offset = (page - 1) * pageSize
@@ -183,12 +198,16 @@ export async function GET(request: NextRequest) {
       countryName: locale === 'fr' ? row.countryNameFr || row.countryName : row.countryName,
     }))
 
-    return NextResponse.json({
+    const payload = {
       items,
       total,
       totalPages,
       page,
       pageSize,
+    }
+    setRouteCache(cacheKey, payload, CACHE_TTL_SECONDS)
+    return NextResponse.json(payload, {
+      headers: { 'Cache-Control': `public, max-age=0, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=30` },
     })
   } catch (error) {
     console.error('❌ Erreur list whiskies:', error)
