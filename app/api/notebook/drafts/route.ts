@@ -130,7 +130,6 @@ export async function GET(request: NextRequest) {
   const items = (notes as NoteRow[]).map((note: NoteRow) => {
     const tagCounts = tagCountsByNote[note.id] || {}
     const checks = [
-      Boolean(note.tastingDate),
       Boolean(note.location),
       Boolean(note.overall),
       typeof note.rating === 'number' && note.rating >= 1 && note.rating <= 10,

@@ -92,7 +92,7 @@ export default function TastingNotesSection({
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [sort, setSort] = useState('recent')
-  const [savingNote, setSavingNote] = useState(false)
+  const [savingAction, setSavingAction] = useState<'draft' | 'published' | null>(null)
   const [deletingNote, setDeletingNote] = useState(false)
 
   const getTastingErrorMessage = (errorCode?: string, fallback?: string) => {
@@ -219,6 +219,9 @@ export default function TastingNotesSection({
     locale === 'fr'
       ? 'Vous pouvez enregistrer un brouillon même incomplet.'
       : 'You can save an incomplete draft.'
+  const saveDraftLaterLabel = locale === 'fr' ? 'Noter plus tard' : 'Rate later'
+  const saveDraftSavingLabel = locale === 'fr' ? 'Enregistrement...' : 'Saving...'
+  const publishSavingLabel = locale === 'fr' ? 'Publication...' : 'Publishing...'
 
   const getPublishFieldError = (
     field: PublishFieldKey,
@@ -287,7 +290,7 @@ export default function TastingNotesSection({
   }, [myNote])
 
   const saveNote = async (targetStatus: 'draft' | 'published') => {
-    if (savingNote) return
+    if (savingAction) return
     setFormError('')
     if (targetStatus === 'published') {
       setPublishAttempted(true)
@@ -312,7 +315,7 @@ export default function TastingNotesSection({
     }
     if (!myNote) payload.whiskyId = whiskyId
 
-    setSavingNote(true)
+    setSavingAction(targetStatus)
     try {
       const isUpdate = Boolean(myNote)
       const res = await fetch(isUpdate ? `/api/tasting-notes/${myNote?.id}` : '/api/tasting-notes', {
@@ -353,13 +356,13 @@ export default function TastingNotesSection({
       const errorJson = await res.json().catch(() => ({}))
       setFormError(getTastingErrorMessage(errorJson?.errorCode, errorJson?.error))
     } finally {
-      setSavingNote(false)
+      setSavingAction(null)
     }
   }
 
   const handleDelete = async () => {
     if (!myNote) return
-    if (deletingNote || savingNote) return
+    if (deletingNote || savingAction) return
     if (!confirm(t('tasting.confirmDelete'))) return
     setDeletingNote(true)
     try {
@@ -381,6 +384,14 @@ export default function TastingNotesSection({
 
   const stars = useMemo(() => Array.from({ length: 10 }, (_, i) => i + 1), [])
   const canPublish = Object.keys(collectPublishErrors({ tastingDate, location, overall, rating, tags: myTags })).length === 0
+  const hasMeaningfulDraftContent =
+    Boolean(location.trim()) ||
+    Boolean(overall.trim()) ||
+    (typeof rating === 'number' && rating >= 1 && rating <= 10) ||
+    myTags.nose.length > 0 ||
+    myTags.palate.length > 0 ||
+    myTags.finish.length > 0
+  const draftButtonLabel = hasMeaningfulDraftContent ? t('tasting.saveDraft') : saveDraftLaterLabel
 
   const renderTagChips = (tags: Tag[]) => {
     if (!tags.length) return <span className="text-gray-500">—</span>
@@ -500,7 +511,7 @@ export default function TastingNotesSection({
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditing(true)}
-                  disabled={savingNote || deletingNote}
+                  disabled={Boolean(savingAction) || deletingNote}
                   className="px-3 py-1.5 rounded-full border text-sm"
                   style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                 >
@@ -508,7 +519,7 @@ export default function TastingNotesSection({
                 </button>
                 <button
                   onClick={handleDelete}
-                  disabled={savingNote || deletingNote}
+                  disabled={Boolean(savingAction) || deletingNote}
                   className="px-3 py-1.5 rounded-full border border-red-300 text-sm text-red-600"
                 >
                   {deletingNote ? t('common.saving') : t('tasting.delete')}
@@ -828,7 +839,7 @@ export default function TastingNotesSection({
                     <button
                       type="button"
                       key={s}
-                      disabled={savingNote || deletingNote}
+                      disabled={Boolean(savingAction) || deletingNote}
                       onClick={() => {
                         setRating(s)
                         setPublishTouched((prev) => ({ ...prev, rating: true }))
@@ -866,19 +877,19 @@ export default function TastingNotesSection({
               <div className="flex gap-3">
                 <button
                   onClick={() => saveNote('published')}
-                  disabled={!isAuthenticated || savingNote || deletingNote || !canPublish}
-                  className="px-4 py-2 rounded-lg text-white disabled:opacity-50"
-                  style={{ backgroundColor: 'var(--color-primary)' }}
-                >
-                  {savingNote ? t('common.saving') : t('tasting.publish')}
+                    disabled={!isAuthenticated || Boolean(savingAction) || deletingNote || !canPublish}
+                    className="px-4 py-2 rounded-lg text-white disabled:opacity-50"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                  >
+                  {savingAction === 'published' ? publishSavingLabel : t('tasting.publish')}
                 </button>
                 <button
                   onClick={() => saveNote('draft')}
-                  disabled={!isAuthenticated || savingNote || deletingNote}
+                  disabled={!isAuthenticated || Boolean(savingAction) || deletingNote}
                   className="px-4 py-2 rounded-lg border text-sm"
                   style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                 >
-                  {savingNote ? t('common.saving') : t('tasting.saveDraft')}
+                  {savingAction === 'draft' ? saveDraftSavingLabel : draftButtonLabel}
                 </button>
                 {myNote && (
                   <button
@@ -886,7 +897,7 @@ export default function TastingNotesSection({
                       if (myNote.status === 'draft') return
                       setEditing(false)
                     }}
-                    disabled={!isAuthenticated || savingNote || deletingNote}
+                    disabled={!isAuthenticated || Boolean(savingAction) || deletingNote}
                     className="px-4 py-2 rounded-lg border"
                     style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                   >
@@ -896,7 +907,7 @@ export default function TastingNotesSection({
                 {myNote?.status === 'draft' && (
                   <button
                     onClick={handleDelete}
-                    disabled={!isAuthenticated || savingNote || deletingNote}
+                    disabled={!isAuthenticated || Boolean(savingAction) || deletingNote}
                     className="px-4 py-2 rounded-lg border border-red-300 text-sm text-red-600"
                   >
                     {deletingNote ? t('common.saving') : t('tasting.deleteDraft')}
