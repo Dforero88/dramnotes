@@ -460,7 +460,7 @@ export default async function WhiskyDetailPage({
                   <Link
                     key={item.id}
                     href={buildWhiskyPath(locale, item.id, item.name, item.slug)}
-                    className="rounded-xl border border-gray-200 bg-white p-3 hover:bg-gray-50 transition-colors"
+                    className="rounded-xl border border-gray-200 bg-white p-3 hover:shadow-md transition-shadow"
                   >
                     <div className="aspect-square bg-white rounded-lg flex items-center justify-center overflow-hidden">
                       {item.imageUrl ? (
