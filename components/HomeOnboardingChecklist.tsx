@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import { trackEvent } from '@/lib/analytics-client'
+import { CheckCircle, HourglassLow, LockSimple } from '@phosphor-icons/react'
 
 type Step = {
   id: 'account' | 'add_whisky' | 'publish_note' | 'add_shelf'
@@ -79,6 +80,12 @@ export default function HomeOnboardingChecklist({
   const completedCount = steps.filter((s) => s.done).length
   const isComplete = completedCount === steps.length
   const progressPercent = Math.round((completedCount / steps.length) * 100)
+
+  const getStepState = (step: Step): 'done' | 'pending' | 'locked' => {
+    if (step.done) return 'done'
+    if (!isLoggedIn && step.id !== 'account') return 'locked'
+    return 'pending'
+  }
 
   useEffect(() => {
     if (!isComplete || !isLoggedIn || !userId) return
@@ -158,7 +165,7 @@ export default function HomeOnboardingChecklist({
       <p className="mt-1 text-sm text-gray-600">{t('home.onboardingSubtitle')}</p>
       <div className="mt-3 flex items-center justify-between gap-3">
         <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('home.onboardingProgressLabel')}</div>
-        <div className="text-sm font-semibold text-gray-700">{completedCount}/4</div>
+        <div className="text-sm font-semibold text-gray-700">{progressPercent}%</div>
       </div>
       <div className="mt-2 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
         <div
@@ -167,35 +174,64 @@ export default function HomeOnboardingChecklist({
         />
       </div>
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-        {steps.map((step) => (
-          <Link
-            key={step.id}
-            href={step.href}
-            onClick={() => trackEvent('onboarding_step_click', { step_id: step.id, source: 'home_checklist' })}
-            className={`rounded-xl border p-3 transition ${
-              step.done
-                ? 'border-transparent bg-[var(--color-primary-light)]'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <span
-                className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold ${
-                  step.done ? 'bg-[var(--color-primary)] text-white' : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {step.done ? '✓' : ''}
-              </span>
-              <div className="min-w-0">
-                <div className={`text-sm font-semibold ${step.done ? 'text-[var(--color-primary)]' : 'text-gray-900'}`}>
-                  {step.title}
+        {steps.map((step) => {
+          const state = getStepState(step)
+          return (
+            <Link
+              key={step.id}
+              href={step.href}
+              onClick={() => trackEvent('onboarding_step_click', { step_id: step.id, source: 'home_checklist' })}
+              className={`rounded-xl border p-3 transition ${
+                state === 'done'
+                  ? 'border-transparent bg-[var(--color-primary-light)]'
+                  : state === 'locked'
+                    ? 'border-gray-200 bg-gray-50'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+              } ${state === 'pending' ? 'onboarding-card-pulse' : ''}`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center">
+                  {state === 'done' ? (
+                    <CheckCircle size={20} weight="duotone" style={{ color: 'var(--color-primary)' }} />
+                  ) : state === 'locked' ? (
+                    <LockSimple size={20} weight="duotone" className="text-gray-500" />
+                  ) : (
+                    <HourglassLow size={20} weight="duotone" className="text-gray-600" />
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <div className={`text-sm font-semibold ${state === 'done' ? 'text-[var(--color-primary)]' : 'text-gray-900'}`}>
+                    {step.title}
+                  </div>
+                  <div className={`text-xs mt-1 ${state === 'locked' ? 'text-gray-500' : 'text-gray-600'}`}>{step.description}</div>
                 </div>
-                <div className="text-xs text-gray-600 mt-1">{step.description}</div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          )
+        })}
       </div>
+      <style jsx global>{`
+        .onboarding-card-pulse {
+          animation: onboardingCardPulse 7s ease-in-out infinite;
+        }
+        @keyframes onboardingCardPulse {
+          0%, 78%, 100% {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+            border-color: #e5e7eb;
+          }
+          84% {
+            transform: translateY(-1px) scale(1.01);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+            border-color: rgba(0, 0, 0, 0.22);
+          }
+          90% {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+            border-color: #e5e7eb;
+          }
+        }
+      `}</style>
     </div>
   )
 }
