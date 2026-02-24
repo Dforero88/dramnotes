@@ -1,5 +1,5 @@
 import { and, eq, or, sql } from 'drizzle-orm'
-import { bottlers, db, distillers, isMysql, whiskies, whiskyRelated } from '@/lib/db'
+import { bottlers, countries, db, distillers, isMysql, whiskies, whiskyRelated } from '@/lib/db'
 
 type WhiskyCore = {
   id: string
@@ -195,6 +195,7 @@ export async function rebuildWhiskyRelatedForAll(opts?: { topLimit?: number; qx?
 
 export async function getRelatedWhiskiesForDisplay(
   whiskyId: string,
+  locale: 'fr' | 'en',
   limit = 4
 ): Promise<
   {
@@ -207,6 +208,7 @@ export async function getRelatedWhiskiesForDisplay(
     distillerName: string | null
     bottlerName: string | null
     bottlingType: string | null
+    countryName: string | null
   }[]
 > {
   const rows = await db
@@ -220,6 +222,7 @@ export async function getRelatedWhiskiesForDisplay(
       distillerName: distillers.name,
       bottlerName: bottlers.name,
       bottlingType: whiskies.bottlingType,
+      countryName: sql<string | null>`${locale === 'fr' ? countries.nameFr : countries.name}`,
     })
     .from(whiskyRelated)
     .innerJoin(
@@ -230,6 +233,7 @@ export async function getRelatedWhiskiesForDisplay(
     )
     .leftJoin(distillers, eq(distillers.id, whiskies.distillerId))
     .leftJoin(bottlers, eq(bottlers.id, whiskies.bottlerId))
+    .leftJoin(countries, eq(countries.id, whiskies.countryId))
     .where(eq(whiskyRelated.whiskyId, whiskyId))
     .orderBy(sql`${whiskyRelated.score} desc`, sql`lower(${whiskies.name}) asc`)
     .limit(limit)
@@ -244,5 +248,6 @@ export async function getRelatedWhiskiesForDisplay(
     distillerName: row.distillerName,
     bottlerName: row.bottlerName,
     bottlingType: row.bottlingType,
+    countryName: row.countryName,
   }))
 }

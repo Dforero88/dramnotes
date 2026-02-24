@@ -11,6 +11,7 @@ import { redirect } from 'next/navigation'
 import { buildWhiskyPath, extractWhiskyUuidFromParam } from '@/lib/whisky-url'
 import { resolveCurrentSlugFromLegacy } from '@/lib/slug-redirects'
 import { getRelatedWhiskiesForDisplay } from '@/lib/whisky-related'
+import SignupCtaLink from '@/components/SignupCtaLink'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -261,7 +262,7 @@ export default async function WhiskyDetailPage({
 
   let relatedWhiskies: Awaited<ReturnType<typeof getRelatedWhiskiesForDisplay>> = []
   try {
-    relatedWhiskies = await getRelatedWhiskiesForDisplay(whisky.id, 4)
+    relatedWhiskies = await getRelatedWhiskiesForDisplay(whisky.id, locale, 4)
   } catch (error) {
     console.error('⚠️ whisky-related fetch failed:', error)
   }
@@ -459,7 +460,7 @@ export default async function WhiskyDetailPage({
                   <Link
                     key={item.id}
                     href={buildWhiskyPath(locale, item.id, item.name, item.slug)}
-                    className="rounded-xl border border-gray-100 bg-gray-50 p-3 hover:bg-gray-100 transition-colors"
+                    className="rounded-xl border border-gray-200 bg-white p-3 hover:bg-gray-50 transition-colors"
                   >
                     <div className="aspect-square bg-white rounded-lg flex items-center justify-center overflow-hidden">
                       {item.imageUrl ? (
@@ -473,10 +474,14 @@ export default async function WhiskyDetailPage({
                       )}
                     </div>
                     <div className="mt-3">
-                      <div className="text-sm font-semibold text-gray-900 line-clamp-2">{item.name}</div>
-                      {item.type ? <div className="text-xs text-gray-500 mt-1">{item.type}</div> : null}
+                      <div className="text-sm font-semibold text-gray-900 line-clamp-2" style={{ fontFamily: 'var(--font-heading)' }}>
+                        {item.name}
+                      </div>
                       <div className="text-xs text-gray-500 mt-1 line-clamp-1">
                         {item.bottlingType === 'DB' ? item.distillerName : item.bottlerName}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1 line-clamp-1">
+                        {[item.type, item.countryName].filter(Boolean).join(' • ')}
                       </div>
                     </div>
                   </Link>
@@ -485,6 +490,42 @@ export default async function WhiskyDetailPage({
             ) : (
               <div className="text-sm text-gray-600">{t('whisky.relatedEmpty')}</div>
             )}
+
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              {isLoggedIn ? (
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-primary mb-2">{t('catalogue.missingWhisky')}</h3>
+                  <p className="text-gray-700 mb-4">{t('catalogue.addWhiskyDescription')}</p>
+                  <Link
+                    href={`/${locale}/add-whisky`}
+                    className="inline-flex items-center gap-2 py-2.5 px-5 bg-primary text-white rounded-lg hover:bg-primary-dark-light transition-colors"
+                  >
+                    <span>+</span>
+                    <span>{t('catalogue.addWhiskyButton')}</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-gray-700 mb-2">{t('catalogue.missingWhisky')}</h3>
+                  <p className="text-gray-600 mb-3">{t('catalogue.loginRequired')}</p>
+                  <div className="flex gap-3 justify-center">
+                    <Link
+                      href={`/${locale}/login`}
+                      className="py-2 px-5 bg-primary text-white rounded-lg hover:bg-primary-dark-light transition-colors"
+                    >
+                      {t('navigation.signIn')}
+                    </Link>
+                    <SignupCtaLink
+                      href={`/${locale}/register`}
+                      sourceContext="whisky_related_guest_footer"
+                      className="py-2 px-5 bg-white text-primary border border-primary rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      {t('navigation.signUp')}
+                    </SignupCtaLink>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
