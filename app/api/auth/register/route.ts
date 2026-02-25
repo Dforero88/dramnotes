@@ -7,7 +7,7 @@ import { registerSchema } from '@/lib/validation/schemas'
 import { generateConfirmationToken } from '@/lib/auth/tokens'
 import { sendEmail, getConfirmationEmailTemplate } from '@/lib/email/sender'
 import { generateId } from '@/lib/db'
-import { validatePseudo, sanitizeText } from '@/lib/moderation'
+import { sanitizeText } from '@/lib/moderation'
 import { captureBusinessEvent } from '@/lib/sentry-business'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const { pseudo, email, password, acceptedTerms, acceptedAge, visibility, shelfVisibility } = validationResult.data
+    const { email, acceptedTerms, acceptedAge } = validationResult.data
     const locale = body?.locale === 'en' ? 'en' : 'fr'
     if (!acceptedTerms) {
       return NextResponse.json({ error: 'Veuillez accepter la politique de confidentialité.' }, { status: 400 })
@@ -46,12 +46,10 @@ export async function POST(request: NextRequest) {
     if (!acceptedAge) {
       return NextResponse.json({ error: 'Vous devez confirmer avoir 18 ans ou plus.' }, { status: 400 })
     }
-    const pseudoCheck = await validatePseudo(pseudo)
-    if (!pseudoCheck.ok) {
-      return NextResponse.json({ error: pseudoCheck.message || 'Pseudo invalide' }, { status: 400 })
+    const safeEmail = sanitizeText(email, 255).toLowerCase()
+    if (!safeEmail) {
+      return NextResponse.json({ error: 'Email invalide' }, { status: 400 })
     }
-    const safePseudo = pseudoCheck.value
-    const safeEmail = sanitizeText(email, 255)
     
     // 2. Vérifier si l'email existe déjà
     const existingEmail = await db
@@ -61,33 +59,61 @@ export async function POST(request: NextRequest) {
       .limit(1)
     
     if (existingEmail.length > 0) {
+      const existingUser = existingEmail[0]
+      if (existingUser.confirmedAt) {
+        return NextResponse.json(
+          { error: 'Un compte avec cet email existe déjà' },
+          { status: 409 }
+        )
+      }
+
+      const confirmationToken = generateConfirmationToken(
+        existingUser.id,
+        safeEmail,
+        existingUser.pseudo || `pending_${existingUser.id.replace(/-/g, '').slice(0, 12)}`,
+        locale
+      )
+      if (!confirmationToken) {
+        return NextResponse.json(
+          { error: 'JWT_SECRET manquant dans les variables d\'environnement' },
+          { status: 500 }
+        )
+      }
+
+      const tokenExpiry = new Date(Date.now() + (30 * 60 * 1000))
+      await db
+        .update(users)
+        .set({
+          confirmationToken,
+          tokenExpiry,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, existingUser.id))
+
+      const confirmationUrl = `${process.env.APP_URL}/api/auth/confirm?token=${confirmationToken}&locale=${locale}`
+      const emailSent = await sendEmail({
+        to: safeEmail,
+        subject: locale === 'en' ? 'Confirm your DramNotes account' : 'Confirmez votre compte DramNotes',
+        html: getConfirmationEmailTemplate(locale === 'en' ? 'there' : 'ami', confirmationUrl, locale),
+      })
+
       return NextResponse.json(
-        { error: 'Un compte avec cet email existe déjà' },
-        { status: 409 }
+        {
+          success: true,
+          message: 'Compte en attente. Vérifiez vos emails pour continuer.',
+          emailSent,
+          userId: existingUser.id,
+          pending: true,
+        },
+        { status: 200 }
       )
     }
-    
-    // 3. Vérifier si le pseudo existe déjà
-    const existingPseudo = await db
-      .select()
-      .from(users)
-      .where(eq(users.pseudo, safePseudo))
-      .limit(1)
-    
-    if (existingPseudo.length > 0) {
-      return NextResponse.json(
-        { error: 'Ce pseudo est déjà utilisé' },
-        { status: 409 }
-      )
-    }
-    
-    // 4. Hasher le mot de passe
-    const salt = await bcrypt.genSalt(12)
-    const passwordHash = await bcrypt.hash(password, salt)
-    
-    // 5. Générer ID et token
+
+    // 3. Générer ID et token
     const userId = generateId()
-    const confirmationToken = generateConfirmationToken(userId, safeEmail, safePseudo, locale)
+    const pendingPseudo = `pending_${userId.replace(/-/g, '').slice(0, 12)}`
+    const pendingPassword = await bcrypt.hash(generateId(), 12)
+    const confirmationToken = generateConfirmationToken(userId, safeEmail, pendingPseudo, locale)
     if (!confirmationToken) {
       return NextResponse.json(
         { error: 'JWT_SECRET manquant dans les variables d\'environnement' },
@@ -95,21 +121,21 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // 6. Calculer l'expiration (30 minutes)
+    // 4. Calculer l'expiration (30 minutes)
     const tokenExpiry = new Date(Date.now() + (30 * 60 * 1000))
     const now = new Date()
     
-    // 7. Créer l'utilisateur en base - CORRECTION : utiliser Date
+    // 5. Créer l'utilisateur en base (profil finalisé plus tard)
     await db.insert(users).values({
       id: userId,
       email: safeEmail,
-      password: passwordHash,
-      pseudo: safePseudo,
-      visibility,
-      shelfVisibility,
+      password: pendingPassword,
+      pseudo: pendingPseudo,
+      visibility: 'private',
+      shelfVisibility: 'private',
       confirmationToken,
       tokenExpiry,
-      confirmedAt: null, // Pas encore confirmé
+      confirmedAt: null,
       createdAt: now,
       updatedAt: now,
     })
@@ -119,19 +145,19 @@ export async function POST(request: NextRequest) {
       tags: { userId },
     })
     
-    // 8. Envoyer l'email de confirmation
-    const confirmationUrl = `${process.env.APP_URL}/api/auth/confirm?token=${confirmationToken}`
+    // 6. Envoyer l'email de confirmation
+    const confirmationUrl = `${process.env.APP_URL}/api/auth/confirm?token=${confirmationToken}&locale=${locale}`
     const emailSent = await sendEmail({
-      to: email,
+      to: safeEmail,
       subject: locale === 'en' ? 'Confirm your DramNotes account' : 'Confirmez votre compte DramNotes',
-      html: getConfirmationEmailTemplate(pseudo, confirmationUrl, locale),
+      html: getConfirmationEmailTemplate(locale === 'en' ? 'there' : 'ami', confirmationUrl, locale),
     })
     
     if (!emailSent) {
       console.error('⚠️ Email non envoyé pour', email)
     }
     
-    // 9. Réponse succès
+    // 7. Réponse succès
     return NextResponse.json(
       { 
         success: true, 

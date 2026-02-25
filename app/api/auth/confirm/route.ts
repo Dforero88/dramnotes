@@ -10,21 +10,16 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
+    const localeFromQuery = searchParams.get('locale') === 'en' ? 'en' : 'fr'
     
     if (!token) {
-      return NextResponse.json(
-        { error: 'Token manquant' },
-        { status: 400 }
-      )
+      return NextResponse.redirect(`${process.env.APP_URL}/${localeFromQuery}/register?status=invalid_link`)
     }
     
     // 1. Vérifier et décoder le token JWT
     const decoded = verifyConfirmationToken(token)
     if (!decoded) {
-      return NextResponse.json(
-        { error: 'Token invalide ou expiré' },
-        { status: 400 }
-      )
+      return NextResponse.redirect(`${process.env.APP_URL}/${localeFromQuery}/register?status=invalid_link`)
     }
     
     const { userId } = decoded
@@ -38,48 +33,28 @@ export async function GET(request: NextRequest) {
       .limit(1)
     
     if (userResult.length === 0) {
-      return NextResponse.json(
-        { error: 'Utilisateur non trouvé' },
-        { status: 404 }
-      )
+      return NextResponse.redirect(`${process.env.APP_URL}/${locale}/register?status=invalid_link`)
     }
     
     const user = userResult[0]
     
     // 3. Vérifier que le token correspond
     if (user.confirmationToken !== token) {
-      return NextResponse.json(
-        { error: 'Token incorrect' },
-        { status: 400 }
-      )
+      return NextResponse.redirect(`${process.env.APP_URL}/${locale}/register?status=invalid_link`)
     }
     
     // 4. Vérifier l'expiration - CORRECTION : convertir en Date
     const now = new Date()
     if (user.tokenExpiry && user.tokenExpiry < now) {
-      return NextResponse.json(
-        { error: 'Token expiré' },
-        { status: 400 }
-      )
+      return NextResponse.redirect(`${process.env.APP_URL}/${locale}/register?status=expired_link`)
     }
     
     // 5. Vérifier si déjà confirmé
     if (user.confirmedAt) {
-      return NextResponse.redirect(`${process.env.APP_URL}/${locale}/already-confirmed`)
+      return NextResponse.redirect(`${process.env.APP_URL}/${locale}/confirmed`)
     }
-    
-    // 6. Confirmer le compte - CORRECTION : utiliser Date
-    await db.update(users)
-      .set({ 
-        confirmedAt: new Date(),
-        confirmationToken: null,
-        tokenExpiry: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userId))
-    
-    // 7. Rediriger
-    return NextResponse.redirect(`${process.env.APP_URL}/${locale}/confirmed`)
+
+    return NextResponse.redirect(`${process.env.APP_URL}/${locale}/complete-account?token=${encodeURIComponent(token)}`)
     
   } catch (error: any) {
     if (error?.digest === 'DYNAMIC_SERVER_USAGE') {

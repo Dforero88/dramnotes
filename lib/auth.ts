@@ -44,6 +44,11 @@ export const authOptions: AuthOptions = {
           throw new Error('EMAIL_NOT_CONFIRMED')
         }
 
+        if (!user.password || !user.pseudo) {
+          console.log('❌ Compte incomplet:', email)
+          throw new Error('EMAIL_NOT_CONFIRMED')
+        }
+
         // Vérifier le mot de passe
         const passwordValid = await bcrypt.compare(password, user.password)
         if (!passwordValid) {

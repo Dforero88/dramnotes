@@ -3,16 +3,28 @@ import { z } from 'zod'
 import { validatePassword } from './password-rules'
 
 export const registerSchema = z.object({
+  email: z.string()
+    .email('Email invalide')
+    .max(100, 'Email trop long'),
+  acceptedTerms: z.boolean().refine((value) => value === true, {
+    message: 'Veuillez accepter la politique de confidentialité',
+  }),
+  acceptedAge: z.boolean().refine((value) => value === true, {
+    message: 'Vous devez confirmer avoir 18 ans ou plus',
+  }),
+})
+
+export const confirmSchema = z.object({
+  token: z.string().min(10, 'Token invalide')
+})
+
+export const completeAccountSchema = z.object({
+  token: z.string().min(10, 'Token invalide'),
   pseudo: z.string()
     .min(3, 'Le pseudo doit contenir au moins 3 caractères')
     .max(30, 'Le pseudo ne peut pas dépasser 30 caractères')
     .regex(/^[a-zA-Z0-9_]+$/, 'Le pseudo ne peut contenir que des lettres, chiffres et underscores')
     .regex(/^[a-zA-Z]/, 'Le pseudo doit commencer par une lettre'),
-  
-  email: z.string()
-    .email('Email invalide')
-    .max(100, 'Email trop long'),
-  
   password: z.string()
     .min(1, 'Mot de passe requis')
     .refine((password) => {
@@ -21,18 +33,8 @@ export const registerSchema = z.object({
     }, {
       message: 'Le mot de passe ne respecte pas les règles de sécurité'
     }),
-  acceptedTerms: z.boolean().refine((value) => value === true, {
-    message: 'Veuillez accepter la politique de confidentialité',
-  }),
-  acceptedAge: z.boolean().refine((value) => value === true, {
-    message: 'Vous devez confirmer avoir 18 ans ou plus',
-  }),
   visibility: z.enum(['private', 'public']).default('private'),
   shelfVisibility: z.enum(['private', 'public']).default('private'),
-})
-
-export const confirmSchema = z.object({
-  token: z.string().min(10, 'Token invalide')
 })
 
 export const loginSchema = z.object({

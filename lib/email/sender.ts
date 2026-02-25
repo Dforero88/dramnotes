@@ -127,11 +127,11 @@ export function getConfirmationEmailTemplate(
     locale === 'fr'
       ? `
       <div class="content">
-        <h2 style="margin:0 0 10px 0; font-size:22px;">Bonjour ${pseudo},</h2>
+        <h2 style="margin:0 0 10px 0; font-size:22px;">Bonjour,</h2>
         <p>Merci pour votre inscription sur DramNotes.</p>
-        <p>Confirmez votre adresse email pour activer votre compte :</p>
+        <p>Pour continuer, cliquez sur le bouton ci-dessous afin de finaliser votre compte :</p>
         <div class="buttonWrap">
-          <a href="${confirmationUrl}" class="button">Confirmer mon compte</a>
+          <a href="${confirmationUrl}" class="button">Continuer mon inscription</a>
         </div>
         <p class="muted">Ce lien expire dans 30 minutes. Si vous n’êtes pas à l’origine de cette demande, ignorez cet email.</p>
       </div>
@@ -142,11 +142,11 @@ export function getConfirmationEmailTemplate(
     `
       : `
       <div class="content">
-        <h2 style="margin:0 0 10px 0; font-size:22px;">Hi ${pseudo},</h2>
+        <h2 style="margin:0 0 10px 0; font-size:22px;">Hello,</h2>
         <p>Thanks for joining DramNotes.</p>
-        <p>Please confirm your email address to activate your account:</p>
+        <p>To continue, click the button below to finish your account setup:</p>
         <div class="buttonWrap">
-          <a href="${confirmationUrl}" class="button">Confirm my account</a>
+          <a href="${confirmationUrl}" class="button">Continue registration</a>
         </div>
         <p class="muted">This link expires in 30 minutes. If this wasn’t you, you can ignore this email.</p>
       </div>

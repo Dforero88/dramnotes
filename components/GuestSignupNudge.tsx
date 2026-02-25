@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import { trackEvent } from '@/lib/analytics-client'
@@ -40,6 +41,12 @@ export default function GuestSignupNudge() {
   const { status } = useSession()
   const [open, setOpen] = useState(false)
   const [triggerType, setTriggerType] = useState<TriggerType>('actions')
+  const [email, setEmail] = useState('')
+  const [acceptedAge, setAcceptedAge] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const lastActionAtRef = useRef(0)
   const pageEnteredAtRef = useRef(Date.now())
 
@@ -167,6 +174,46 @@ export default function GuestSignupNudge() {
 
   if (status !== 'unauthenticated' || !open) return null
 
+  const canSubmit =
+    email.trim().length > 0 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
+    acceptedAge &&
+    acceptedTerms &&
+    !submitting
+
+  const submitInlineRegister = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!canSubmit) return
+    setSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          acceptedAge,
+          acceptedTerms,
+          locale,
+        }),
+      })
+      const json = await response.json()
+      if (!response.ok) {
+        setSubmitError(json?.error || t('common.errorOccurred'))
+        return
+      }
+
+      setSubmitSuccess(true)
+      trackEvent('cta_signup_click', { source_context: 'nudge_floating_inline_form' })
+      trackEvent('guest_nudge_signup_click', { source_context: context, trigger_type: triggerType })
+    } catch (_error) {
+      setSubmitError(t('common.errorOccurred'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div
       data-nudge-ignore="1"
@@ -197,26 +244,66 @@ export default function GuestSignupNudge() {
             ))}
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Link
-            href={`/${locale}/register`}
-            onClick={() => {
-              trackEvent('cta_signup_click', { source_context: 'nudge_floating' })
-              trackEvent('guest_nudge_signup_click', { source_context: context, trigger_type: triggerType })
-            }}
-            className="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium text-white"
-            style={{ backgroundColor: 'var(--color-primary)' }}
-          >
-            {t('navigation.signUp')}
-          </Link>
-          <Link
-            href={`/${locale}/login`}
-            onClick={() => trackEvent('guest_nudge_login_click', { source_context: context, trigger_type: triggerType })}
-            className="text-sm text-gray-600 hover:text-gray-900 underline"
-          >
-            {t('auth.alreadyHaveAccount')} {t('navigation.signIn')}
-          </Link>
-        </div>
+        {submitSuccess ? (
+          <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+            {t('auth.checkEmail')}
+          </div>
+        ) : (
+          <form className="mt-3 space-y-2" onSubmit={submitInlineRegister}>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t('form.emailPlaceholder')}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            />
+            <label className="flex items-start gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                checked={acceptedAge}
+                onChange={(e) => setAcceptedAge(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span>{t('auth.ageAgreement')}</span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span>
+                {t('auth.termsAgreement')}{' '}
+                <Link href={`/${locale}/terms`} className="underline hover:text-gray-900">
+                  {t('auth.termsOfUse')}
+                </Link>{' '}
+                {t('common.and')}{' '}
+                <Link href={`/${locale}/privacy`} className="underline hover:text-gray-900">
+                  {t('auth.privacyPolicy')}
+                </Link>
+              </span>
+            </label>
+            {submitError ? <p className="text-xs text-red-600">{submitError}</p> : null}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
+                {submitting ? t('form.submitting') : t('auth.createAccount')}
+              </button>
+              <Link
+                href={`/${locale}/login`}
+                onClick={() => trackEvent('guest_nudge_login_click', { source_context: context, trigger_type: triggerType })}
+                className="text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                {t('auth.alreadyHaveAccount')} {t('navigation.signIn')}
+              </Link>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   )
