@@ -14,10 +14,10 @@ function normalizeText(value) {
 
 function score(source, candidate) {
   let result = 0
-  if (normalizeText(source.type) && normalizeText(source.type) === normalizeText(candidate.type)) result += 1
+  if (normalizeText(source.type) && normalizeText(source.type) === normalizeText(candidate.type)) result += 0
   if (source.bottling_type === 'DB' && source.distiller_id && source.distiller_id === candidate.distiller_id) result += 4
   if (source.bottling_type === 'IB' && source.bottler_id && source.bottler_id === candidate.bottler_id) result += 4
-  if (source.country_id && source.country_id === candidate.country_id) result += 1
+  if (source.country_id && source.country_id === candidate.country_id) result += 0
   if (normalizeText(source.region) && normalizeText(source.region) === normalizeText(candidate.region)) result += 2
   return result
 }
