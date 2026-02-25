@@ -147,6 +147,8 @@ But:
 | `shelf_status_set` | changement statut étagère | `whisky_id`, `status` |
 | `search_performed` | recherche lancée (catalogue/explorer) | `query_length`, `filters_count`, `filter_types`, `source_context`, `search_view`, `results_count` |
 | `catalogue_view_selected` | affichage/changement de vue catalogue | `source_context`, `selected_view`, `previous_view`, `trigger` |
+| `catalogue_zero_results_cta_shown` | affichage du bloc CTA sur 0 résultat (vue whiskies) | `source_context`, `search_view`, `query_length`, `filters_count` |
+| `catalogue_zero_results_cta_click` | clic CTA du bloc 0 résultat | `source_context`, `cta_target`, `search_view`, `query_length`, `filters_count` |
 | `follow_user` | follow réussi | `target_user_id` |
 | `unfollow_user` | unfollow réussi | `target_user_id` |
 | `notebook_section_view` | changement section notebook (hors `notes`) | `section`, `viewer_is_owner`, `profile_pseudo` |

@@ -7,6 +7,8 @@ import TagInput from '@/components/TagInput'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 import { buildBottlerPath, buildDistillerPath } from '@/lib/producer-url'
 import { trackEvent } from '@/lib/analytics-client'
+import { useAuth } from '@/hooks/useAuth'
+import SignupCtaLink from '@/components/SignupCtaLink'
 
 type WhiskyCard = {
   id: string
@@ -117,6 +119,7 @@ async function fetchJsonWithRetry(url: string, attempts = 2) {
 
 export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   const t = getTranslations(locale)
+  const { isLoggedIn, isLoading: isAuthLoading } = useAuth()
   const [view, setView] = useState<CatalogueView>('whiskies')
   const [draftFilters, setDraftFilters] = useState<Filters>(emptyFilters)
   const [appliedFilters, setAppliedFilters] = useState<Filters>(emptyFilters)
@@ -139,6 +142,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
     bottler: false,
   })
   const prevViewRef = useRef<CatalogueView | null>(null)
+  const zeroResultsShownKeyRef = useRef<string>('')
 
   const pageSize = 12
 
@@ -176,6 +180,38 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
     params.set('pageSize', String(pageSize))
     return params.toString()
   }, [appliedFilters, page, view])
+
+  const activeAppliedFiltersCount = useMemo(() => {
+    const filterEntries: Array<[string, string]> =
+      view === 'whiskies'
+        ? [
+            ['name', appliedFilters.name],
+            ['countryId', appliedFilters.countryId],
+            ['distiller', appliedFilters.distiller],
+            ['bottler', appliedFilters.bottler],
+            ['barcode', appliedFilters.barcode],
+            ['distilledYear', appliedFilters.distilledYear],
+            ['bottledYear', appliedFilters.bottledYear],
+            ['age', appliedFilters.age],
+            ['alcoholVolume', appliedFilters.alcoholVolume],
+            ['ratingMin', appliedFilters.ratingMin],
+            ['ratingMax', appliedFilters.ratingMax],
+            ['region', appliedFilters.region],
+            ['type', appliedFilters.type],
+            ['bottlingType', appliedFilters.bottlingType],
+            ['noseTags', appliedFilters.noseTags],
+            ['palateTags', appliedFilters.palateTags],
+            ['finishTags', appliedFilters.finishTags],
+          ]
+        : [
+            ['name', appliedFilters.name],
+            ['countryId', appliedFilters.countryId],
+            ['region', appliedFilters.region],
+          ]
+    return filterEntries.filter(([, value]) => String(value || '').trim() !== '').length
+  }, [appliedFilters, view])
+
+  const showZeroResultsCta = view === 'whiskies' && !loading && items.length === 0
 
   useEffect(() => {
     const fetchData = async () => {
@@ -348,6 +384,81 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
     })
     prevViewRef.current = view
   }, [view])
+
+  useEffect(() => {
+    if (!showZeroResultsCta) return
+    const shownKey = `${view}|${queryString}`
+    if (zeroResultsShownKeyRef.current === shownKey) return
+    trackEvent('catalogue_zero_results_cta_shown', {
+      source_context: 'catalogue',
+      search_view: view,
+      query_length: appliedFilters.name.trim().length,
+      filters_count: activeAppliedFiltersCount,
+    })
+    zeroResultsShownKeyRef.current = shownKey
+  }, [showZeroResultsCta, view, queryString, appliedFilters.name, activeAppliedFiltersCount])
+
+  const onZeroResultsCtaClick = (ctaTarget: 'add_whisky' | 'login' | 'signup') => {
+    trackEvent('catalogue_zero_results_cta_click', {
+      source_context: 'catalogue_zero_results',
+      cta_target: ctaTarget,
+      search_view: view,
+      query_length: appliedFilters.name.trim().length,
+      filters_count: activeAppliedFiltersCount,
+    })
+  }
+
+  const renderMissingWhiskyCta = (sourceContext: 'catalogue_zero_results' | 'catalogue_footer') => (
+    isAuthLoading ? null : (
+      isLoggedIn ? (
+        <div className="text-center">
+          <h3 className="text-2xl font-bold text-primary mb-4">
+            {t('catalogue.missingWhisky')}
+          </h3>
+          <p className="text-gray-700 mb-6">
+            {t('catalogue.addWhiskyDescription')}
+          </p>
+          <Link
+            href={`/${locale}/add-whisky`}
+            className="inline-flex items-center gap-2 py-3 px-6 bg-primary text-white rounded-lg hover:bg-primary-dark-light transition-colors"
+            onClick={() => {
+              if (sourceContext === 'catalogue_zero_results') onZeroResultsCtaClick('add_whisky')
+            }}
+          >
+            <span>+</span>
+            <span>{t('catalogue.addWhiskyButton')}</span>
+          </Link>
+        </div>
+      ) : (
+        <div className="text-center">
+          <h3 className="text-2xl font-bold text-gray-700 mb-4">
+            {t('catalogue.missingWhisky')}
+          </h3>
+          <p className="text-gray-600 mb-2">
+            {t('catalogue.loginRequired')}
+          </p>
+          <div className="flex gap-4 justify-center mt-4">
+            <Link
+              href={`/${locale}/login`}
+              className="py-2 px-6 bg-primary text-white rounded-lg hover:bg-primary-dark-light transition-colors"
+              onClick={() => {
+                if (sourceContext === 'catalogue_zero_results') onZeroResultsCtaClick('login')
+              }}
+            >
+              {t('navigation.signIn')}
+            </Link>
+            <SignupCtaLink
+              href={`/${locale}/register`}
+              sourceContext={sourceContext === 'catalogue_zero_results' ? 'catalogue_zero_results_guest_block' : 'catalogue_guest_block'}
+              className="py-2 px-6 bg-white text-primary border border-primary rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              {t('navigation.signUp')}
+            </SignupCtaLink>
+          </div>
+        </div>
+      )
+    )
+  )
 
   const renderFilters = (isMobile = false) => (
     view !== 'whiskies' ? (
@@ -686,18 +797,19 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
   )
 
   return (
-    <div className="px-4 md:px-8 pt-8 pb-0">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">{t('catalogue.title')}</h1>
-          <button
-            onClick={() => setFiltersOpen(true)}
-            className="lg:hidden px-4 py-2 border rounded-lg"
-            style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-          >
-            {t('catalogue.openFilters')}
-          </button>
-        </div>
+    <div>
+      <div className="px-4 md:px-8 pt-8 pb-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">{t('catalogue.title')}</h1>
+            <button
+              onClick={() => setFiltersOpen(true)}
+              className="lg:hidden px-4 py-2 border rounded-lg"
+              style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+            >
+              {t('catalogue.openFilters')}
+            </button>
+          </div>
 
         <div className="mb-6 inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
           <button
@@ -774,8 +886,15 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             </div>
           )}
           {!loading && items.length === 0 && (
-            <div className="p-6 bg-white rounded-xl border border-gray-200 text-center text-gray-600">
-              {t('catalogue.noResults')}
+            <div className="space-y-4">
+              <div className="p-6 bg-white rounded-xl border border-gray-200 text-center text-gray-600">
+                {t('catalogue.noResults')}
+              </div>
+              {showZeroResultsCta && (
+                <div className="border border-gray-200 bg-primary-light rounded-2xl px-4 md:px-8 py-8">
+                  {renderMissingWhiskyCta('catalogue_zero_results')}
+                </div>
+              )}
             </div>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
@@ -899,20 +1018,30 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
         </section>
       </div>
 
-      {filtersOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end lg:hidden">
-          <div className="bg-white w-full rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">{t('catalogue.filtersTitle')}</h2>
-              <button onClick={() => setFiltersOpen(false)} className="text-gray-500">
-                {t('common.cancel')}
-              </button>
+          {filtersOpen && (
+            <div className="fixed inset-0 z-50 bg-black/40 flex items-end lg:hidden">
+              <div className="bg-white w-full rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">{t('catalogue.filtersTitle')}</h2>
+                  <button onClick={() => setFiltersOpen(false)} className="text-gray-500">
+                    {t('common.cancel')}
+                  </button>
+                </div>
+                {renderFilters(true)}
+              </div>
             </div>
-            {renderFilters(true)}
+          )}
+        </div>
+      </div>
+      {!showZeroResultsCta && (
+        <div className="mt-4 border-t">
+          <div className="bg-primary-light">
+            <div className="max-w-4xl mx-auto px-4 md:px-8 py-10 md:py-12">
+              {renderMissingWhiskyCta('catalogue_footer')}
+            </div>
           </div>
         </div>
       )}
-      </div>
     </div>
   )
 }

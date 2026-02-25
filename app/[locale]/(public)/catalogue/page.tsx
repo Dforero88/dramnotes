@@ -1,10 +1,6 @@
 // app/[locale]/(public)/catalogue/page.tsx
 import { getTranslations, type Locale } from '@/lib/i18n'
-import Link from 'next/link'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import CatalogueBrowser from '@/components/CatalogueBrowser'
-import SignupCtaLink from '@/components/SignupCtaLink'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -46,60 +42,11 @@ export default async function CataloguePage({
       </div>
     )
   }
-  const session = await getServerSession(authOptions) // <-- Passe authOptions
   
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex-1">
         <CatalogueBrowser locale={locale} />
-      </div>
-      
-      <div className="mt-4 border-t">
-        <div className="bg-primary-light">
-          <div className="max-w-4xl mx-auto px-4 md:px-8 py-10 md:py-12">
-          {session?.user ? (
-            <div className="text-center">
-              <h3 className="text-2xl font-bold text-primary mb-4">
-                {t('catalogue.missingWhisky')}
-              </h3>
-              <p className="text-gray-700 mb-6">
-                {t('catalogue.addWhiskyDescription')}
-              </p>
-              <Link
-                href={`/${locale}/add-whisky`}
-                className="inline-flex items-center gap-2 py-3 px-6 bg-primary text-white rounded-lg hover:bg-primary-dark-light transition-colors"
-              >
-                <span>+</span>
-                <span>{t('catalogue.addWhiskyButton')}</span>
-              </Link>
-            </div>
-          ) : (
-            <div className="text-center">
-              <h3 className="text-2xl font-bold text-gray-700 mb-4">
-                {t('catalogue.missingWhisky')}
-              </h3>
-              <p className="text-gray-600 mb-2">
-                {t('catalogue.loginRequired')}
-              </p>
-              <div className="flex gap-4 justify-center mt-4">
-                <Link
-                  href={`/${locale}/login`}
-                  className="py-2 px-6 bg-primary text-white rounded-lg hover:bg-primary-dark-light transition-colors"
-                >
-                  {t('navigation.signIn')}
-                </Link>
-                <SignupCtaLink
-                  href={`/${locale}/register`}
-                  sourceContext="catalogue_guest_block"
-                  className="py-2 px-6 bg-white text-primary border border-primary rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  {t('navigation.signUp')}
-                </SignupCtaLink>
-              </div>
-            </div>
-          )}
-          </div>
-        </div>
       </div>
     </div>
   )
