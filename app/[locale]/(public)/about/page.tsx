@@ -21,9 +21,9 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params
   const t = getTranslations(locale)
   const sections = [
-    { title: t('about.historyTitle'), body: t('about.historyBody') },
-    { title: t('about.labTitle'), body: t('about.labBody') },
-    { title: t('about.opennessTitle'), body: t('about.opennessBody') },
+    { title: t('about.historyTitle'), body: t('about.historyBody'), image: '/images/about/about-history.webp' },
+    { title: t('about.labTitle'), body: t('about.labBody'), image: '/images/about/about-lab.webp' },
+    { title: t('about.opennessTitle'), body: t('about.opennessBody'), image: '/images/about/about-openness.webp' },
   ]
 
   return (
@@ -36,6 +36,14 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
       <div className="grid grid-cols-1 gap-4">
         {sections.map((section) => (
           <div key={section.title} className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="-mx-5 -mt-5 mb-4 overflow-hidden rounded-t-xl border-b border-gray-100 bg-gray-50">
+              <img
+                src={section.image}
+                alt={section.title}
+                className="aspect-[3/2] w-full object-contain"
+                loading="lazy"
+              />
+            </div>
             <h2 className="font-semibold text-gray-900">{section.title}</h2>
             <p className="mt-2 text-sm text-gray-600">{section.body}</p>
           </div>
