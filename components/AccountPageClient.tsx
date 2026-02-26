@@ -210,7 +210,7 @@ export default function AccountPageClient() {
             <div className="mt-4">
               <Link
                 href={`/${locale}/admin/producers`}
-                className="inline-flex items-center px-4 py-2 rounded-xl text-white"
+                className="inline-flex items-center px-4 py-2 rounded-full text-white"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 {t('account.adminProducersCta')}
@@ -248,7 +248,7 @@ export default function AccountPageClient() {
               <button
                 onClick={savePseudo}
                 disabled={loadingPseudo || !newPseudo.trim()}
-                className="px-5 py-2 rounded-xl text-white disabled:opacity-50"
+                className="px-5 py-2 rounded-full text-white disabled:opacity-50"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 {loadingPseudo ? t('common.saving') : t('account.save')}
@@ -304,7 +304,7 @@ export default function AccountPageClient() {
             <button
               onClick={saveVisibility}
               disabled={loadingVisibility}
-              className="px-5 py-2 rounded-xl text-white shrink-0 self-end md:self-start"
+              className="px-5 py-2 rounded-full text-white shrink-0 self-end md:self-start"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {loadingVisibility ? t('common.saving') : t('account.save')}
@@ -343,7 +343,7 @@ export default function AccountPageClient() {
             <button
               onClick={saveAddress}
               disabled={loadingAddress}
-              className="px-5 py-2 rounded-xl text-white"
+              className="px-5 py-2 rounded-full text-white"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {loadingAddress ? t('common.saving') : t('account.save')}
@@ -366,7 +366,7 @@ export default function AccountPageClient() {
               <button
                 onClick={exportData}
                 disabled={loadingExport}
-                className="px-5 py-2 rounded-xl text-white disabled:opacity-50"
+                className="px-5 py-2 rounded-full text-white disabled:opacity-50"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 {loadingExport ? t('common.saving') : t('account.rgpdExportButton')}
@@ -389,7 +389,7 @@ export default function AccountPageClient() {
               <button
                 onClick={deleteAccount}
                 disabled={loadingDelete || !deletePassword}
-                className="px-5 py-2 rounded-xl text-white disabled:opacity-50"
+                className="px-5 py-2 rounded-full text-white disabled:opacity-50"
                 style={{ backgroundColor: '#dc2626' }}
               >
                 {loadingDelete ? t('common.saving') : t('account.rgpdDeleteButton')}

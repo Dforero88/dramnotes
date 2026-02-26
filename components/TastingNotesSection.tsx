@@ -487,7 +487,7 @@ export default function TastingNotesSection({
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 href={`/${locale}/login`}
-                className="block w-full sm:w-auto px-6 py-3 rounded-xl text-center text-white text-sm font-medium transition"
+                className="block w-full sm:w-auto px-6 py-3 rounded-full text-center text-white text-sm font-medium transition"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 {t('navigation.signIn')}
@@ -495,7 +495,7 @@ export default function TastingNotesSection({
               <SignupCtaLink
                 href={`/${locale}/register`}
                 sourceContext="whisky_tasting_section"
-                className="block w-full sm:w-auto px-6 py-3 rounded-xl text-center border text-sm font-medium transition"
+                className="block w-full sm:w-auto px-6 py-3 rounded-full text-center border text-sm font-medium transition"
                 style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
               >
                 {t('navigation.signUp')}
@@ -512,7 +512,7 @@ export default function TastingNotesSection({
                 <button
                   onClick={() => setEditing(true)}
                   disabled={Boolean(savingAction) || deletingNote}
-                  className="px-3 py-1.5 rounded-xl border text-sm"
+                  className="px-3 py-1.5 rounded-full border text-sm"
                   style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                 >
                   {t('tasting.edit')}
@@ -520,7 +520,7 @@ export default function TastingNotesSection({
                 <button
                   onClick={handleDelete}
                   disabled={Boolean(savingAction) || deletingNote}
-                  className="px-3 py-1.5 rounded-xl border border-red-300 text-sm text-red-600"
+                  className="px-3 py-1.5 rounded-full border border-red-300 text-sm text-red-600"
                 >
                   {deletingNote ? t('common.saving') : t('tasting.delete')}
                 </button>

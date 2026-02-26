@@ -107,7 +107,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark-light disabled:opacity-50"
+            className="w-full py-3 bg-primary text-white rounded-full hover:bg-primary-dark-light disabled:opacity-50"
           >
             {loading ? t('auth.loginLoading') : t('auth.loginButton')}
           </button>

@@ -143,7 +143,7 @@ export default function CompleteAccountPage() {
         <div className="max-w-md w-full rounded-2xl border border-gray-200 bg-white shadow-sm p-6 sm:p-8 text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('auth.invalidLink')}</h1>
           <p className="text-gray-600 mb-4">{t('auth.linkExpiredOrInvalid')}</p>
-          <Link href={`/${locale}/register`} className="inline-flex py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark-light">
+          <Link href={`/${locale}/register`} className="inline-flex py-2 px-4 bg-primary text-white rounded-full hover:bg-primary-dark-light">
             {t('auth.requestNewLink')}
           </Link>
         </div>
@@ -158,7 +158,7 @@ export default function CompleteAccountPage() {
           <div className="text-green-600 text-5xl mb-4">✓</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('auth.confirmationSuccess')}</h1>
           <p className="text-gray-600 mb-4">{t('auth.accountActivated')}</p>
-          <Link href={`/${locale}/login`} className="inline-flex py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark-light">
+          <Link href={`/${locale}/login`} className="inline-flex py-2 px-4 bg-primary text-white rounded-full hover:bg-primary-dark-light">
             {t('auth.goToLogin')}
           </Link>
         </div>
@@ -271,7 +271,7 @@ export default function CompleteAccountPage() {
           <button
             type="submit"
             disabled={loading || pseudoStatus === 'taken' || pseudoStatus === 'checking'}
-            className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-full text-white bg-primary hover:bg-primary-dark-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? t('auth.saving') : t('auth.completeAccountSubmit')}
           </button>

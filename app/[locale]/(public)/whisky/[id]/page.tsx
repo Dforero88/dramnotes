@@ -498,7 +498,7 @@ export default async function WhiskyDetailPage({
                   <p className="text-gray-700 mb-4">{t('catalogue.addWhiskyDescription')}</p>
                   <Link
                     href={`/${locale}/add-whisky`}
-                    className="inline-flex items-center gap-2 py-2.5 px-5 bg-primary text-white rounded-lg hover:bg-primary-dark-light transition-colors"
+                    className="inline-flex items-center gap-2 py-2.5 px-5 bg-primary text-white rounded-full hover:bg-primary-dark-light transition-colors"
                   >
                     <span>+</span>
                     <span>{t('catalogue.addWhiskyButton')}</span>
@@ -511,14 +511,14 @@ export default async function WhiskyDetailPage({
                   <div className="flex gap-3 justify-center">
                     <Link
                       href={`/${locale}/login`}
-                      className="py-2 px-5 bg-primary text-white rounded-lg hover:bg-primary-dark-light transition-colors"
+                      className="py-2 px-5 bg-primary text-white rounded-full hover:bg-primary-dark-light transition-colors"
                     >
                       {t('navigation.signIn')}
                     </Link>
                     <SignupCtaLink
                       href={`/${locale}/register`}
                       sourceContext="whisky_related_guest_footer"
-                      className="py-2 px-5 bg-white text-primary border border-primary rounded-lg hover:bg-gray-50 transition-colors"
+                      className="py-2 px-5 bg-white text-primary border border-primary rounded-full hover:bg-gray-50 transition-colors"
                     >
                       {t('navigation.signUp')}
                     </SignupCtaLink>

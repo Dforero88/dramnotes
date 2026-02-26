@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
           <p className="text-gray-600 mb-6">{error}</p>
           <Link 
             href={`/${locale}/forgot-password`}
-            className="inline-block py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark-light"
+            className="inline-block py-2 px-4 bg-primary text-white rounded-full hover:bg-primary-dark-light"
           >
             {t('auth.requestNewLink')}
           </Link>
@@ -133,7 +133,7 @@ export default function ResetPasswordPage() {
         </p>
         
         {message && (
-          <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg">
+          <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-full">
             {message}
             <div className="mt-2">
               <Link 
@@ -147,7 +147,7 @@ export default function ResetPasswordPage() {
         )}
         
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">
+          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-full">
             {error}
           </div>
         )}
@@ -161,7 +161,7 @@ export default function ResetPasswordPage() {
               type="password"
               required
               minLength={8}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Minimum 8 caractères"
@@ -176,7 +176,7 @@ export default function ResetPasswordPage() {
             <input
               type="password"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Retapez le mot de passe"
@@ -187,7 +187,7 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading || !!message}
-            className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark-light disabled:opacity-50"
+            className="w-full py-3 bg-primary text-white rounded-full hover:bg-primary-dark-light disabled:opacity-50"
           >
             {loading ? t('auth.saving') : t('auth.changePassword')}
           </button>

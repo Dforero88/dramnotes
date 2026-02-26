@@ -289,7 +289,7 @@ export default function GuestSignupNudge() {
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="inline-flex items-center rounded-xl px-4 py-2 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 {submitting ? t('form.submitting') : t('auth.createAccount')}

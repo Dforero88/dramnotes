@@ -266,7 +266,7 @@ export default function ExplorerPageClient() {
           <div className="flex flex-col gap-3">
             <Link
               href={`/${locale}/login`}
-              className="block w-full py-3 rounded-xl text-center text-white text-sm font-medium transition"
+              className="block w-full py-3 rounded-full text-center text-white text-sm font-medium transition"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {t('navigation.signIn')}
@@ -274,7 +274,7 @@ export default function ExplorerPageClient() {
             <SignupCtaLink
               href={`/${locale}/register`}
               sourceContext="explorer_guest_block"
-              className="block w-full py-3 rounded-xl text-center border text-sm font-medium transition"
+              className="block w-full py-3 rounded-full text-center border text-sm font-medium transition"
               style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
             >
               {t('navigation.signUp')}

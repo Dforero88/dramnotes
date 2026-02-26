@@ -107,7 +107,7 @@ export default function ContactPageClient() {
         <button
           type="submit"
           disabled={loading || hasFormErrors}
-          className="px-5 py-2 rounded-xl text-white disabled:opacity-50"
+          className="px-5 py-2 rounded-full text-white disabled:opacity-50"
           style={{ backgroundColor: 'var(--color-primary)' }}
         >
           {loading ? t('contact.sending') : t('contact.send')}

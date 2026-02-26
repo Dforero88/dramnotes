@@ -420,7 +420,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           </p>
           <Link
             href={`/${locale}/add-whisky`}
-            className="inline-flex items-center gap-2 py-3 px-6 bg-primary text-white rounded-lg hover:bg-primary-dark-light transition-colors"
+            className="inline-flex items-center gap-2 py-3 px-6 bg-primary text-white rounded-full hover:bg-primary-dark-light transition-colors"
             onClick={() => {
               if (sourceContext === 'catalogue_zero_results') onZeroResultsCtaClick('add_whisky')
             }}
@@ -440,7 +440,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           <div className="flex gap-4 justify-center mt-4">
             <Link
               href={`/${locale}/login`}
-              className="py-2 px-6 bg-primary text-white rounded-lg hover:bg-primary-dark-light transition-colors"
+              className="py-2 px-6 bg-primary text-white rounded-full hover:bg-primary-dark-light transition-colors"
               onClick={() => {
                 if (sourceContext === 'catalogue_zero_results') onZeroResultsCtaClick('login')
               }}
@@ -450,7 +450,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <SignupCtaLink
               href={`/${locale}/register`}
               sourceContext={sourceContext === 'catalogue_zero_results' ? 'catalogue_zero_results_guest_block' : 'catalogue_guest_block'}
-              className="py-2 px-6 bg-white text-primary border border-primary rounded-lg hover:bg-gray-50 transition-colors"
+              className="py-2 px-6 bg-white text-primary border border-primary rounded-full hover:bg-gray-50 transition-colors"
             >
               {t('navigation.signUp')}
             </SignupCtaLink>
@@ -520,7 +520,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
         <div className="flex gap-3">
           <button
             onClick={applyFilters}
-            className="px-4 py-2 text-white rounded-xl flex-1"
+            className="px-4 py-2 text-white rounded-full flex-1"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
             {t('catalogue.applyFilters')}
@@ -786,7 +786,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
       <div className="flex gap-3">
         <button
           onClick={applyFilters}
-          className="px-4 py-2 text-white rounded-xl flex-1"
+          className="px-4 py-2 text-white rounded-full flex-1"
           style={{ backgroundColor: 'var(--color-primary)' }}
         >
           {t('catalogue.applyFilters')}
@@ -804,7 +804,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <h1 className="text-3xl font-bold">{t('catalogue.title')}</h1>
             <button
               onClick={() => setFiltersOpen(true)}
-              className="lg:hidden px-4 py-2 border rounded-xl"
+              className="lg:hidden px-4 py-2 border rounded-full"
               style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
             >
               {t('catalogue.openFilters')}

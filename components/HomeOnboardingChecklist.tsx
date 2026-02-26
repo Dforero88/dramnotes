@@ -146,7 +146,7 @@ export default function HomeOnboardingChecklist({
         <div className="mt-4">
           <Link
             href={`/${locale}/catalogue`}
-            className="inline-flex items-center rounded-xl px-4 py-2 text-sm font-medium text-white"
+            className="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium text-white"
             style={{ backgroundColor: 'var(--color-primary)' }}
             onClick={() => trackEvent('onboarding_done_cta_click', { source: 'home_checklist' })}
           >

@@ -58,13 +58,13 @@ export default function ForgotPasswordPage() {
         </p>
         
         {message && (
-          <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg">
+          <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-full">
             {message}
           </div>
         )}
         
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">
+          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-full">
             {error}
           </div>
         )}
@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
             <input
               type="email"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="votre@email.com"
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark-light disabled:opacity-50"
+            className="w-full py-3 bg-primary text-white rounded-full hover:bg-primary-dark-light disabled:opacity-50"
           >
             {loading ? t('auth.forgotPasswordSending') : t('auth.forgotPasswordButton')}
           </button>

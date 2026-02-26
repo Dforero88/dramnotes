@@ -43,13 +43,13 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Link href={`/${locale}/catalogue`} className="px-4 py-2 rounded-xl text-white" style={{ backgroundColor: 'var(--color-primary)' }}>
+        <Link href={`/${locale}/catalogue`} className="px-4 py-2 rounded-full text-white" style={{ backgroundColor: 'var(--color-primary)' }}>
           {t('about.ctaCatalogue')}
         </Link>
-        <Link href={`/${locale}/explorer`} className="px-4 py-2 rounded-xl border" style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>
+        <Link href={`/${locale}/explorer`} className="px-4 py-2 rounded-full border" style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>
           {t('about.ctaExplorer')}
         </Link>
-        <Link href={`/${locale}/contact`} className="px-4 py-2 rounded-xl border" style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>
+        <Link href={`/${locale}/contact`} className="px-4 py-2 rounded-full border" style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>
           {t('about.ctaContact')}
         </Link>
       </div>

@@ -339,7 +339,7 @@ export default function AdminProducersPageClient() {
           )}
           <button
             onClick={applySearch}
-            className="px-4 py-2 rounded-xl text-white"
+            className="px-4 py-2 rounded-full text-white"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
             {t('explorer.searchButton')}
@@ -506,7 +506,7 @@ export default function AdminProducersPageClient() {
                       <div className="text-xs text-gray-500">{t('adminProducers.imageSaveHint')}</div>
                       {previewImageUrl ? <img src={previewImageUrl} alt={selected.name} className="w-28 h-28 object-contain border border-gray-200 rounded-lg bg-white" /> : null}
                     </div>
-                    <button onClick={save} disabled={saving} className="w-full px-4 py-2 rounded-xl text-white disabled:opacity-50" style={{ backgroundColor: 'var(--color-primary)' }}>
+                    <button onClick={save} disabled={saving} className="w-full px-4 py-2 rounded-full text-white disabled:opacity-50" style={{ backgroundColor: 'var(--color-primary)' }}>
                       {saving ? t('common.saving') : t('account.save')}
                     </button>
                   </div>
