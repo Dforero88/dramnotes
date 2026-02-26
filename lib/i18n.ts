@@ -509,6 +509,11 @@ export const translations = {
     },
     contact: {
       'email': 'Email',
+      'errorEmailInvalid': 'Email invalide',
+      'errorEmailRequired': 'Email obligatoire',
+      'errorMessageRequired': 'Message obligatoire',
+      'errorMessageTooShort': 'Message trop court',
+      'errorSubjectRequired': 'Sujet obligatoire',
       'emailPlaceholder': 'votre@email.com',
       'message': 'Message',
       'messagePlaceholder': 'Décrivez votre demande…',
@@ -1219,6 +1224,11 @@ export const translations = {
     },
     contact: {
       'email': 'Email',
+      'errorEmailInvalid': 'Invalid email',
+      'errorEmailRequired': 'Email is required',
+      'errorMessageRequired': 'Message is required',
+      'errorMessageTooShort': 'Message is too short',
+      'errorSubjectRequired': 'Subject is required',
       'emailPlaceholder': 'you@email.com',
       'message': 'Message',
       'messagePlaceholder': 'Describe your request…',

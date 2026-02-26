@@ -7,6 +7,7 @@ export interface EmailOptions {
   subject: string
   html: string
   text?: string
+  replyTo?: string
 }
 
 type EmailLocale = 'fr' | 'en'
@@ -61,6 +62,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     const info = await transporter.sendMail({
       from: `"DramNotes" <${from}>`,
       to: options.to,
+      replyTo: options.replyTo,
       subject: options.subject,
       html,
       text,

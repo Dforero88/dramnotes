@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
-import { sanitizeText, validateDisplayName } from '@/lib/moderation'
+import { sanitizeText } from '@/lib/moderation'
 import { sendEmail } from '@/lib/email/sender'
 
 export const dynamic = 'force-dynamic'
@@ -27,12 +27,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    const rawName = sanitizeText(String(body?.name || ''), 80)
-    const nameCheck = await validateDisplayName(rawName, 80)
-    if (!nameCheck.ok) {
-      return NextResponse.json({ error: locale === 'en' ? 'Invalid name' : 'Nom invalide' }, { status: 400 })
-    }
-
     const email = sanitizeText(String(body?.email || ''), 140)
     if (!isValidEmail(email)) {
       return NextResponse.json({ error: locale === 'en' ? 'Invalid email' : 'Email invalide' }, { status: 400 })
@@ -52,7 +46,6 @@ export async function POST(request: NextRequest) {
     const html = `
       <div style="font-family:Arial,sans-serif">
         <h2>Nouveau message de contact</h2>
-        <p><strong>Nom:</strong> ${nameCheck.value}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Sujet:</strong> ${subject}</p>
         <p><strong>Message:</strong></p>
@@ -61,6 +54,7 @@ export async function POST(request: NextRequest) {
     `
     const ok = await sendEmail({
       to,
+      replyTo: email,
       subject: `[DramNotes Contact] ${subject}`,
       html,
     })
@@ -73,4 +67,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
-
