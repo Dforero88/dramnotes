@@ -5,7 +5,7 @@ Application web Next.js pour la découverte de whiskies, la saisie de tasting no
 ## 1) Vue métier (MVP)
 
 Un utilisateur peut :
-- créer un compte et le confirmer par email
+- créer un compte en 2 étapes (pré-inscription + finalisation après email)
 - créer un whisky
 - créer/éditer/supprimer sa tasting note
 - voir les tasting notes publiques
@@ -30,6 +30,15 @@ Objectif produit actuel :
 - Monitoring erreurs/logs: Sentry
 - Analytics: Google Analytics (GA4)
 - Uptime: UptimeRobot via endpoint healthcheck
+
+### 2.1 Composants techniques clés (actuels)
+
+- Tracking client GA centralisé: `lib/analytics-client.ts` (`trackEvent` + `trackEventOnce`)
+- Catalogue front (filtres/vues/CTA 0 résultat): `components/CatalogueBrowser.tsx`
+- CTA signup traqué côté composants: `components/SignupCtaLink.tsx`, `components/GuestSignupNudge.tsx`
+- Tracking onboarding home: `components/HomeOnboardingChecklist.tsx`
+- Bootstrap GA (script + config): `app/layout.tsx`
+- Flow auth 2 étapes: `app/[locale]/(auth)/register/page.tsx`, `app/[locale]/(auth)/complete-account/page.tsx`, `app/api/auth/register/route.ts`, `app/api/auth/confirm/route.ts`, `app/api/auth/complete-account/route.ts`
 
 ## 3) Lancement local
 
@@ -106,8 +115,35 @@ But:
 ### 5.4 Règles légales minimales
 
 - case à cocher politique de confidentialité obligatoire à l’inscription
+- case à cocher 18+ obligatoire à l’inscription
 - page de politique de confidentialité
 - profils publics/privés (contrôle visibilité utilisateur)
+
+### 5.5 Flow inscription/confirmation (KISS)
+
+Step 1 (register):
+- email
+- case 18+
+- case CGU/privacy
+
+Step 2:
+- envoi email de confirmation (lien 30 min)
+
+Step 3:
+- clic sur le lien email
+
+Step 4 (obligatoire pour activer le compte):
+- pseudo
+- mot de passe (validation inline + mêmes règles de sécurité qu’avant)
+- visibilité profil/notes
+- visibilité étagère
+
+Comportement email existant:
+- compte confirmé: erreur “email déjà utilisé”
+- compte non confirmé: pas de nouveau compte, token régénéré + email renvoyé
+
+Note:
+- pas de migration DB nécessaire pour ce flow (approche pseudo/password temporaires tant que non confirmé)
 
 ## 6) Pagination et limites (où c’est appliqué)
 
@@ -134,10 +170,8 @@ But:
 
 | Event | Déclenchement | Paramètres |
 |---|---|---|
-| `account_created` | inscription réussie | `user_id` (si disponible) |
 | `login_completed` | connexion réussie | `source_context`, `method`, `locale` |
-| `onboarding_started` | début onboarding post-inscription | `user_id` (si dispo), `entry_point`, `source_context`, `locale` |
-| `onboarding_completed` | 1re valeur atteinte (1re note publiée) | `user_id`, `completion_type`, `source_context`, `locale` |
+| `onboarding_completed` | checklist onboarding home complétée | `source` |
 | `whisky_created` | création whisky réussie | `whisky_id` |
 | `cta_signup_click` | clic sur un CTA “Créer un compte” (visiteur non connecté) | `source_context` |
 | `tasting_note_published` | publication note réussie | `whisky_id`, `published_from`, `source_context` |
@@ -149,16 +183,28 @@ But:
 | `catalogue_view_selected` | affichage/changement de vue catalogue | `source_context`, `selected_view`, `previous_view`, `trigger` |
 | `catalogue_zero_results_cta_shown` | affichage du bloc CTA sur 0 résultat (vue whiskies) | `source_context`, `search_view`, `query_length`, `filters_count` |
 | `catalogue_zero_results_cta_click` | clic CTA du bloc 0 résultat | `source_context`, `cta_target`, `search_view`, `query_length`, `filters_count` |
+| `guest_nudge_shown` | affichage du nudge signup visiteur | `source_context`, `trigger_type`, `actions_count`, `seconds_on_page` |
+| `guest_nudge_close` | fermeture du nudge visiteur | `source_context`, `reason`, `trigger_type` |
+| `guest_nudge_signup_click` | clic signup depuis nudge visiteur | `source_context`, `trigger_type` |
+| `guest_nudge_login_click` | clic login depuis nudge visiteur | `source_context`, `trigger_type` |
 | `follow_user` | follow réussi | `target_user_id` |
 | `unfollow_user` | unfollow réussi | `target_user_id` |
 | `notebook_section_view` | changement section notebook (hors `notes`) | `section`, `viewer_is_owner`, `profile_pseudo` |
 | `notebook_notes_map_viewed` | vue map activée dans notebook | `viewer_is_owner`, `profile_pseudo` |
-| `activity_click` | clic sur une activité home feed | `activity_type`, `target_kind`, `target_id`, `is_logged_in`, `source_context` |
-| `activity_new_note_click` | clic activité type “new_note” | `target_id`, `is_logged_in`, `source_context` |
-| `activity_new_whisky_click` | clic activité type “new_whisky” | `target_id`, `is_logged_in`, `source_context` |
-| `activity_shelf_add_click` | clic activité type “shelf_add” | `target_id`, `is_logged_in`, `source_context` |
+| `activity_click` | clic sur une activité home feed | `activity_type`, `whisky_id`, `profile_pseudo` |
+| `activity_new_note_click` | clic activité type “new_note” | `whisky_id`, `profile_pseudo` |
+| `activity_new_whisky_click` | clic activité type “new_whisky” | `whisky_id`, `profile_pseudo` |
+| `activity_shelf_add_click` | clic activité type “shelf_add” | `whisky_id`, `profile_pseudo` |
+| `onboarding_step_click` | clic sur une étape checklist onboarding home | `step_id`, `source` |
+| `onboarding_done_cta_click` | clic CTA de fin checklist onboarding home | `source` |
+| `onboarding_done_dismiss` | masquage checklist onboarding complétée | `source` |
 | `account_data_exported` | export RGPD réussi | `files_count` |
 | `account_deleted` | suppression compte réussie | - |
+
+Notes implémentation catalogue:
+- le bloc “Il manque un whisky ?” est géré côté `CatalogueBrowser`
+- affiché dans les résultats uniquement en cas de `0 résultat` sur la vue `whiskies`
+- s’il est affiché dans les résultats, il n’est pas affiché en footer (anti-duplication)
 
 ### 7.3 Source contexts `cta_signup_click` (actuels)
 
@@ -166,6 +212,7 @@ But:
 - `home_hero`
 - `home_activity_block`
 - `catalogue_guest_block`
+- `catalogue_zero_results_guest_block`
 - `explorer_guest_block`
 - `map_guest_block`
 - `notebook_guest_block`
@@ -173,6 +220,7 @@ But:
 - `login_page`
 - `forgot_password_page`
 - `auth_block`
+- `nudge_floating_inline_form`
 
 Fichier client tracking:
 - `lib/analytics-client.ts`
@@ -187,6 +235,8 @@ Principaux points d’émission:
 - `components/WhiskyShelfControl.tsx`
 - `components/HomeActivitiesFeed.tsx`
 - `components/SignupCtaLink.tsx`
+- `components/GuestSignupNudge.tsx`
+- `components/HomeOnboardingChecklist.tsx`
 
 ## 8) Sentry (détail monitoring)
 
@@ -205,7 +255,8 @@ Erreurs:
 Logs applicatifs (captureMessage niveau info):
 - `account_created` (tag `userId`)
 - `whisky_created` (tag `whiskyId`)
-- `tasting_note_created` (tags `userId`, `whiskyId`)
+- `tasting_note_published` (tags `userId`, `whiskyId`)
+- `tasting_note_created` (legacy encore présent sur un chemin de création)
 - `aroma_whisky_recomputed` (tag `whiskyId`)
 - `aroma_user_recomputed` (tag `userId`)
 
@@ -213,7 +264,42 @@ Route de test:
 - `GET /api/debug/sentry`
 - retourne `eventId` si DSN actif
 
-## 9) UptimeRobot / Healthcheck
+## 9) Whiskies Similaires
+
+Feature:
+- bloc “Whiskies similaires” sur la page whisky
+- max 4 résultats (non forcés)
+
+Logique actuelle (anti-bruit, petit catalogue):
+- même producteur pertinent (DB: `distiller_id`, IB: `bottler_id`) => `+4`
+- même région => `+2`
+- même type => `+0` (désactivé)
+- même pays => `+0` (désactivé)
+- seuil d’affichage: `score >= 2`
+
+Tri:
+- score décroissant
+- puis nom alphabétique
+
+Recalcul:
+- automatique après création whisky
+- automatique après édition whisky (dont réassignation distiller/bottler)
+- automatique après merge distiller/bottler
+
+Backfill manuel:
+```bash
+# dev
+DATABASE_URL=file:dev.db npm run whisky-related:rebuild -- --top=20
+
+# prod
+cd /srv/customer/sites/dramnotes.com
+set -a
+. ./config/runtime.env
+set +a
+npm run whisky-related:rebuild -- --top=20
+```
+
+## 10) UptimeRobot / Healthcheck
 
 Endpoint:
 - `GET /api/health`
@@ -227,7 +313,7 @@ Usage UptimeRobot recommandé:
 - fréquence 1 à 5 minutes
 - alerte email active
 
-## 10) Données conservées / uploads
+## 11) Données conservées / uploads
 
 - Images utilisateurs (bouteilles) stockées dans `public/uploads/...`
 - Images distillers/bottlers stockées dans `public/uploads/producers/...`
@@ -238,7 +324,7 @@ Important:
 - ne pas versionner les fichiers d’upload
 - garder `config/runtime.env` hors Git
 
-## 11) Déploiement (résumé opérationnel)
+## 12) Déploiement (résumé opérationnel)
 
 Flux actuel:
 - push GitHub
@@ -257,7 +343,7 @@ git clean -fd -e public/uploads -e config/runtime.env -e .next
 chmod +x /srv/customer/sites/dramnotes.com/start.sh
 ```
 
-## 12) Admin producteurs (distillers/bottlers)
+## 13) Admin producteurs (distillers/bottlers)
 
 Page:
 - `/<locale>/admin/producers`
@@ -277,7 +363,7 @@ APIs:
 - `PATCH /api/admin/producers/[id]`
 - `POST /api/admin/producers/[id]/image`
 
-## 13) État “ready for prod”
+## 14) État “ready for prod”
 
 ### Fait
 

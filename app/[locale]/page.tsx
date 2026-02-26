@@ -746,7 +746,7 @@ export default async function HomePage({
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                   <Link
                     href={`/${safeLocale}/login`}
-                    className="px-4 py-2 rounded-full text-white text-sm font-medium transition"
+                    className="px-4 py-2 rounded-xl text-white text-sm font-medium transition"
                     style={{ backgroundColor: 'var(--color-primary)' }}
                   >
                     {t('auth.loginButton')}
@@ -754,7 +754,7 @@ export default async function HomePage({
                   <SignupCtaLink
                     href={`/${safeLocale}/register`}
                     sourceContext="home_activity_block"
-                    className="px-4 py-2 rounded-full border text-sm font-medium transition"
+                    className="px-4 py-2 rounded-xl border text-sm font-medium transition"
                     style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                   >
                     {t('auth.register')}

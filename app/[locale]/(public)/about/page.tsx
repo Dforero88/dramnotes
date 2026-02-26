@@ -21,12 +21,9 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params
   const t = getTranslations(locale)
   const sections = [
-    { title: t('about.missionTitle'), body: t('about.missionBody') },
-    { title: t('about.audienceTitle'), body: t('about.audienceBody') },
-    { title: t('about.featuresTitle'), body: t('about.featuresBody') },
-    { title: t('about.methodTitle'), body: t('about.methodBody') },
-    { title: t('about.aromaTitle'), body: t('about.aromaBody') },
-    { title: t('about.philosophyTitle'), body: t('about.philosophyBody') },
+    { title: t('about.historyTitle'), body: t('about.historyBody') },
+    { title: t('about.labTitle'), body: t('about.labBody') },
+    { title: t('about.opennessTitle'), body: t('about.opennessBody') },
   ]
 
   return (
@@ -36,7 +33,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
         <p className="mt-3 text-gray-700">{t('about.hero')}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {sections.map((section) => (
           <div key={section.title} className="bg-white border border-gray-200 rounded-xl p-5">
             <h2 className="font-semibold text-gray-900">{section.title}</h2>
@@ -51,6 +48,9 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
         </Link>
         <Link href={`/${locale}/explorer`} className="px-4 py-2 rounded-xl border" style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>
           {t('about.ctaExplorer')}
+        </Link>
+        <Link href={`/${locale}/contact`} className="px-4 py-2 rounded-xl border" style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>
+          {t('about.ctaContact')}
         </Link>
       </div>
     </div>

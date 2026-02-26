@@ -520,7 +520,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
         <div className="flex gap-3">
           <button
             onClick={applyFilters}
-            className="px-4 py-2 text-white rounded-lg flex-1"
+            className="px-4 py-2 text-white rounded-xl flex-1"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
             {t('catalogue.applyFilters')}
@@ -786,7 +786,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
       <div className="flex gap-3">
         <button
           onClick={applyFilters}
-          className="px-4 py-2 text-white rounded-lg flex-1"
+          className="px-4 py-2 text-white rounded-xl flex-1"
           style={{ backgroundColor: 'var(--color-primary)' }}
         >
           {t('catalogue.applyFilters')}
@@ -804,7 +804,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
             <h1 className="text-3xl font-bold">{t('catalogue.title')}</h1>
             <button
               onClick={() => setFiltersOpen(true)}
-              className="lg:hidden px-4 py-2 border rounded-lg"
+              className="lg:hidden px-4 py-2 border rounded-xl"
               style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
             >
               {t('catalogue.openFilters')}
@@ -857,7 +857,7 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
                   setAppliedFilters((prev) => ({ ...prev, sort: value }))
                   setPage(1)
                 }}
-                className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm shadow-sm"
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm shadow-sm"
                 style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
               >
                 <option value="name_asc">{t('catalogue.sortNameAsc')}</option>

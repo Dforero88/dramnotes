@@ -63,7 +63,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-start justify-center bg-gray-50 px-4 pt-10 pb-8 md:pt-14">
       <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
         <h1 className="text-3xl font-bold text-center text-primary mb-8">
           {t('auth.loginTitle')}

@@ -28,7 +28,7 @@ export default function AuthBlock({
         <div className="flex flex-col gap-3">
           <Link
             href={`/${locale}/login`}
-            className="block w-full py-3 text-white rounded-full transition"
+            className="block w-full py-3 text-white rounded-xl transition"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
             {t('auth.loginButton')}
@@ -36,7 +36,7 @@ export default function AuthBlock({
           <SignupCtaLink
             href={`/${locale}/register`}
             sourceContext="auth_block"
-            className="block w-full py-3 border rounded-full hover:bg-gray-50 transition"
+            className="block w-full py-3 border rounded-xl hover:bg-gray-50 transition"
             style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
           >
             {t('auth.signUp')}

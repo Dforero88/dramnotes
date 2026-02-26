@@ -102,7 +102,7 @@ export default function Navigation() {
                 <>
                   <Link 
                     href={`/${locale}/login`} 
-                    className="px-4 py-2 rounded-full text-white text-sm font-medium transition"
+                    className="px-4 py-2 rounded-xl text-white text-sm font-medium transition"
                     style={{ backgroundColor: 'var(--color-primary)' }}
                   >
                     {t('navigation.signIn')}
@@ -110,7 +110,7 @@ export default function Navigation() {
                   <SignupCtaLink 
                     href={`/${locale}/register`} 
                     sourceContext="navigation_header"
-                    className="px-4 py-2 rounded-full text-sm font-medium border transition"
+                    className="px-4 py-2 rounded-xl text-sm font-medium border transition"
                     style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                   >
                     {t('navigation.signUp')}

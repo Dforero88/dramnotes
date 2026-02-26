@@ -26,7 +26,7 @@ export default function ProducerSortSelect({ value, label, options }: Props) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm shadow-sm"
+        className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm shadow-sm"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>

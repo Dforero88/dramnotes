@@ -776,7 +776,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 href={`/${locale}/login`}
-                className="block py-3 px-6 rounded-full text-center text-white text-sm font-medium transition"
+                className="block py-3 px-6 rounded-xl text-center text-white text-sm font-medium transition"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 {t('navigation.signIn')}
@@ -784,7 +784,7 @@ export default function NotebookPage({ mode, pseudo }: NotebookProps) {
               <SignupCtaLink
                 href={`/${locale}/register`}
                 sourceContext="notebook_guest_block"
-                className="block py-3 px-6 rounded-full text-center border text-sm font-medium transition"
+                className="block py-3 px-6 rounded-xl text-center border text-sm font-medium transition"
                 style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
               >
                 {t('navigation.signUp')}

@@ -73,7 +73,7 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-start justify-center bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 md:pt-14">
         <div className="max-w-md w-full space-y-8 text-center">
           <div className="bg-green-50 border border-green-200 rounded-lg p-6">
             <div className="text-green-600 text-5xl mb-4">✓</div>
@@ -87,7 +87,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-start justify-center bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 md:pt-14">
       <div className="max-w-md w-full rounded-2xl border border-gray-200 bg-white shadow-sm p-6 sm:p-8">
         <div className="mb-8">
           <h2 className="text-center text-3xl font-extrabold text-gray-900">{t('auth.register')}</h2>
