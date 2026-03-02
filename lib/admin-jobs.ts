@@ -1,6 +1,7 @@
 import { desc, eq, isNotNull } from 'drizzle-orm'
 import { adminJobRuns, db, generateId, tastingNotes, userEngagementEmails, users, whiskies } from '@/lib/db'
 import { getFirstNoteReminderEmailTemplate, sendEmail } from '@/lib/email/sender'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 import { rebuildWhiskyRelatedForAll } from '@/lib/whisky-related'
 
 export type AdminJobKey = 'first_note_reminder_7d' | 'whisky_related_rebuild'
@@ -180,7 +181,7 @@ async function runWhiskyRelatedRebuildJob(): Promise<number> {
   return rebuildWhiskyRelatedForAll()
 }
 
-export async function runAdminJob(jobKey: AdminJobKey): Promise<{ processedCount: number }> {
+export async function runAdminJob(jobKey: AdminJobKey, actorUserId?: string): Promise<{ processedCount: number }> {
   const previewCount = await previewAdminJob(jobKey)
   const runId = await startRun(jobKey, previewCount)
 
@@ -191,9 +192,30 @@ export async function runAdminJob(jobKey: AdminJobKey): Promise<{ processedCount
         : await runWhiskyRelatedRebuildJob()
 
     await finishRun(runId, 'success', processedCount)
+    await captureBusinessEvent('admin_job_run', {
+      level: 'info',
+      extra: {
+        jobKey,
+        previewCount,
+        processedCount,
+        status: 'success',
+        actorUserId: actorUserId || null,
+      },
+    })
     return { processedCount }
   } catch (error: any) {
     await finishRun(runId, 'error', 0, error?.message || 'Unknown error')
+    await captureBusinessEvent('admin_job_run', {
+      level: 'error',
+      extra: {
+        jobKey,
+        previewCount,
+        processedCount: 0,
+        status: 'error',
+        actorUserId: actorUserId || null,
+        error: error?.message || 'Unknown error',
+      },
+    })
     throw error
   }
 }

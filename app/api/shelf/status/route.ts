@@ -4,6 +4,7 @@ import { and, eq, gt } from 'drizzle-orm'
 import { authOptions } from '@/lib/auth'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { activities, db, generateId, userShelf } from '@/lib/db'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,6 +64,11 @@ export async function POST(request: NextRequest) {
   if (status === 'none') {
     if (existing.length) {
       await db.delete(userShelf).where(eq(userShelf.id, existing[0].id))
+      await captureBusinessEvent('shelf_updated', {
+        level: 'info',
+        tags: { userId: session.user.id, whiskyId },
+        extra: { status: 'none' },
+      })
     }
     return NextResponse.json({ success: true, status: 'none' })
   }
@@ -107,6 +113,12 @@ export async function POST(request: NextRequest) {
       })
     }
   }
+
+  await captureBusinessEvent('shelf_updated', {
+    level: 'info',
+    tags: { userId: session.user.id, whiskyId },
+    extra: { status },
+  })
 
   return NextResponse.json({ success: true, status })
 }

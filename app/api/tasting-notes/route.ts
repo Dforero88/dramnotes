@@ -160,6 +160,7 @@ export async function POST(request: NextRequest) {
   const parsed = await parseAndValidatePayload(body, status, userVisibility)
   if ('error' in parsed) return parsed.error
   const { payload } = parsed
+  const tagCount = payload.tags.noseTagIds.length + payload.tags.palateTagIds.length + payload.tags.finishTagIds.length
 
   const existing = await db
     .select({ id: tastingNotes.id, status: tastingNotes.status })
@@ -237,6 +238,13 @@ export async function POST(request: NextRequest) {
     await captureBusinessEvent('tasting_note_published', {
       level: 'info',
       tags: { userId, whiskyId: payload.whiskyId },
+      extra: {
+        noteId: existingNote.id,
+        publishedFrom: 'draft',
+        rating: payload.rating ?? null,
+        hasLocation: Boolean(payload.location),
+        tagCount,
+      },
     })
 
     return NextResponse.json({ success: true, id: existingNote.id, status: 'published', created: false, publishedFromDraft: true })
@@ -282,14 +290,26 @@ export async function POST(request: NextRequest) {
     await recomputeWhiskyAnalytics(payload.whiskyId)
     await recomputeUserAroma(userId)
 
-    await captureBusinessEvent('tasting_note_created', {
+    await captureBusinessEvent('tasting_note_published', {
       level: 'info',
       tags: { userId, whiskyId: payload.whiskyId },
+      extra: {
+        noteId: id,
+        publishedFrom: 'new',
+        rating: payload.rating ?? null,
+        hasLocation: Boolean(payload.location),
+        tagCount,
+      },
     })
   } else {
     await captureBusinessEvent('tasting_note_draft_created', {
       level: 'info',
       tags: { userId, whiskyId: payload.whiskyId },
+      extra: {
+        noteId: id,
+        hasLocation: Boolean(payload.location),
+        tagCount,
+      },
     })
   }
 

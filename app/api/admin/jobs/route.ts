@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'run') {
-      const result = await runAdminJob(jobKey)
+      const result = await runAdminJob(jobKey, session.user.id)
       return NextResponse.json({ success: true, processedCount: result.processedCount })
     }
 

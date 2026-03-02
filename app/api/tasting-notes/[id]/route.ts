@@ -214,9 +214,20 @@ export async function PATCH(
   }
 
   if (current.status !== 'published' && nextStatus === 'published') {
+    const tagCount =
+      payload.tags.noseTagIds.length +
+      payload.tags.palateTagIds.length +
+      payload.tags.finishTagIds.length
     await captureBusinessEvent('tasting_note_published', {
       level: 'info',
       tags: { userId, whiskyId: current.whiskyId },
+      extra: {
+        noteId: id,
+        publishedFrom: 'draft',
+        rating: payload.rating ?? null,
+        hasLocation: Boolean(payload.location),
+        tagCount,
+      },
     })
   }
 

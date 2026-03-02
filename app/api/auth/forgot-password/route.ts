@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken'
 import { getResetPasswordEmailTemplate, sendEmail } from '@/lib/email/sender'
 import { getJwtSecret } from '@/lib/auth/tokens'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,8 +24,9 @@ export async function POST(request: NextRequest) {
 
     const { email, locale: requestedLocale } = await request.json()
     const locale = requestedLocale === 'en' ? 'en' : 'fr'
+    const normalizedEmail = String(email || '').trim().toLowerCase()
     
-    if (!email) {
+    if (!normalizedEmail) {
       return NextResponse.json(
         { error: locale === 'en' ? 'Email required' : 'Email requis' },
         { status: 400 }
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
     const userResult = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(eq(users.email, normalizedEmail))
       .limit(1)
     
     if (userResult.length === 0) {
@@ -76,9 +78,15 @@ export async function POST(request: NextRequest) {
     const resetUrl = `${process.env.APP_URL}/${locale}/reset-password?token=${resetToken}`
 
     await sendEmail({
-      to: email,
+      to: normalizedEmail,
       subject: locale === 'en' ? 'Reset your DramNotes password' : 'Réinitialiser votre mot de passe DramNotes',
       html: getResetPasswordEmailTemplate(user.pseudo || 'there', resetUrl, locale),
+    })
+
+    await captureBusinessEvent('password_reset_requested', {
+      level: 'info',
+      tags: { userId: user.id },
+      extra: { locale },
     })
     
     return NextResponse.json({

@@ -6,6 +6,7 @@ import { completeAccountSchema } from '@/lib/validation/schemas'
 import { verifyConfirmationToken } from '@/lib/auth/tokens'
 import { validatePseudo } from '@/lib/moderation'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 export const runtime = 'nodejs'
 
@@ -84,6 +85,16 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       })
       .where(eq(users.id, user.id))
+
+    await captureBusinessEvent('account_completed', {
+      level: 'info',
+      tags: { userId: user.id },
+      extra: {
+        locale: user.preferredLocale === 'en' ? 'en' : 'fr',
+        visibility,
+        shelfVisibility,
+      },
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {

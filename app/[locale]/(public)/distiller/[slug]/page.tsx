@@ -30,7 +30,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
     locale === 'fr'
       ? row?.[0]?.descriptionFr || row?.[0]?.descriptionEn
       : row?.[0]?.descriptionEn || row?.[0]?.descriptionFr
-  const description = localizedDescription || `Catalogue des whiskies du distiller ${name}.`
+  const description =
+    localizedDescription ||
+    (locale === 'en' ? `Catalogue of whiskies from distiller ${name}.` : `Catalogue des whiskies du distiller ${name}.`)
   const url = `${baseUrl}/${locale}/distiller/${slug}`
   return {
     title: `${name} · DramNotes`,

@@ -61,6 +61,7 @@ URL locale:
 - `SENTRY_DSN`
 - `NEXT_PUBLIC_SENTRY_DSN` (optionnel, conseillé)
 - `NEXT_PUBLIC_GA_ID`
+- `MIXPANEL_TOKEN` (optionnel, prod only)
 - `SMTP_HOST`
 - `SMTP_PORT`
 - `SMTP_SECURE`
@@ -256,7 +257,6 @@ Logs applicatifs (captureMessage niveau info):
 - `account_created` (tag `userId`)
 - `whisky_created` (tag `whiskyId`)
 - `tasting_note_published` (tags `userId`, `whiskyId`)
-- `tasting_note_created` (legacy encore présent sur un chemin de création)
 - `aroma_whisky_recomputed` (tag `whiskyId`)
 - `aroma_user_recomputed` (tag `userId`)
 

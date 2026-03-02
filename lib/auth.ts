@@ -23,16 +23,17 @@ export const authOptions: AuthOptions = {
         }
 
         const { email, password } = validated.data
+        const normalizedEmail = String(email || '').trim().toLowerCase()
 
         // Chercher l'utilisateur
         const userResult = await db
           .select()
           .from(users)
-          .where(eq(users.email, email))
+          .where(eq(users.email, normalizedEmail))
           .limit(1)
 
         if (userResult.length === 0) {
-          console.log('❌ Utilisateur non trouvé:', email)
+          console.log('❌ Utilisateur non trouvé:', normalizedEmail)
           return null
         }
 
@@ -40,19 +41,19 @@ export const authOptions: AuthOptions = {
 
         // Vérifier si le compte est confirmé
         if (!user.confirmedAt) {
-          console.log('❌ Compte non confirmé:', email)
+          console.log('❌ Compte non confirmé:', normalizedEmail)
           throw new Error('EMAIL_NOT_CONFIRMED')
         }
 
         if (!user.password || !user.pseudo) {
-          console.log('❌ Compte incomplet:', email)
+          console.log('❌ Compte incomplet:', normalizedEmail)
           throw new Error('EMAIL_NOT_CONFIRMED')
         }
 
         // Vérifier le mot de passe
         const passwordValid = await bcrypt.compare(password, user.password)
         if (!passwordValid) {
-          console.log('❌ Mot de passe invalide pour:', email)
+          console.log('❌ Mot de passe invalide pour:', normalizedEmail)
           return null
         }
 
@@ -60,7 +61,7 @@ export const authOptions: AuthOptions = {
         await captureBusinessEvent('user_login', {
           level: 'info',
           tags: { userId: user.id },
-          extra: { email: user.email },
+          extra: { locale: user.preferredLocale === 'en' ? 'en' : 'fr', method: 'credentials' },
         })
 
         return {
@@ -74,15 +75,14 @@ export const authOptions: AuthOptions = {
   
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Si l'URL contient un callbackUrl, l'utiliser
-      if (url.includes('callbackUrl=')) {
-        const callbackUrl = new URL(url, baseUrl).searchParams.get('callbackUrl')
-        if (callbackUrl && callbackUrl.startsWith(baseUrl)) {
-          return callbackUrl
-        }
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`
       }
-      
-      // Redirection par défaut vers la page catalogue en français
+
+      if (url.startsWith(baseUrl)) {
+        return url
+      }
+
       return `${baseUrl}/fr/catalogue`
     },
     
@@ -103,7 +103,6 @@ export const authOptions: AuthOptions = {
   
   pages: {
     signIn: '/login',
-    error: '/auth/error',
   },
   
   session: {

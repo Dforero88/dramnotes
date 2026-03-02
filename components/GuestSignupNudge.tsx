@@ -20,6 +20,7 @@ const COOLDOWN_MS = IS_DEV ? 0 : 24 * 60 * 60 * 1000
 const ACTION_KEY = 'guest_actions_count'
 const DISMISSED_KEY = 'guest_nudge_dismissed_at'
 const LAST_SHOWN_KEY = 'guest_nudge_last_shown_at'
+const ANALYTICS_CONSENT_KEY = 'dramnotes_analytics_consent'
 
 function getNudgeContext(pathname: string | null): NudgeContext {
   if (!pathname) return 'home'
@@ -46,7 +47,9 @@ export default function GuestSignupNudge() {
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [submitSuccessMessage, setSubmitSuccessMessage] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
+  const [hasAnalyticsChoice, setHasAnalyticsChoice] = useState(true)
   const lastActionAtRef = useRef(0)
   const pageEnteredAtRef = useRef(Date.now())
 
@@ -92,8 +95,16 @@ export default function GuestSignupNudge() {
     pageEnteredAtRef.current = Date.now()
   }, [pathname])
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const match = document.cookie.match(new RegExp(`(?:^|; )${ANALYTICS_CONSENT_KEY}=([^;]+)`))
+    const value = match?.[1]
+    setHasAnalyticsChoice(value === 'accepted' || value === 'rejected')
+  }, [pathname])
+
   const tryOpenNudge = (reason: TriggerType) => {
     if (status !== 'unauthenticated') return
+    if (!hasAnalyticsChoice) return
     if (typeof window === 'undefined') return
     if (open) return
 
@@ -125,10 +136,11 @@ export default function GuestSignupNudge() {
     if (count >= ACTION_THRESHOLD) {
       tryOpenNudge('actions')
     }
-  }, [status, pathname]) // re-evaluate per page
+  }, [status, pathname, hasAnalyticsChoice]) // re-evaluate per page
 
   useEffect(() => {
     if (status !== 'unauthenticated') return
+    if (!hasAnalyticsChoice) return
     if (typeof window === 'undefined') return
 
     const trackInteraction = (event: Event) => {
@@ -152,16 +164,17 @@ export default function GuestSignupNudge() {
 
     document.addEventListener('click', trackInteraction, true)
     return () => document.removeEventListener('click', trackInteraction, true)
-  }, [status, context, open])
+  }, [status, context, open, hasAnalyticsChoice])
 
   useEffect(() => {
     if (status !== 'unauthenticated') return
+    if (!hasAnalyticsChoice) return
     if (open) return
     const timer = setTimeout(() => {
       tryOpenNudge('time_on_page')
     }, TIME_THRESHOLD_MS)
     return () => clearTimeout(timer)
-  }, [status, context, open])
+  }, [status, context, open, hasAnalyticsChoice])
 
   useEffect(() => {
     if (!open) return
@@ -172,7 +185,7 @@ export default function GuestSignupNudge() {
     return () => clearTimeout(timeout)
   }, [open, context, triggerType])
 
-  if (status !== 'unauthenticated' || !open) return null
+  if (status !== 'unauthenticated' || !open || !hasAnalyticsChoice) return null
 
   const canSubmit =
     email.trim().length > 0 &&
@@ -196,6 +209,7 @@ export default function GuestSignupNudge() {
           acceptedAge,
           acceptedTerms,
           locale,
+          source: 'guest_nudge',
         }),
       })
       const json = await response.json()
@@ -204,6 +218,7 @@ export default function GuestSignupNudge() {
         return
       }
 
+      setSubmitSuccessMessage(String(json?.message || ''))
       setSubmitSuccess(true)
       trackEvent('cta_signup_click', { source_context: 'nudge_floating_inline_form' })
       trackEvent('guest_nudge_signup_click', { source_context: context, trigger_type: triggerType })
@@ -246,7 +261,7 @@ export default function GuestSignupNudge() {
         </div>
         {submitSuccess ? (
           <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-            {t('auth.checkEmail')}
+            {submitSuccessMessage || t('auth.checkEmail')}
           </div>
         ) : (
           <form className="mt-3 space-y-2" onSubmit={submitInlineRegister}>

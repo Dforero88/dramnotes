@@ -8,15 +8,20 @@ export const revalidate = 0
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
   const { locale } = await params
+  const t = getTranslations(locale)
   const baseUrl = process.env.APP_URL || 'https://dramnotes.com'
-  const title = 'Catalogue des whiskies'
+  const title = t('catalogue.title')
+  const description =
+    locale === 'en'
+      ? 'Explore and search whiskies by name, type, country, and tasting notes.'
+      : 'Explorez et recherchez des whiskies par nom, type, pays et notes.'
   const url = `${baseUrl}/${locale}/catalogue`
   return {
     title,
-    description: 'Explorez et recherchez des whiskies par nom, type, pays et notes.',
+    description,
     openGraph: {
       title,
-      description: 'Explorez et recherchez des whiskies par nom, type, pays et notes.',
+      description,
       url,
     },
     alternates: { canonical: url },

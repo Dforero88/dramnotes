@@ -6,6 +6,9 @@ import SessionProvider from '@/components/providers/SessionProvider'
 import Script from 'next/script'
 import SiteFooter from '@/components/SiteFooter'
 import GuestSignupNudge from '@/components/GuestSignupNudge'
+import { cookies, headers } from 'next/headers'
+import AnalyticsConsentBanner from '@/components/AnalyticsConsentBanner'
+import { ANALYTICS_CONSENT_COOKIE, isAnalyticsConsent } from '@/lib/analytics-consent'
 
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-body' })
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-heading' })
@@ -34,15 +37,23 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const headerList = await headers()
+  const cookieStore = await cookies()
+  const requestLocale = headerList.get('x-dramnotes-locale')
+  const htmlLang = requestLocale === 'en' ? 'en' : 'fr'
+  const analyticsConsentRaw = cookieStore.get(ANALYTICS_CONSENT_COOKIE)?.value
+  const analyticsConsent = isAnalyticsConsent(analyticsConsentRaw) ? analyticsConsentRaw : null
+  const shouldLoadAnalytics = Boolean(process.env.NEXT_PUBLIC_GA_ID && analyticsConsent === 'accepted')
+
   return (
-    <html lang="fr">
+    <html lang={htmlLang}>
       <body className={`${manrope.variable} ${spaceGrotesk.variable}`}>
-        {process.env.NEXT_PUBLIC_GA_ID && (
+        {shouldLoadAnalytics && (
           <>
             <Script
               strategy="afterInteractive"
@@ -63,6 +74,7 @@ export default function RootLayout({
           <main className="min-h-screen">
             {children}
           </main>
+          {!analyticsConsent && <AnalyticsConsentBanner locale={htmlLang} />}
           <GuestSignupNudge />
           <SiteFooter buildLabel={buildLabel} />
         </SessionProvider>

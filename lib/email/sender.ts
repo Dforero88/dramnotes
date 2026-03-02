@@ -245,3 +245,44 @@ export function getFirstNoteReminderEmailTemplate(
 
   return buildEmailLayout(content, locale)
 }
+
+export function getExistingAccountEmailTemplate(
+  loginUrl: string,
+  resetUrl: string,
+  locale: EmailLocale = 'fr'
+): string {
+  const content =
+    locale === 'fr'
+      ? `
+      <div class="content">
+        <h2 style="margin:0 0 10px 0; font-size:22px;">Bonjour,</h2>
+        <p>Une demande d’inscription a été faite avec cette adresse email.</p>
+        <p>Votre compte DramNotes existe déjà. Vous pouvez vous connecter directement, ou réinitialiser votre mot de passe si nécessaire.</p>
+        <div class="buttonWrap">
+          <a href="${loginUrl}" class="button">Se connecter</a>
+        </div>
+        <p class="muted" style="margin-top:14px;">Si vous ne vous souvenez plus de votre mot de passe, utilisez ce lien :</p>
+        <div class="linkBox"><a href="${resetUrl}">${resetUrl}</a></div>
+      </div>
+      <div class="footer">
+        <div>© ${new Date().getFullYear()} DramNotes</div>
+      </div>
+    `
+      : `
+      <div class="content">
+        <h2 style="margin:0 0 10px 0; font-size:22px;">Hello,</h2>
+        <p>A registration request was made with this email address.</p>
+        <p>Your DramNotes account already exists. You can sign in directly, or reset your password if needed.</p>
+        <div class="buttonWrap">
+          <a href="${loginUrl}" class="button">Sign in</a>
+        </div>
+        <p class="muted" style="margin-top:14px;">If you do not remember your password, use this link:</p>
+        <div class="linkBox"><a href="${resetUrl}">${resetUrl}</a></div>
+      </div>
+      <div class="footer">
+        <div>© ${new Date().getFullYear()} DramNotes</div>
+      </div>
+    `
+
+  return buildEmailLayout(content, locale)
+}

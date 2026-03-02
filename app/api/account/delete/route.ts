@@ -7,9 +7,11 @@ import {
   activities,
   db,
   follows,
+  isMysql,
   tastingNotes,
   tastingNoteTags,
   userAromaProfile,
+  userEngagementEmails,
   userShelf,
   users,
   userTagStats,
@@ -57,22 +59,53 @@ export async function POST(request: NextRequest) {
   const impactedWhiskyIds = Array.from(new Set((userNoteRows as { id: string; whiskyId: string }[]).map((row) => row.whiskyId)))
   const noteIds = (userNoteRows as { id: string; whiskyId: string }[]).map((row) => row.id)
 
-  await db.update(whiskies).set({ addedById: null }).where(eq(whiskies.addedById, userId))
+  const runDeleteTransactionAsync = async (qx: any) => {
+    await qx.update(whiskies).set({ addedById: null }).where(eq(whiskies.addedById, userId))
 
-  if (noteIds.length > 0) {
-    for (const noteId of noteIds) {
-      await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, noteId))
+    if (noteIds.length > 0) {
+      for (const noteId of noteIds) {
+        await qx.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, noteId))
+      }
     }
+
+    await qx.delete(tastingNotes).where(eq(tastingNotes.userId, userId))
+    await qx.delete(userShelf).where(eq(userShelf.userId, userId))
+    await qx.delete(follows).where(eq(follows.followerId, userId))
+    await qx.delete(follows).where(eq(follows.followedId, userId))
+    await qx.delete(activities).where(eq(activities.userId, userId))
+    await qx.delete(activities).where(and(eq(activities.type, 'new_follow'), eq(activities.targetId, userId)))
+    await qx.delete(userTagStats).where(eq(userTagStats.userId, userId))
+    await qx.delete(userAromaProfile).where(eq(userAromaProfile.userId, userId))
+    await qx.delete(userEngagementEmails).where(eq(userEngagementEmails.userId, userId))
+    await qx.delete(users).where(eq(users.id, userId))
   }
 
-  await db.delete(tastingNotes).where(eq(tastingNotes.userId, userId))
-  await db.delete(userShelf).where(eq(userShelf.userId, userId))
-  await db.delete(follows).where(eq(follows.followerId, userId))
-  await db.delete(follows).where(eq(follows.followedId, userId))
-  await db.delete(activities).where(eq(activities.userId, userId))
-  await db.delete(activities).where(and(eq(activities.type, 'new_follow'), eq(activities.targetId, userId)))
-  await db.delete(userTagStats).where(eq(userTagStats.userId, userId))
-  await db.delete(userAromaProfile).where(eq(userAromaProfile.userId, userId))
+  if (isMysql) {
+    await db.transaction(async (tx: any) => {
+      await runDeleteTransactionAsync(tx)
+    })
+  } else {
+    db.transaction((tx: any) => {
+      tx.update(whiskies).set({ addedById: null }).where(eq(whiskies.addedById, userId)).run()
+
+      if (noteIds.length > 0) {
+        for (const noteId of noteIds) {
+          tx.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, noteId)).run()
+        }
+      }
+
+      tx.delete(tastingNotes).where(eq(tastingNotes.userId, userId)).run()
+      tx.delete(userShelf).where(eq(userShelf.userId, userId)).run()
+      tx.delete(follows).where(eq(follows.followerId, userId)).run()
+      tx.delete(follows).where(eq(follows.followedId, userId)).run()
+      tx.delete(activities).where(eq(activities.userId, userId)).run()
+      tx.delete(activities).where(and(eq(activities.type, 'new_follow'), eq(activities.targetId, userId))).run()
+      tx.delete(userTagStats).where(eq(userTagStats.userId, userId)).run()
+      tx.delete(userAromaProfile).where(eq(userAromaProfile.userId, userId)).run()
+      tx.delete(userEngagementEmails).where(eq(userEngagementEmails.userId, userId)).run()
+      tx.delete(users).where(eq(users.id, userId)).run()
+    })
+  }
 
   await captureBusinessEvent('account_deleted', {
     level: 'warning',
@@ -82,8 +115,6 @@ export async function POST(request: NextRequest) {
       impactedWhiskies: impactedWhiskyIds.length,
     },
   })
-
-  await db.delete(users).where(eq(users.id, userId))
 
   for (const whiskyId of impactedWhiskyIds as string[]) {
     await recomputeWhiskyAnalytics(whiskyId)

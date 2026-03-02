@@ -224,6 +224,10 @@ export const translations = {
       'whiskyCountPlural': 'whiskies'
     },
     common: {
+      'analyticsConsentAccept': 'Accepter',
+      'analyticsConsentReject': 'Refuser',
+      'analyticsConsentText': 'DramNotes utilise des cookies de mesure d’audience pour mieux comprendre l’usage du site et l’améliorer.',
+      'analyticsConsentTitle': 'Mesure d’audience',
       'and': 'et',
       'backEdit': 'Retour à l\'édition',
       'backToScan': 'Retour au scan',
@@ -966,6 +970,10 @@ export const translations = {
       'whiskyCountPlural': 'whiskies'
     },
     common: {
+      'analyticsConsentAccept': 'Accept',
+      'analyticsConsentReject': 'Reject',
+      'analyticsConsentText': 'DramNotes uses audience measurement cookies to better understand how the site is used and improve it.',
+      'analyticsConsentTitle': 'Audience measurement',
       'and': 'and',
       'backEdit': 'Back to edit',
       'backToScan': 'Back to scan',

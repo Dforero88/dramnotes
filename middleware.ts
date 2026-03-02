@@ -95,7 +95,17 @@ export function middleware(req: NextRequest) {
   const rateLimited = applyRateLimit(req)
   if (rateLimited) return rateLimited
 
-  const res = NextResponse.next()
+  const requestHeaders = new Headers(req.headers)
+  const pathname = req.nextUrl.pathname
+  const firstSegment = pathname.split('/').filter(Boolean)[0]
+  const locale = firstSegment === 'en' ? 'en' : 'fr'
+  requestHeaders.set('x-dramnotes-locale', locale)
+
+  const res = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
   return withSecurityHeaders(res)
 }
 

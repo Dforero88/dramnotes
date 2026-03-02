@@ -7,6 +7,18 @@ type BusinessEventOptions = {
   flushTimeoutMs?: number
 }
 
+async function sendToMixpanel(message: string, tags?: Record<string, string>, extra?: Record<string, unknown>) {
+  try {
+    const { trackMixpanelEvent } = await import('@/lib/mixpanel')
+    await trackMixpanelEvent(message, {
+      ...(tags || {}),
+      ...(extra || {}),
+    })
+  } catch (error) {
+    console.warn(`[mixpanel] skipped "${message}"`, error)
+  }
+}
+
 export async function captureBusinessEvent(
   message: string,
   { level = 'info', tags, extra, flushTimeoutMs = 1200 }: BusinessEventOptions = {}
@@ -19,6 +31,8 @@ export async function captureBusinessEvent(
     ...(extra ? { extra } : {}),
   }
   console.info(`[business] ${JSON.stringify(payload)}`)
+
+  await sendToMixpanel(message, tags, extra)
 
   const enabled = process.env.ENABLE_SENTRY_BUSINESS_LOGS === '1'
   if (!enabled || process.env.NODE_ENV !== 'production') {

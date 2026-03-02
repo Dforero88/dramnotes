@@ -26,6 +26,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string>('')
 
   const routeParams = useParams<{ locale?: string }>()
   const searchParams = useSearchParams()
@@ -54,7 +55,7 @@ export default function RegisterPage() {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, locale }),
+        body: JSON.stringify({ ...data, locale, source: 'register_page' }),
       })
 
       const result = await response.json()
@@ -63,6 +64,7 @@ export default function RegisterPage() {
         throw new Error(result.error || 'Erreur lors de l\'inscription')
       }
 
+      setSuccessMessage(String(result.message || ''))
       setSuccess(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue')
@@ -77,9 +79,8 @@ export default function RegisterPage() {
         <div className="max-w-md w-full space-y-8 text-center">
           <div className="bg-green-50 border border-green-200 rounded-lg p-6">
             <div className="text-green-600 text-5xl mb-4">✓</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('auth.registerSuccess')}</h2>
-            <p className="text-gray-600 mb-2">{t('auth.checkEmail')}</p>
-            <p className="text-gray-600 mb-4">{t('auth.registerSuccessNext')}</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{locale === 'en' ? 'Next step' : 'Prochaine étape'}</h2>
+            <p className="text-gray-600 mb-4">{successMessage || t('auth.checkEmail')}</p>
           </div>
         </div>
       </div>

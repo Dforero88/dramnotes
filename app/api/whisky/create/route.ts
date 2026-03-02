@@ -252,6 +252,14 @@ export async function POST(request: NextRequest) {
           countryId: bottlingType === 'DB' ? (data?.country_id || null) : null,
           region: data?.region ? String(data.region).trim() : null,
         })
+        await captureBusinessEvent('distiller_created', {
+          level: 'info',
+          tags: { distillerId, userId: String(data?.added_by || 'unknown') },
+          extra: {
+            countryId: data?.country_id || null,
+            region: data?.region ? String(data.region).trim() : null,
+          },
+        })
       }
     }
 
@@ -296,6 +304,14 @@ export async function POST(request: NextRequest) {
           imageUrl: null,
           countryId: data?.country_id || null,
           region: data?.region ? String(data.region).trim() : null,
+        })
+        await captureBusinessEvent('bottler_created', {
+          level: 'info',
+          tags: { bottlerId, userId: String(data?.added_by || 'unknown') },
+          extra: {
+            countryId: data?.country_id || null,
+            region: data?.region ? String(data.region).trim() : null,
+          },
         })
       }
     }
@@ -386,8 +402,12 @@ export async function POST(request: NextRequest) {
       level: 'info',
       tags: { whiskyId: id, userId: String(data?.added_by || 'unknown') },
       extra: {
-        name,
         bottlingType,
+        barcodeType: data?.ean13 ? 'EAN-13' : null,
+        hasBarcode: Boolean(data?.ean13),
+        distillerId,
+        bottlerId,
+        type,
       },
     })
 

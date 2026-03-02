@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { db, follows, users, isMysql, activities } from '@/lib/db'
 import crypto from 'crypto'
 import { and, eq, sql } from 'drizzle-orm'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -63,6 +64,12 @@ export async function POST(request: NextRequest) {
     targetId: targetUserId,
     createdAt: new Date(),
   } as any)
+
+  await captureBusinessEvent('follow_created', {
+    level: 'info',
+    tags: { userId: currentUserId },
+    extra: { targetUserId },
+  })
 
   return NextResponse.json({ following: true })
 }

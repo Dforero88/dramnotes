@@ -36,13 +36,20 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   const imageUrl = whisky?.image ? (whisky.image.startsWith('http') || whisky.image.startsWith('/') ? whisky.image : `${baseUrl}/${whisky.image}`) : undefined
   const path = whisky?.id ? buildWhiskyPath(locale, whisky.id, whisky.name, whisky.slug) : `/${locale}/whisky/${id}`
   const url = `${baseUrl}${path}`
+  const description = whisky?.name
+    ? locale === 'en'
+      ? `Tasting notes and aroma profile for ${whisky.name}.`
+      : `Notes de dégustation et profil aromatique pour ${whisky.name}.`
+    : locale === 'en'
+      ? 'Whisky page.'
+      : 'Fiche whisky.'
 
   return {
     title,
-    description: whisky?.name ? `Notes de dégustation et profil aromatique pour ${whisky.name}.` : 'Fiche whisky.',
+    description,
     openGraph: {
       title,
-      description: whisky?.name ? `Notes de dégustation et profil aromatique pour ${whisky.name}.` : 'Fiche whisky.',
+      description,
       url,
       images: imageUrl ? [{ url: imageUrl }] : undefined,
     },

@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { getJwtSecret } from '@/lib/auth/tokens'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
+import { captureBusinessEvent } from '@/lib/sentry-business'
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,6 +96,12 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId))
+
+    await captureBusinessEvent('password_reset_completed', {
+      level: 'info',
+      tags: { userId },
+      extra: { locale: user.preferredLocale === 'en' ? 'en' : 'fr' },
+    })
     
     return NextResponse.json({
       success: true,
