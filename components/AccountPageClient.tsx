@@ -207,13 +207,20 @@ export default function AccountPageClient() {
           <h1 className="text-3xl font-bold">{t('account.title')}</h1>
           <p className="text-gray-600 mt-2">{t('account.subtitle')}</p>
           {isAdmin ? (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href={`/${locale}/admin/producers`}
                 className="inline-flex items-center px-4 py-2 rounded-full text-white"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 {t('account.adminProducersCta')}
+              </Link>
+              <Link
+                href={`/${locale}/admin/jobs`}
+                className="inline-flex items-center px-4 py-2 rounded-full border"
+                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+              >
+                {t('account.adminJobsCta')}
               </Link>
             </div>
           ) : null}

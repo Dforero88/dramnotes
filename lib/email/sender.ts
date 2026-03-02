@@ -201,3 +201,47 @@ export function getResetPasswordEmailTemplate(
 
   return buildEmailLayout(content, locale)
 }
+
+export function getFirstNoteReminderEmailTemplate(
+  pseudo: string | null | undefined,
+  actionUrl: string,
+  locale: EmailLocale = 'fr'
+): string {
+  const greetingName = pseudo?.trim() || ''
+  const content =
+    locale === 'fr'
+      ? `
+      <div class="content">
+        <h2 style="margin:0 0 10px 0; font-size:22px;">Bonjour${greetingName ? ` ${greetingName}` : ''},</h2>
+        <p>Votre compte DramNotes est prêt, et il ne manque plus qu’une chose pour vraiment le lancer : votre première note de dégustation.</p>
+        <p>Une seule bouteille suffit pour commencer. Prenez quelques instants pour noter ce que vous avez ressenti, garder une trace de votre dégustation, et commencer à construire un profil aromatique qui vous ressemble.</p>
+        <p>Au fil des notes, votre carnet prend vie, vos repères deviennent plus clairs, et l’expérience devient encore plus personnelle.</p>
+        <div class="buttonWrap">
+          <a href="${actionUrl}" class="button">Ajouter ma première note</a>
+        </div>
+        <p class="muted">Pas besoin d’écrire beaucoup pour commencer. Une note simple suffit largement, vous pourrez toujours l’enrichir ensuite.</p>
+      </div>
+      <div class="footer">
+        <div>© ${new Date().getFullYear()} DramNotes</div>
+        <div class="linkBox">${actionUrl}</div>
+      </div>
+    `
+      : `
+      <div class="content">
+        <h2 style="margin:0 0 10px 0; font-size:22px;">Hello${greetingName ? ` ${greetingName}` : ''},</h2>
+        <p>Your DramNotes account is ready, and there is just one thing left to truly get started: your first tasting note.</p>
+        <p>One bottle is enough to begin. Take a few moments to capture what you felt, keep a memory of the tasting, and start building an aroma profile that genuinely reflects your taste.</p>
+        <p>As your notes grow, your notebook becomes more alive, your references become clearer, and the experience feels even more personal.</p>
+        <div class="buttonWrap">
+          <a href="${actionUrl}" class="button">Add my first note</a>
+        </div>
+        <p class="muted">You do not need to write much to begin. A simple note is more than enough, and you can always enrich it later.</p>
+      </div>
+      <div class="footer">
+        <div>© ${new Date().getFullYear()} DramNotes</div>
+        <div class="linkBox">${actionUrl}</div>
+      </div>
+    `
+
+  return buildEmailLayout(content, locale)
+}

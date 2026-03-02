@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
       await db
         .update(users)
         .set({
+          preferredLocale: locale,
           confirmationToken,
           tokenExpiry,
           updatedAt: new Date(),
@@ -133,6 +134,7 @@ export async function POST(request: NextRequest) {
       pseudo: pendingPseudo,
       visibility: 'private',
       shelfVisibility: 'private',
+      preferredLocale: locale,
       confirmationToken,
       tokenExpiry,
       confirmedAt: null,

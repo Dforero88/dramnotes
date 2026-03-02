@@ -4,6 +4,7 @@
 export const translations = {
   fr: {
     account: {
+      'adminJobsCta': 'Admin jobs',
       'adminProducersCta': 'Admin catalogue',
       'addressHelp': 'Renseignez votre pays et votre ville (optionnel).',
       'addressPlaceholder': 'Rue et numéro',
@@ -62,6 +63,32 @@ export const translations = {
       'searchPlaceholder': 'Rechercher un nom...',
       'selectItem': 'Sélectionnez un item à éditer',
       'title': 'Admin catalogue'
+    },
+    adminJobs: {
+      'actionsLabel': 'Actions',
+      'actionPreview': 'Prévisualiser',
+      'actionRun': 'Lancer',
+      'countLabel': 'Preview',
+      'descriptionLabel': 'Description',
+      'emptyCount': 'Aucun élément',
+      'forbidden': 'Accès refusé.',
+      'jobFirstNoteReminderDescription': 'Envoie une relance aux comptes confirmés sans note publiée après 7 jours.',
+      'jobFirstNoteReminderName': 'Comptes 7+ jours sans note',
+      'jobWhiskyRelatedDescription': 'Recalcule l’ensemble des suggestions de whiskies similaires.',
+      'jobWhiskyRelatedName': 'Recalcul whiskies similaires',
+      'jobLabel': 'Job',
+      'lastErrorLabel': 'Dernière erreur',
+      'lastRunLabel': 'Dernier run',
+      'lastStatusLabel': 'Statut',
+      'never': 'Jamais',
+      'processedLabel': 'Traité',
+      'previewReady': '{count} élément(s) à traiter',
+      'runDone': 'Run terminé ({count})',
+      'statusError': 'Erreur',
+      'statusRunning': 'En cours',
+      'statusSuccess': 'Succès',
+      'subtitle': 'Lancez manuellement les jobs d’administration et vérifiez leur dernier résultat.',
+      'title': 'Admin jobs'
     },
     aromatic: {
       'title': 'Profil aromatique'
@@ -719,6 +746,7 @@ export const translations = {
   },
   en: {
     account: {
+      'adminJobsCta': 'Admin jobs',
       'adminProducersCta': 'Catalogue admin',
       'addressHelp': 'Set your country and city (optional).',
       'addressPlaceholder': 'Street and number',
@@ -777,6 +805,32 @@ export const translations = {
       'searchPlaceholder': 'Search by name...',
       'selectItem': 'Select an item to edit',
       'title': 'Catalogue admin'
+    },
+    adminJobs: {
+      'actionsLabel': 'Actions',
+      'actionPreview': 'Preview',
+      'actionRun': 'Run',
+      'countLabel': 'Preview',
+      'descriptionLabel': 'Description',
+      'emptyCount': 'No items',
+      'forbidden': 'Access denied.',
+      'jobFirstNoteReminderDescription': 'Sends a reminder to confirmed accounts with no published note after 7 days.',
+      'jobFirstNoteReminderName': 'Accounts 7+ days without note',
+      'jobWhiskyRelatedDescription': 'Rebuilds all similar whisky suggestions.',
+      'jobWhiskyRelatedName': 'Rebuild related whiskies',
+      'jobLabel': 'Job',
+      'lastErrorLabel': 'Last error',
+      'lastRunLabel': 'Last run',
+      'lastStatusLabel': 'Status',
+      'never': 'Never',
+      'processedLabel': 'Processed',
+      'previewReady': '{count} item(s) to process',
+      'runDone': 'Run completed ({count})',
+      'statusError': 'Error',
+      'statusRunning': 'Running',
+      'statusSuccess': 'Success',
+      'subtitle': 'Run admin jobs manually and review their latest result.',
+      'title': 'Admin jobs'
     },
     aromatic: {
       'title': 'Aroma profile'

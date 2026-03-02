@@ -3,6 +3,8 @@ import crypto from 'crypto'
 type DbSchema = {
   countries: any
   users: any
+  userEngagementEmails: any
+  adminJobRuns: any
   userShelf: any
   distillers: any
   bottlers: any
@@ -55,6 +57,7 @@ function createSqliteSchema(): DbSchema {
     shelfVisibility: text('shelf_visibility').default('private'),
     town: text('town'),
     countryId: text('country_id'),
+    preferredLocale: text('preferred_locale').default('fr'),
     confirmedAt: integer('confirmed_at', { mode: 'timestamp' }),
     confirmationToken: text('confirmation_token'),
     tokenExpiry: integer('token_expiry', { mode: 'timestamp' }),
@@ -188,6 +191,24 @@ function createSqliteSchema(): DbSchema {
     createdAt: integer('created_at', { mode: 'timestamp' }).defaultNow(),
   })
 
+  const userEngagementEmails = sqliteTable('user_engagement_emails', {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    emailType: text('email_type').notNull(),
+    sentAt: integer('sent_at', { mode: 'timestamp' }).defaultNow(),
+  })
+
+  const adminJobRuns = sqliteTable('admin_job_runs', {
+    id: text('id').primaryKey(),
+    jobKey: text('job_key').notNull(),
+    startedAt: integer('started_at', { mode: 'timestamp' }).defaultNow(),
+    finishedAt: integer('finished_at', { mode: 'timestamp' }),
+    status: text('status').notNull(),
+    previewCount: integer('preview_count').notNull().default(0),
+    processedCount: integer('processed_count').notNull().default(0),
+    error: text('error'),
+  })
+
   const userShelf = sqliteTable('user_shelf', {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
@@ -253,6 +274,8 @@ function createSqliteSchema(): DbSchema {
   return {
     countries,
     users,
+    userEngagementEmails,
+    adminJobRuns,
     userShelf,
     distillers,
     bottlers,
@@ -294,6 +317,7 @@ function createMysqlSchema(): DbSchema {
     shelfVisibility: varchar('shelf_visibility', { length: 20 }).default('private'),
     town: varchar('town', { length: 100 }),
     countryId: varchar('country_id', { length: 36 }),
+    preferredLocale: varchar('preferred_locale', { length: 5 }).default('fr'),
     confirmedAt: datetime('confirmed_at', { mode: 'date' }),
     confirmationToken: text('confirmation_token'),
     tokenExpiry: datetime('token_expiry', { mode: 'date' }),
@@ -427,6 +451,24 @@ function createMysqlSchema(): DbSchema {
     createdAt: datetime('created_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
   })
 
+  const userEngagementEmails = mysqlTable('user_engagement_emails', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    userId: varchar('user_id', { length: 36 }).notNull(),
+    emailType: varchar('email_type', { length: 64 }).notNull(),
+    sentAt: datetime('sent_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+  })
+
+  const adminJobRuns = mysqlTable('admin_job_runs', {
+    id: varchar('id', { length: 36 }).primaryKey(),
+    jobKey: varchar('job_key', { length: 64 }).notNull(),
+    startedAt: datetime('started_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+    finishedAt: datetime('finished_at', { mode: 'date' }),
+    status: varchar('status', { length: 24 }).notNull(),
+    previewCount: int('preview_count').notNull().default(0),
+    processedCount: int('processed_count').notNull().default(0),
+    error: text('error'),
+  })
+
   const userShelf = mysqlTable('user_shelf', {
     id: varchar('id', { length: 36 }).primaryKey(),
     userId: varchar('user_id', { length: 36 }).notNull(),
@@ -492,6 +534,8 @@ function createMysqlSchema(): DbSchema {
   return {
     countries,
     users,
+    userEngagementEmails,
+    adminJobRuns,
     userShelf,
     distillers,
     bottlers,
@@ -518,6 +562,8 @@ const schema: DbSchema = useMysql ? createMysqlSchema() : createSqliteSchema()
 export const {
   countries,
   users,
+  userEngagementEmails,
+  adminJobRuns,
   userShelf,
   distillers,
   bottlers,
@@ -573,8 +619,10 @@ function initSqlite(sqlite: any) {
         password TEXT NOT NULL,
         pseudo TEXT NOT NULL UNIQUE,
         visibility TEXT DEFAULT 'private',
+        shelf_visibility TEXT DEFAULT 'private',
         town TEXT,
         country_id TEXT,
+        preferred_locale TEXT DEFAULT 'fr',
         confirmed_at INTEGER,
         confirmation_token TEXT,
         token_expiry INTEGER,
@@ -590,6 +638,7 @@ function initSqlite(sqlite: any) {
 
     const usersColumnsToAdd = [
       'shelf_visibility',
+      'preferred_locale',
       'confirmed_at',
       'confirmation_token',
       'token_expiry',
@@ -602,6 +651,8 @@ function initSqlite(sqlite: any) {
         const type =
           column === 'shelf_visibility'
             ? "TEXT DEFAULT 'private'"
+            : column === 'preferred_locale'
+              ? "TEXT DEFAULT 'fr'"
             : column.includes('token')
               ? 'TEXT'
               : 'INTEGER'
@@ -828,6 +879,38 @@ function initSqlite(sqlite: any) {
   }
 
   sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS user_engagement_emails (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      email_type TEXT NOT NULL,
+      sent_at INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+  `).run()
+
+  sqlite.prepare(`
+    CREATE TABLE IF NOT EXISTS admin_job_runs (
+      id TEXT PRIMARY KEY,
+      job_key TEXT NOT NULL,
+      started_at INTEGER DEFAULT (strftime('%s', 'now')),
+      finished_at INTEGER,
+      status TEXT NOT NULL,
+      preview_count INTEGER NOT NULL DEFAULT 0,
+      processed_count INTEGER NOT NULL DEFAULT 0,
+      error TEXT
+    )
+  `).run()
+
+  try {
+    sqlite.prepare('CREATE UNIQUE INDEX IF NOT EXISTS uniq_user_engagement_type ON user_engagement_emails(user_id, email_type)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_user_engagement_type ON user_engagement_emails(email_type, sent_at)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_admin_job_runs_key ON admin_job_runs(job_key, started_at)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_users_confirmed_created ON users(confirmed_at, created_at)').run()
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_users_preferred_locale ON users(preferred_locale)').run()
+  } catch (_e) {
+    // ignore
+  }
+
+  sqlite.prepare(`
     CREATE TABLE IF NOT EXISTS tasting_notes (
       id TEXT PRIMARY KEY,
       whisky_id TEXT NOT NULL,
@@ -854,6 +937,11 @@ function initSqlite(sqlite: any) {
   }
   if (!tastingNotesColumnNames.includes('location_visibility')) {
     sqlite.prepare(`ALTER TABLE tasting_notes ADD COLUMN location_visibility TEXT NOT NULL DEFAULT 'public_city'`).run()
+  }
+  try {
+    sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_tasting_notes_user_status ON tasting_notes(user_id, status)').run()
+  } catch (_e) {
+    // ignore
   }
 
   sqlite.prepare(`
