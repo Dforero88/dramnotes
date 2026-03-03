@@ -9,7 +9,7 @@ import { getTranslations, type Locale } from '@/lib/i18n'
 import SignupCtaLink from '@/components/SignupCtaLink'
 
 export default function Navigation() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const pathname = usePathname()
   const router = useRouter()
   
@@ -86,7 +86,9 @@ export default function Navigation() {
 
           <div className="flex items-center justify-end gap-4">
             <div className="hidden md:flex items-center gap-4">
-              {session ? (
+              {status === 'loading' ? (
+                <div className="h-10 w-40 rounded-full bg-gray-100 animate-pulse" />
+              ) : session ? (
                 <>
                   <span className="text-gray-600 hidden lg:inline">
                     {t('navigation.welcome')}, {session.user?.name || session.user?.email}
@@ -119,7 +121,9 @@ export default function Navigation() {
               )}
             </div>
 
-            {session ? (
+            {status === 'loading' ? (
+              <div className="md:hidden h-10 w-10 rounded-lg border border-gray-200 bg-gray-100 animate-pulse" />
+            ) : session ? (
               <button
                 onClick={() => signOut({ callbackUrl: `/${locale}/catalogue` })}
                 className="md:hidden p-2.5 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition"

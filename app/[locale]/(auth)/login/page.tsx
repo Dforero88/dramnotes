@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { getSession, signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -48,11 +48,12 @@ export default function LoginPage() {
           method: 'credentials',
           locale,
         })
-        const redirectUrl = result?.url?.includes('callbackUrl=') 
-          ? result.url 
+        await getSession()
+        const redirectUrl = result?.url && result.url.startsWith('/')
+          ? result.url
           : `/${locale}/catalogue`
-        
-        router.push(redirectUrl)
+
+        router.replace(redirectUrl)
         router.refresh()
       }
     } catch (err) {

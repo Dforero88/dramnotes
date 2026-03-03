@@ -7,8 +7,10 @@ import Script from 'next/script'
 import SiteFooter from '@/components/SiteFooter'
 import GuestSignupNudge from '@/components/GuestSignupNudge'
 import { cookies, headers } from 'next/headers'
+import { getServerSession } from 'next-auth'
 import AnalyticsConsentBanner from '@/components/AnalyticsConsentBanner'
 import { ANALYTICS_CONSENT_COOKIE, isAnalyticsConsent } from '@/lib/analytics-consent'
+import { authOptions } from '@/lib/auth'
 
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-body' })
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-heading' })
@@ -49,6 +51,7 @@ export default async function RootLayout({
   const analyticsConsentRaw = cookieStore.get(ANALYTICS_CONSENT_COOKIE)?.value
   const analyticsConsent = isAnalyticsConsent(analyticsConsentRaw) ? analyticsConsentRaw : null
   const shouldLoadAnalytics = Boolean(process.env.NEXT_PUBLIC_GA_ID && analyticsConsent === 'accepted')
+  const session = await getServerSession(authOptions)
 
   return (
     <html lang={htmlLang}>
@@ -69,7 +72,7 @@ export default async function RootLayout({
             </Script>
           </>
         )}
-        <SessionProvider>
+        <SessionProvider session={session}>
           <Navigation />
           <main className="min-h-screen">
             {children}

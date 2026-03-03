@@ -83,7 +83,7 @@ export const authOptions: AuthOptions = {
         return url
       }
 
-      return `${baseUrl}/fr/catalogue`
+      return `${baseUrl}/catalogue`
     },
     
     async jwt({ token, user }: any) {

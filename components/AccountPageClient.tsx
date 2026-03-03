@@ -189,7 +189,7 @@ export default function AccountPageClient() {
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Erreur')
       trackEvent('account_deleted')
-      await signOut({ callbackUrl: `/${locale}/` })
+      await signOut({ callbackUrl: `/${locale}/catalogue` })
     } catch (e: any) {
       setRgpdMessage(e?.message || t('common.error'))
     } finally {

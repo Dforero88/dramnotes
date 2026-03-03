@@ -28,17 +28,20 @@ Objectif produit actuel :
 - SQLite en dev, MariaDB en prod
 - Auth: NextAuth
 - Monitoring erreurs/logs: Sentry
-- Analytics: Google Analytics (GA4)
+- Analytics web: Google Analytics (GA4) avec consentement explicite
+- Analytics produit: Mixpanel (server-side, prod only)
 - Uptime: UptimeRobot via endpoint healthcheck
 
 ### 2.1 Composants techniques clés (actuels)
 
 - Tracking client GA centralisé: `lib/analytics-client.ts` (`trackEvent` + `trackEventOnce`)
+- Consentement analytics + bootstrap GA conditionnel: `lib/analytics-consent.ts`, `components/AnalyticsConsentBanner.tsx`, `app/layout.tsx`
+- Tracking produit server-side Mixpanel: `lib/mixpanel.ts`, `lib/sentry-business.ts`
 - Catalogue front (filtres/vues/CTA 0 résultat): `components/CatalogueBrowser.tsx`
 - CTA signup traqué côté composants: `components/SignupCtaLink.tsx`, `components/GuestSignupNudge.tsx`
 - Tracking onboarding home: `components/HomeOnboardingChecklist.tsx`
-- Bootstrap GA (script + config): `app/layout.tsx`
 - Flow auth 2 étapes: `app/[locale]/(auth)/register/page.tsx`, `app/[locale]/(auth)/complete-account/page.tsx`, `app/api/auth/register/route.ts`, `app/api/auth/confirm/route.ts`, `app/api/auth/complete-account/route.ts`
+- Jobs admin manuels: `app/[locale]/(private)/admin/jobs/page.tsx`, `components/AdminJobsPageClient.tsx`, `app/api/admin/jobs/route.ts`, `lib/admin-jobs.ts`
 
 ## 3) Lancement local
 
@@ -62,6 +65,8 @@ URL locale:
 - `NEXT_PUBLIC_SENTRY_DSN` (optionnel, conseillé)
 - `NEXT_PUBLIC_GA_ID`
 - `MIXPANEL_TOKEN` (optionnel, prod only)
+- `MIXPANEL_API_HOST` (prod only, ex: `https://api-eu.mixpanel.com`)
+- `ENABLE_SENTRY_BUSINESS_LOGS` (optionnel, `1` pour forward des business events vers Sentry)
 - `SMTP_HOST`
 - `SMTP_PORT`
 - `SMTP_SECURE`
@@ -140,11 +145,8 @@ Step 4 (obligatoire pour activer le compte):
 - visibilité étagère
 
 Comportement email existant:
-- compte confirmé: erreur “email déjà utilisé”
+- compte confirmé: même message générique côté UI + email “compte déjà existant / se connecter / mot de passe oublié”
 - compte non confirmé: pas de nouveau compte, token régénéré + email renvoyé
-
-Note:
-- pas de migration DB nécessaire pour ce flow (approche pseudo/password temporaires tant que non confirmé)
 
 ## 6) Pagination et limites (où c’est appliqué)
 
@@ -162,6 +164,16 @@ Note:
 - Page bottler: `12` whiskies/page
 
 ## 7) Google Analytics (détail tracking)
+
+Chargement:
+- GA ne se charge que si l’utilisateur accepte explicitement le bandeau analytics
+- source de vérité: cookie `dramnotes_analytics_consent`
+- si `refused` ou aucun choix: aucun script GA, aucun event GA
+
+Composants:
+- bandeau: `components/AnalyticsConsentBanner.tsx`
+- helpers: `lib/analytics-consent.ts`
+- injection conditionnelle: `app/layout.tsx`
 
 ### 7.1 Tracking automatique
 
@@ -239,15 +251,66 @@ Principaux points d’émission:
 - `components/GuestSignupNudge.tsx`
 - `components/HomeOnboardingChecklist.tsx`
 
-## 8) Sentry (détail monitoring)
+## 8) Mixpanel (analytics produit)
 
-### 8.1 Initialisation
+Principe:
+- server-side only
+- prod only
+- aucun envoi en dev/local
+- transport via API HTTP Mixpanel
+
+Fichiers:
+- `lib/mixpanel.ts`
+- `lib/sentry-business.ts`
+
+Variables:
+- `MIXPANEL_TOKEN`
+- `MIXPANEL_API_HOST`
+  - US: `https://api.mixpanel.com`
+  - EU: `https://api-eu.mixpanel.com`
+
+Events actuellement forwardés:
+- `account_created`
+- `account_completed`
+- `user_login`
+- `password_reset_requested`
+- `password_reset_completed`
+- `whisky_created`
+- `distiller_created`
+- `bottler_created`
+- `tasting_note_draft_created`
+- `tasting_note_published`
+- `shelf_updated`
+- `follow_created`
+- `admin_job_run`
+
+Exemples de properties envoyées selon l’event:
+- `userId`
+- `whiskyId`
+- `distillerId`
+- `bottlerId`
+- `noteId`
+- `locale`
+- `source`
+- `status`
+- `previewCount`
+- `processedCount`
+
+Funnel de base recommandé:
+- `account_created`
+- `account_completed`
+- `whisky_created`
+- `tasting_note_published`
+
+## 9) Sentry (détail monitoring)
+
+### 9.1 Initialisation
 
 - server/edge: `instrumentation.ts`
 - client: `sentry.client.config.ts`
 - capture des erreurs React globales: `app/global-error.tsx`
 
-### 8.2 Ce qui remonte
+### 9.2 Ce qui remonte
 
 Erreurs:
 - exceptions globales App Router (global error boundary)
@@ -264,7 +327,7 @@ Route de test:
 - `GET /api/debug/sentry`
 - retourne `eventId` si DSN actif
 
-## 9) Whiskies Similaires
+## 10) Whiskies Similaires
 
 Feature:
 - bloc “Whiskies similaires” sur la page whisky
@@ -299,7 +362,7 @@ set +a
 npm run whisky-related:rebuild -- --top=20
 ```
 
-## 10) UptimeRobot / Healthcheck
+## 11) UptimeRobot / Healthcheck
 
 Endpoint:
 - `GET /api/health`
@@ -313,7 +376,7 @@ Usage UptimeRobot recommandé:
 - fréquence 1 à 5 minutes
 - alerte email active
 
-## 11) Données conservées / uploads
+## 12) Données conservées / uploads
 
 - Images utilisateurs (bouteilles) stockées dans `public/uploads/...`
 - Images distillers/bottlers stockées dans `public/uploads/producers/...`
@@ -324,7 +387,7 @@ Important:
 - ne pas versionner les fichiers d’upload
 - garder `config/runtime.env` hors Git
 
-## 12) Déploiement (résumé opérationnel)
+## 13) Déploiement (résumé opérationnel)
 
 Flux actuel:
 - push GitHub
@@ -343,7 +406,7 @@ git clean -fd -e public/uploads -e config/runtime.env -e .next
 chmod +x /srv/customer/sites/dramnotes.com/start.sh
 ```
 
-## 13) Admin producteurs (distillers/bottlers)
+## 14) Admin producteurs (distillers/bottlers)
 
 Page:
 - `/<locale>/admin/producers`
@@ -363,18 +426,43 @@ APIs:
 - `PATCH /api/admin/producers/[id]`
 - `POST /api/admin/producers/[id]/image`
 
-## 14) État “ready for prod”
+## 15) Admin Jobs
+
+Page:
+- `/<locale>/admin/jobs`
+
+Accès:
+- restreint aux emails admin (`ADMIN_EMAILS`)
+
+Jobs actuels:
+- `first_note_reminder_7d`
+- `whisky_related_rebuild`
+
+Fonctionnement:
+- preview manuel
+- exécution manuelle
+- log minimal des runs en base (`admin_job_runs`)
+
+Tables liées:
+- `admin_job_runs`
+- `user_engagement_emails`
+- `users.preferred_locale`
+
+## 16) État “ready for prod”
 
 ### Fait
 
 - base sécurité/modération en place
 - validation front + backend sur flux critiques
 - analytics GA + events métier
+- consentement analytics explicite avant chargement GA
+- analytics produit Mixpanel server-side
 - monitoring Sentry
 - endpoint health + monitoring uptime
 - pagination/limites sur écrans et APIs critiques
 - normalisation distiller/bottler pour réduire la dette de données
 - admin minimal opérationnel pour enrichissement producteur
+- jobs admin manuels opérationnels
 - SEO de base (sitemap, robots, metadata pages clés)
 
 ### Backlog non bloquant
