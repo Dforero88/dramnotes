@@ -472,3 +472,36 @@ Tables liées:
 - playbook incident plus formalisé
 - migrations outillées si fréquence de changements schéma augmente
 - catégorisation des tags (familles aromatiques)
+
+## 17) Futurs Chantiers
+
+### 17.1 Qualité code
+
+- ajouter ESLint avec une config Next.js + TypeScript minimale
+- ajouter un script `npm run lint`
+- corriger progressivement les warnings réellement utiles
+- intégrer le lint dans le rituel avant déploiement
+
+### 17.2 Tests automatisés
+
+- ajouter Playwright pour couvrir les parcours critiques
+- commencer par :
+  - login / logout
+  - register / complete-account
+  - forgot-password / reset-password
+  - create whisky
+  - publish tasting note
+- garder en parallèle un smoke test manuel prod
+
+### 17.3 Hardening auth / abuse
+
+- durcir le rate limiting (au-delà du store mémoire actuel)
+- protéger côté serveur l’API `tags/create`
+- améliorer les callback URLs de login pour revenir au bon écran après authentification
+
+### 17.4 Blog / SEO éditorial
+
+- ajouter une section blog/news
+- publier des articles éditoriaux autour du whisky et de la communauté
+- envisager un récap mensuel automatique (activité, stats, tendances)
+- utiliser ce contenu pour renforcer le SEO et l’acquisition organique

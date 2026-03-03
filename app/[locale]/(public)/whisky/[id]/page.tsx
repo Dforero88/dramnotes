@@ -12,6 +12,7 @@ import { buildWhiskyPath, extractWhiskyUuidFromParam } from '@/lib/whisky-url'
 import { resolveCurrentSlugFromLegacy } from '@/lib/slug-redirects'
 import { getRelatedWhiskiesForDisplay } from '@/lib/whisky-related'
 import SignupCtaLink from '@/components/SignupCtaLink'
+import WhiskyImageLightbox from '@/components/WhiskyImageLightbox'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -293,17 +294,12 @@ export default async function WhiskyDetailPage({
         <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] lg:grid-cols-[420px_1fr] gap-8">
           <div className="order-2 md:order-1 md:row-span-3 md:self-stretch bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex items-center justify-center">
             <div className="w-full">
-              <div className="aspect-square md:max-h-[360px] lg:max-h-none bg-white rounded-xl flex items-center justify-center overflow-hidden">
-              {imageSrc ? (
-                <img
-                  src={imageSrc}
-                  alt={whisky.name}
-                  className="max-w-full max-h-full object-contain object-center mx-auto my-auto"
-                />
-              ) : (
-                <div className="text-gray-400">{t('catalogue.noImage')}</div>
-              )}
-              </div>
+              <WhiskyImageLightbox
+                src={imageSrc || null}
+                alt={whisky.name}
+                noImageLabel={t('catalogue.noImage')}
+                locale={locale}
+              />
               {imageSrc && whisky.photoCreditPseudo ? (
                 <p className="mt-3 text-xs text-gray-500 text-center">
                   {t('whisky.photoCredit')} @{whisky.photoCreditPseudo}
