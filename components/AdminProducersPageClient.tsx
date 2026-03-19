@@ -78,6 +78,7 @@ export default function AdminProducersPageClient() {
   const [mergeTargetId, setMergeTargetId] = useState('')
   const [mergePreview, setMergePreview] = useState<{ movedCount: number; whiskies: Array<{ id: string; name: string }> } | null>(null)
   const [mergeLoading, setMergeLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
   const selected = useMemo(() => items.find((x) => x.id === selectedId) || null, [items, selectedId])
 
@@ -107,22 +108,23 @@ export default function AdminProducersPageClient() {
     loadCountries()
   }, [locale])
 
-  useEffect(() => {
-    const loadProducersOptions = async () => {
-      try {
-        const [distillersRes, bottlersRes] = await Promise.all([
-          fetch(`/api/admin/producers/list?kind=distiller&page=1&pageSize=500&lang=${locale}`, { cache: 'no-store' }),
-          fetch(`/api/admin/producers/list?kind=bottler&page=1&pageSize=500&lang=${locale}`, { cache: 'no-store' }),
-        ])
-        const [distillersJson, bottlersJson] = await Promise.all([distillersRes.json(), bottlersRes.json()])
-        setDistillerOptions((distillersJson?.items || []).map((x: any) => ({ id: x.id, name: x.name })))
-        setBottlerOptions((bottlersJson?.items || []).map((x: any) => ({ id: x.id, name: x.name })))
-      } catch {
-        setDistillerOptions([])
-        setBottlerOptions([])
-      }
+  const loadProducerOptions = async () => {
+    try {
+      const [distillersRes, bottlersRes] = await Promise.all([
+        fetch(`/api/admin/producers/list?kind=distiller&page=1&pageSize=500&lang=${locale}`, { cache: 'no-store' }),
+        fetch(`/api/admin/producers/list?kind=bottler&page=1&pageSize=500&lang=${locale}`, { cache: 'no-store' }),
+      ])
+      const [distillersJson, bottlersJson] = await Promise.all([distillersRes.json(), bottlersRes.json()])
+      setDistillerOptions((distillersJson?.items || []).map((x: any) => ({ id: x.id, name: x.name })))
+      setBottlerOptions((bottlersJson?.items || []).map((x: any) => ({ id: x.id, name: x.name })))
+    } catch {
+      setDistillerOptions([])
+      setBottlerOptions([])
     }
-    loadProducersOptions()
+  }
+
+  useEffect(() => {
+    loadProducerOptions()
   }, [locale])
 
   const load = async () => {
@@ -278,6 +280,53 @@ export default function AdminProducersPageClient() {
     }
   }
 
+  const convertEntity = async () => {
+    if (!selected || kind === 'whisky') return
+    const sourceLabel = locale === 'en' ? (kind === 'distiller' ? 'distiller' : 'bottler') : (kind === 'distiller' ? 'distiller' : 'embouteilleur')
+    const targetLabel = locale === 'en' ? (kind === 'distiller' ? 'bottler' : 'distiller') : (kind === 'distiller' ? 'embouteilleur' : 'distiller')
+    if (!confirm(`${t('adminProducers.convertConfirmStart')} ${sourceLabel} "${selected.name}" ${t('adminProducers.convertConfirmEnd')} ${targetLabel} ?`)) return
+    setActionLoading(true)
+    setFormMessage('')
+    try {
+      const res = await fetch(`/api/admin/producers/${selected.id}?kind=${kind}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'convert' }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Error')
+      setFormMessage(t('adminProducers.convertDone'))
+      await loadProducerOptions()
+    } catch (e: any) {
+      setFormMessage(e?.message || t('common.error'))
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const deactivateEntity = async () => {
+    if (!selected || kind === 'whisky' || Number(selected.whiskyCount || 0) > 0) return
+    if (!confirm(t('adminProducers.deactivateConfirm'))) return
+    setActionLoading(true)
+    setFormMessage('')
+    try {
+      const res = await fetch(`/api/admin/producers/${selected.id}?kind=${kind}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'deactivate' }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Error')
+      setFormMessage(t('adminProducers.deactivateDone'))
+      await load()
+      await loadProducerOptions()
+    } catch (e: any) {
+      setFormMessage(e?.message || t('common.error'))
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 px-4 md:px-8 py-10">
       <div className="max-w-7xl mx-auto space-y-5">
@@ -427,7 +476,44 @@ export default function AdminProducersPageClient() {
                 <div className="text-gray-600 text-sm">{t('adminProducers.selectItem')}</div>
               ) : (
                 <>
-                  <h2 className="text-lg font-semibold">{selected.name}</h2>
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold">{selected.name}</h2>
+                    {kind !== 'whisky' ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={convertEntity}
+                          disabled={actionLoading}
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-600 disabled:opacity-50"
+                          title={t('adminProducers.convertAction')}
+                          aria-label={t('adminProducers.convertAction')}
+                        >
+                          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M7 7h10" />
+                            <path d="M13 3l4 4-4 4" />
+                            <path d="M17 17H7" />
+                            <path d="M11 21l-4-4 4-4" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={deactivateEntity}
+                          disabled={actionLoading || Number(selected.whiskyCount || 0) > 0}
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-600 disabled:opacity-40"
+                          title={Number(selected.whiskyCount || 0) > 0 ? t('adminProducers.deactivateDisabledHint') : t('adminProducers.deactivateAction')}
+                          aria-label={t('adminProducers.deactivateAction')}
+                        >
+                          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M6 7h12" />
+                            <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                            <path d="M8 7l1 12a1 1 0 0 0 1 .92h4a1 1 0 0 0 1-.92L16 7" />
+                            <path d="M10 11v5" />
+                            <path d="M14 11v5" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                   <div className="space-y-3">
                   <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2" placeholder={t('catalogue.filterName')} />
                   <select value={form.countryId} onChange={(e) => setForm((p) => ({ ...p, countryId: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2">

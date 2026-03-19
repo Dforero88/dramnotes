@@ -15,6 +15,25 @@ import { rebuildWhiskyRelatedForImpactCluster } from '@/lib/whisky-related'
 
 export const dynamic = 'force-dynamic'
 
+async function nextProducerSlug(kind: 'distiller' | 'bottler', name: string, id?: string) {
+  const baseSlug = slugifyProducerName(name)
+  let nextSlug = baseSlug
+  let counter = 2
+  while (await isSlugReserved(kind, nextSlug, id)) {
+    nextSlug = `${baseSlug}-${counter}`
+    counter += 1
+  }
+  return nextSlug
+}
+
+async function linkedWhiskyCount(kind: 'distiller' | 'bottler', id: string) {
+  const countRows = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(whiskies)
+    .where(kind === 'distiller' ? eq(whiskies.distillerId, id) : eq(whiskies.bottlerId, id))
+  return Number(countRows?.[0]?.count || 0)
+}
+
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -295,6 +314,138 @@ export async function PATCH(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('❌ admin producers patch error:', error)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions)
+  if (!isAdminEmail(session?.user?.email)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  try {
+    const { id } = await context.params
+    const kindParam = (request.nextUrl.searchParams.get('kind') || 'distiller').toLowerCase()
+    const kind = kindParam === 'bottler' ? 'bottler' : 'distiller'
+    const body = await request.json().catch(() => ({}))
+    const action = String(body?.action || '').trim()
+
+    if (action === 'convert') {
+      if (kind === 'distiller') {
+        const sourceRows = await db
+          .select()
+          .from(distillers)
+          .where(and(eq(distillers.id, id), eq(distillers.isActive, 1), sql`${distillers.mergedIntoId} is null`))
+          .limit(1)
+        const source = sourceRows?.[0]
+        if (!source) return NextResponse.json({ error: 'Distiller not found' }, { status: 404 })
+
+        const duplicate = await db
+          .select({ id: bottlers.id })
+          .from(bottlers)
+          .where(and(
+            sql`lower(${bottlers.name}) = ${String(source.name).toLowerCase()}`,
+            eq(bottlers.isActive, 1),
+            sql`${bottlers.mergedIntoId} is null`
+          ))
+          .limit(1)
+        if (duplicate.length) {
+          return NextResponse.json({ error: 'A bottler with this name already exists' }, { status: 409 })
+        }
+
+        const targetId = crypto.randomUUID()
+        const targetSlug = await nextProducerSlug('bottler', source.name)
+        await db.insert(bottlers).values({
+          id: targetId,
+          name: source.name,
+          slug: targetSlug,
+          countryId: source.countryId,
+          region: source.region,
+          descriptionFr: source.descriptionFr,
+          descriptionEn: source.descriptionEn,
+          imageUrl: source.imageUrl,
+        })
+
+        return NextResponse.json({ success: true, createdId: targetId, createdKind: 'bottler', createdName: source.name })
+      }
+
+      const sourceRows = await db
+        .select()
+        .from(bottlers)
+        .where(and(eq(bottlers.id, id), eq(bottlers.isActive, 1), sql`${bottlers.mergedIntoId} is null`))
+        .limit(1)
+      const source = sourceRows?.[0]
+      if (!source) return NextResponse.json({ error: 'Bottler not found' }, { status: 404 })
+
+      const duplicate = await db
+        .select({ id: distillers.id })
+        .from(distillers)
+        .where(and(
+          sql`lower(${distillers.name}) = ${String(source.name).toLowerCase()}`,
+          eq(distillers.isActive, 1),
+          sql`${distillers.mergedIntoId} is null`
+        ))
+        .limit(1)
+      if (duplicate.length) {
+        return NextResponse.json({ error: 'A distiller with this name already exists' }, { status: 409 })
+      }
+
+      const targetId = crypto.randomUUID()
+      const targetSlug = await nextProducerSlug('distiller', source.name)
+      await db.insert(distillers).values({
+        id: targetId,
+        name: source.name,
+        slug: targetSlug,
+        countryId: source.countryId,
+        region: source.region,
+        descriptionFr: source.descriptionFr,
+        descriptionEn: source.descriptionEn,
+        imageUrl: source.imageUrl,
+      })
+
+      return NextResponse.json({ success: true, createdId: targetId, createdKind: 'distiller', createdName: source.name })
+    }
+
+    if (action === 'deactivate') {
+      const count = await linkedWhiskyCount(kind, id)
+      if (count > 0) {
+        return NextResponse.json({ error: 'Entity is still linked to whiskies' }, { status: 400 })
+      }
+
+      if (kind === 'distiller') {
+        const existing = await db
+          .select({ id: distillers.id, isActive: distillers.isActive, mergedIntoId: distillers.mergedIntoId })
+          .from(distillers)
+          .where(eq(distillers.id, id))
+          .limit(1)
+        if (!existing.length) return NextResponse.json({ error: 'Distiller not found' }, { status: 404 })
+        if (existing[0].isActive !== 1 || existing[0].mergedIntoId) {
+          return NextResponse.json({ error: 'Distiller merged/inactive' }, { status: 400 })
+        }
+        await db.update(distillers).set({ isActive: 0 }).where(eq(distillers.id, id))
+        return NextResponse.json({ success: true })
+      }
+
+      const existing = await db
+        .select({ id: bottlers.id, isActive: bottlers.isActive, mergedIntoId: bottlers.mergedIntoId })
+        .from(bottlers)
+        .where(eq(bottlers.id, id))
+        .limit(1)
+      if (!existing.length) return NextResponse.json({ error: 'Bottler not found' }, { status: 404 })
+      if (existing[0].isActive !== 1 || existing[0].mergedIntoId) {
+        return NextResponse.json({ error: 'Bottler merged/inactive' }, { status: 400 })
+      }
+      await db.update(bottlers).set({ isActive: 0 }).where(eq(bottlers.id, id))
+      return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  } catch (error) {
+    console.error('❌ admin producers action error:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

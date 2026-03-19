@@ -505,3 +505,10 @@ Tables liées:
 - publier des articles éditoriaux autour du whisky et de la communauté
 - envisager un récap mensuel automatique (activité, stats, tendances)
 - utiliser ce contenu pour renforcer le SEO et l’acquisition organique
+
+### 17.5 Proposition de correction catalogue
+
+- ajouter sur la page d’un whisky un bouton “Proposer une correction”
+- position recommandée: dans ou à proximité du bloc `Détails`
+- permettre à un utilisateur de signaler une erreur et de décrire ce qu’il faudrait modifier
+- prévoir ensuite un traitement admin/modération de ces propositions
