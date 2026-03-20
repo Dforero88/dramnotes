@@ -9,6 +9,7 @@ import { z } from 'zod'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { getTranslations, type Locale } from '@/lib/i18n'
+import { trackAdsConversion, trackEvent } from '@/lib/analytics-client'
 
 const registerSchema = z.object({
   email: z.string().email('validation.invalidEmail').max(100, 'validation.emailMax'),
@@ -64,6 +65,8 @@ export default function RegisterPage() {
         throw new Error(result.error || 'Erreur lors de l\'inscription')
       }
 
+      trackEvent('onboarding_started', { source: 'register_page', method: 'email', locale })
+      trackAdsConversion()
       setSuccessMessage(String(result.message || ''))
       setSuccess(true)
     } catch (err) {

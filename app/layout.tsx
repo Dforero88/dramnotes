@@ -19,6 +19,8 @@ const siteUrl = process.env.APP_URL || 'https://dramnotes.com'
 const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'
 const gitSha = (process.env.NEXT_PUBLIC_GIT_SHA || '').trim()
 const buildLabel = gitSha ? `v${appVersion} (${gitSha})` : `v${appVersion}`
+const gaId = process.env.NEXT_PUBLIC_GA_ID?.trim()
+const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim()
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -50,7 +52,8 @@ export default async function RootLayout({
   const htmlLang = requestLocale === 'en' ? 'en' : 'fr'
   const analyticsConsentRaw = cookieStore.get(ANALYTICS_CONSENT_COOKIE)?.value
   const analyticsConsent = isAnalyticsConsent(analyticsConsentRaw) ? analyticsConsentRaw : null
-  const shouldLoadAnalytics = Boolean(process.env.NEXT_PUBLIC_GA_ID && analyticsConsent === 'accepted')
+  const shouldLoadAnalytics = Boolean((gaId || googleAdsId) && analyticsConsent === 'accepted')
+  const gtagBootstrapId = gaId || googleAdsId
   const session = await getServerSession(authOptions)
 
   return (
@@ -60,14 +63,15 @@ export default async function RootLayout({
           <>
             <Script
               strategy="afterInteractive"
-              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+              src={`https://www.googletagmanager.com/gtag/js?id=${gtagBootstrapId}`}
             />
             <Script id="ga-init" strategy="afterInteractive">
               {`
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
-                gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', { anonymize_ip: true });
+                ${gaId ? `gtag('config', '${gaId}', { anonymize_ip: true });` : ''}
+                ${googleAdsId ? `gtag('config', '${googleAdsId}');` : ''}
               `}
             </Script>
           </>
