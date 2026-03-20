@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
 import { getTranslations, type Locale } from '@/lib/i18n'
-import { trackEvent } from '@/lib/analytics-client'
+import { trackAdsConversion, trackEvent } from '@/lib/analytics-client'
 
 type NudgeContext = 'home' | 'catalogue' | 'whisky' | 'notebook' | 'explorer'
 type TriggerType = 'actions' | 'time_on_page'
@@ -220,6 +220,8 @@ export default function GuestSignupNudge() {
 
       setSubmitSuccessMessage(String(json?.message || ''))
       setSubmitSuccess(true)
+      trackEvent('onboarding_started', { source: 'guest_nudge', method: 'email', locale })
+      trackAdsConversion()
       trackEvent('cta_signup_click', { source_context: 'nudge_floating_inline_form' })
       trackEvent('guest_nudge_signup_click', { source_context: context, trigger_type: triggerType })
     } catch (_error) {
