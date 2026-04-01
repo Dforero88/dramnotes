@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics-client'
 import SignupCtaLink from '@/components/SignupCtaLink'
+import { captureClientException } from '@/lib/sentry-client'
 
 type ExplorerUser = {
   id: string
@@ -75,12 +76,13 @@ export default function ExplorerPageClient() {
   useEffect(() => {
     const run = async () => {
       setLoading(true)
-      const params = new URLSearchParams()
-      params.set('q', isLoggedIn ? appliedQuery : '')
-      params.set('page', String(page))
-      params.set('pageSize', '12')
-      const res = await fetch(`/api/explorer/users?${params.toString()}`, { cache: 'no-store' })
-      if (res.ok) {
+      try {
+        const params = new URLSearchParams()
+        params.set('q', isLoggedIn ? appliedQuery : '')
+        params.set('page', String(page))
+        params.set('pageSize', '12')
+        const res = await fetch(`/api/explorer/users?${params.toString()}`, { cache: 'no-store' })
+        if (!res.ok) throw new Error(`Explorer users load failed (${res.status})`)
         const json = await res.json()
         setUsers(json.items || [])
         setTotalPages(json.totalPages || 1)
@@ -95,8 +97,20 @@ export default function ExplorerPageClient() {
           })
           pendingSearchRef.current = null
         }
+      } catch (error) {
+        void captureClientException(error, {
+          component: 'ExplorerPageClient',
+          action: 'load_users',
+          tags: { locale, isLoggedIn, page },
+          extra: { appliedQuery },
+        })
+        setUsers([])
+        setTotalPages(1)
+        setIsTop(false)
+        pendingSearchRef.current = null
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     run()
   }, [appliedQuery, page, isLoggedIn])
@@ -120,7 +134,15 @@ export default function ExplorerPageClient() {
         } else {
           trackEvent('unfollow_user', { target_user_id: targetId })
         }
+      } else {
+        throw new Error(`Follow toggle failed (${res.status})`)
       }
+    } catch (error) {
+      void captureClientException(error, {
+        component: 'ExplorerPageClient',
+        action: 'toggle_follow',
+        tags: { locale, targetUserId: targetId },
+      })
     } finally {
       setFollowLoadingId(null)
     }

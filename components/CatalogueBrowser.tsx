@@ -9,6 +9,7 @@ import { buildBottlerPath, buildDistillerPath } from '@/lib/producer-url'
 import { trackEvent } from '@/lib/analytics-client'
 import { useAuth } from '@/hooks/useAuth'
 import SignupCtaLink from '@/components/SignupCtaLink'
+import { captureClientException } from '@/lib/sentry-client'
 
 type WhiskyCard = {
   id: string
@@ -229,6 +230,12 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
         setTotalPages(json?.totalPages || 1)
       } catch (e) {
         console.error('Erreur chargement catalogue', e)
+        void captureClientException(e, {
+          component: 'CatalogueBrowser',
+          action: 'load_catalogue',
+          tags: { view, locale },
+          extra: { queryString },
+        })
         setItems([])
         setTotalResults(0)
         setTotalPages(1)
@@ -248,6 +255,11 @@ export default function CatalogueBrowser({ locale }: { locale: Locale }) {
           setCountries(json?.countries || [])
         }
       } catch {
+        void captureClientException(new Error('Failed to load catalogue countries'), {
+          component: 'CatalogueBrowser',
+          action: 'load_countries',
+          tags: { locale },
+        })
         if (!cancelled) {
           setCountries([])
         }

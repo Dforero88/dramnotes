@@ -9,6 +9,7 @@ import { recomputeUserAroma } from '@/lib/user-aroma'
 import { validateLocation, validateOverall, validateDisplayName } from '@/lib/moderation'
 import { captureBusinessEvent } from '@/lib/sentry-business'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const runtime = 'nodejs'
 
@@ -137,45 +138,71 @@ export async function POST(request: NextRequest) {
     return apiError('UNAUTHORIZED', 'Unauthorized', 401)
   }
 
-  const limit = rateLimit(request, {
-    key: buildRateLimitKey(request, userId, 'tasting-notes-create'),
-    windowMs: 60 * 60 * 1000,
-    max: 20,
-  })
-  if (!limit.ok) {
-    return NextResponse.json(
-      { errorCode: 'RATE_LIMIT', error: 'Trop de requêtes. Réessayez plus tard.' },
-      { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
-    )
-  }
-
-  const body = await request.json()
-  const status = getRequestedStatus(body?.status)
-  const userRows = await db
-    .select({ visibility: users.visibility })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1)
-  const userVisibility = (userRows?.[0]?.visibility === 'public' ? 'public' : 'private') as 'public' | 'private'
-  const parsed = await parseAndValidatePayload(body, status, userVisibility)
-  if ('error' in parsed) return parsed.error
-  const { payload } = parsed
-  const tagCount = payload.tags.noseTagIds.length + payload.tags.palateTagIds.length + payload.tags.finishTagIds.length
-
-  const existing = await db
-    .select({ id: tastingNotes.id, status: tastingNotes.status })
-    .from(tastingNotes)
-    .where(and(eq(tastingNotes.whiskyId, payload.whiskyId), eq(tastingNotes.userId, userId)))
-    .limit(1)
-
-  if (existing.length > 0) {
-    const existingNote = existing[0]
-    if (existingNote.status === 'published') {
-      return apiError('NOTE_ALREADY_EXISTS', 'Note déjà existante', 409)
+  try {
+    const limit = rateLimit(request, {
+      key: buildRateLimitKey(request, userId, 'tasting-notes-create'),
+      windowMs: 60 * 60 * 1000,
+      max: 20,
+    })
+    if (!limit.ok) {
+      return NextResponse.json(
+        { errorCode: 'RATE_LIMIT', error: 'Trop de requêtes. Réessayez plus tard.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+      )
     }
-    if (status === 'draft') {
+
+    const body = await request.json()
+    const status = getRequestedStatus(body?.status)
+    const userRows = await db
+      .select({ visibility: users.visibility })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+    const userVisibility = (userRows?.[0]?.visibility === 'public' ? 'public' : 'private') as 'public' | 'private'
+    const parsed = await parseAndValidatePayload(body, status, userVisibility)
+    if ('error' in parsed) return parsed.error
+    const { payload } = parsed
+    const tagCount = payload.tags.noseTagIds.length + payload.tags.palateTagIds.length + payload.tags.finishTagIds.length
+
+    const existing = await db
+      .select({ id: tastingNotes.id, status: tastingNotes.status })
+      .from(tastingNotes)
+      .where(and(eq(tastingNotes.whiskyId, payload.whiskyId), eq(tastingNotes.userId, userId)))
+      .limit(1)
+
+    if (existing.length > 0) {
+      const existingNote = existing[0]
+      if (existingNote.status === 'published') {
+        return apiError('NOTE_ALREADY_EXISTS', 'Note déjà existante', 409)
+      }
+      if (status === 'draft') {
+        await db.update(tastingNotes).set({
+          status,
+          tastingDate: payload.tastingDate,
+          location: payload.location,
+          locationVisibility: payload.locationVisibility,
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+          country: payload.country,
+          city: payload.city,
+          overall: payload.overall,
+          rating: payload.rating,
+          updatedAt: new Date(),
+        }).where(eq(tastingNotes.id, existingNote.id))
+
+        await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, existingNote.id))
+        const relations: any[] = []
+        payload.tags.noseTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'nose' }))
+        payload.tags.palateTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'palate' }))
+        payload.tags.finishTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'finish' }))
+        if (relations.length > 0) {
+          await db.insert(tastingNoteTags).values(relations)
+        }
+        return NextResponse.json({ success: true, id: existingNote.id, status: 'draft', created: false })
+      }
+
       await db.update(tastingNotes).set({
-        status,
+        status: 'published',
         tastingDate: payload.tastingDate,
         location: payload.location,
         locationVisibility: payload.locationVisibility,
@@ -196,12 +223,41 @@ export async function POST(request: NextRequest) {
       if (relations.length > 0) {
         await db.insert(tastingNoteTags).values(relations)
       }
-      return NextResponse.json({ success: true, id: existingNote.id, status: 'draft', created: false })
+
+      const now = new Date()
+      await db.insert(activities).values({
+        id: generateId(),
+        userId,
+        type: 'new_note',
+        targetId: payload.whiskyId,
+        createdAt: now,
+      } as any)
+
+      await recomputeWhiskyAnalytics(payload.whiskyId)
+      await recomputeUserAroma(userId)
+
+      await captureBusinessEvent('tasting_note_published', {
+        level: 'info',
+        tags: { userId, whiskyId: payload.whiskyId },
+        extra: {
+          noteId: existingNote.id,
+          publishedFrom: 'draft',
+          rating: payload.rating ?? null,
+          hasLocation: Boolean(payload.location),
+          tagCount,
+        },
+      })
+
+      return NextResponse.json({ success: true, id: existingNote.id, status: 'published', created: false, publishedFromDraft: true })
     }
 
-    // Publish existing draft
-    await db.update(tastingNotes).set({
-      status: 'published',
+    const id = generateId()
+    const now = new Date()
+    await db.insert(tastingNotes).values({
+      id,
+      whiskyId: payload.whiskyId,
+      userId,
+      status,
       tastingDate: payload.tastingDate,
       location: payload.location,
       locationVisibility: payload.locationVisibility,
@@ -211,107 +267,60 @@ export async function POST(request: NextRequest) {
       city: payload.city,
       overall: payload.overall,
       rating: payload.rating,
-      updatedAt: new Date(),
-    }).where(eq(tastingNotes.id, existingNote.id))
+      createdAt: now,
+      updatedAt: now,
+    })
 
-    await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, existingNote.id))
     const relations: any[] = []
-    payload.tags.noseTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'nose' }))
-    payload.tags.palateTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'palate' }))
-    payload.tags.finishTagIds.forEach((tagId: string) => relations.push({ noteId: existingNote.id, tagId, type: 'finish' }))
+    payload.tags.noseTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'nose' }))
+    payload.tags.palateTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'palate' }))
+    payload.tags.finishTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'finish' }))
     if (relations.length > 0) {
       await db.insert(tastingNoteTags).values(relations)
     }
 
-    const now = new Date()
-    await db.insert(activities).values({
-      id: generateId(),
-      userId,
-      type: 'new_note',
-      targetId: payload.whiskyId,
-      createdAt: now,
-    } as any)
+    if (status === 'published') {
+      await db.insert(activities).values({
+        id: generateId(),
+        userId,
+        type: 'new_note',
+        targetId: payload.whiskyId,
+        createdAt: now,
+      } as any)
 
-    await recomputeWhiskyAnalytics(payload.whiskyId)
-    await recomputeUserAroma(userId)
+      await recomputeWhiskyAnalytics(payload.whiskyId)
+      await recomputeUserAroma(userId)
 
-    await captureBusinessEvent('tasting_note_published', {
-      level: 'info',
-      tags: { userId, whiskyId: payload.whiskyId },
-      extra: {
-        noteId: existingNote.id,
-        publishedFrom: 'draft',
-        rating: payload.rating ?? null,
-        hasLocation: Boolean(payload.location),
-        tagCount,
-      },
+      await captureBusinessEvent('tasting_note_published', {
+        level: 'info',
+        tags: { userId, whiskyId: payload.whiskyId },
+        extra: {
+          noteId: id,
+          publishedFrom: 'new',
+          rating: payload.rating ?? null,
+          hasLocation: Boolean(payload.location),
+          tagCount,
+        },
+      })
+    } else {
+      await captureBusinessEvent('tasting_note_draft_created', {
+        level: 'info',
+        tags: { userId, whiskyId: payload.whiskyId },
+        extra: {
+          noteId: id,
+          hasLocation: Boolean(payload.location),
+          tagCount,
+        },
+      })
+    }
+
+    return NextResponse.json({ success: true, id, status, created: true })
+  } catch (error) {
+    await captureServerException(error, {
+      route: '/api/tasting-notes',
+      action: 'create_tasting_note',
+      tags: { userId },
     })
-
-    return NextResponse.json({ success: true, id: existingNote.id, status: 'published', created: false, publishedFromDraft: true })
+    return apiError('SERVER_ERROR', 'Erreur serveur interne', 500)
   }
-
-  const id = generateId()
-  const now = new Date()
-  await db.insert(tastingNotes).values({
-    id,
-    whiskyId: payload.whiskyId,
-    userId,
-    status,
-    tastingDate: payload.tastingDate,
-    location: payload.location,
-    locationVisibility: payload.locationVisibility,
-    latitude: payload.latitude,
-    longitude: payload.longitude,
-    country: payload.country,
-    city: payload.city,
-    overall: payload.overall,
-    rating: payload.rating,
-    createdAt: now,
-    updatedAt: now,
-  })
-
-  const relations: any[] = []
-  payload.tags.noseTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'nose' }))
-  payload.tags.palateTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'palate' }))
-  payload.tags.finishTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'finish' }))
-  if (relations.length > 0) {
-    await db.insert(tastingNoteTags).values(relations)
-  }
-
-  if (status === 'published') {
-    await db.insert(activities).values({
-      id: generateId(),
-      userId,
-      type: 'new_note',
-      targetId: payload.whiskyId,
-      createdAt: now,
-    } as any)
-
-    await recomputeWhiskyAnalytics(payload.whiskyId)
-    await recomputeUserAroma(userId)
-
-    await captureBusinessEvent('tasting_note_published', {
-      level: 'info',
-      tags: { userId, whiskyId: payload.whiskyId },
-      extra: {
-        noteId: id,
-        publishedFrom: 'new',
-        rating: payload.rating ?? null,
-        hasLocation: Boolean(payload.location),
-        tagCount,
-      },
-    })
-  } else {
-    await captureBusinessEvent('tasting_note_draft_created', {
-      level: 'info',
-      tags: { userId, whiskyId: payload.whiskyId },
-      extra: {
-        noteId: id,
-        hasLocation: Boolean(payload.location),
-        tagCount,
-      },
-    })
-  }
-
-  return NextResponse.json({ success: true, id, status, created: true })
 }

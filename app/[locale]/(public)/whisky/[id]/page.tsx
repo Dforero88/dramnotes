@@ -13,6 +13,7 @@ import { resolveCurrentSlugFromLegacy } from '@/lib/slug-redirects'
 import { getRelatedWhiskiesForDisplay } from '@/lib/whisky-related'
 import SignupCtaLink from '@/components/SignupCtaLink'
 import WhiskyImageLightbox from '@/components/WhiskyImageLightbox'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -273,6 +274,12 @@ export default async function WhiskyDetailPage({
     relatedWhiskies = await getRelatedWhiskiesForDisplay(whisky.id, locale, 4)
   } catch (error) {
     console.error('⚠️ whisky-related fetch failed:', error)
+    await captureServerException(error, {
+      route: '/[locale]/whisky/[id]',
+      action: 'load_related_whiskies',
+      level: 'warning',
+      tags: { whiskyId: whisky.id, locale },
+    })
   }
 
   return (

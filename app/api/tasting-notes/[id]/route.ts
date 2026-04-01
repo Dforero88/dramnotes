@@ -8,6 +8,7 @@ import { recomputeUserAroma } from '@/lib/user-aroma'
 import { validateLocation, validateOverall, validateDisplayName } from '@/lib/moderation'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { captureBusinessEvent } from '@/lib/sentry-business'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const runtime = 'nodejs'
 
@@ -135,107 +136,116 @@ export async function PATCH(
     return apiError('UNAUTHORIZED', 'Unauthorized', 401)
   }
 
-  const limit = rateLimit(request, {
-    key: buildRateLimitKey(request, userId, 'tasting-notes-update'),
-    windowMs: 60 * 60 * 1000,
-    max: 30,
-  })
-  if (!limit.ok) {
-    return NextResponse.json(
-      { errorCode: 'RATE_LIMIT', error: 'Trop de requêtes. Réessayez plus tard.' },
-      { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
-    )
-  }
-
-  const { id } = await context.params
-  const body = await request.json()
-  const userRows = await db
-    .select({ visibility: users.visibility })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1)
-  const userVisibility = (userRows?.[0]?.visibility === 'public' ? 'public' : 'private') as 'public' | 'private'
-  const existing = await db
-    .select({ id: tastingNotes.id, whiskyId: tastingNotes.whiskyId, status: tastingNotes.status })
-    .from(tastingNotes)
-    .where(and(eq(tastingNotes.id, id), eq(tastingNotes.userId, userId)))
-    .limit(1)
-
-  if (existing.length === 0) {
-    return apiError('NOTE_NOT_FOUND', 'Note introuvable', 404)
-  }
-
-  const current = existing[0]
-  const nextStatus = normalizeRequestedStatus(body?.status, (current.status as NoteStatus) || 'published')
-  if (current.status === 'published' && nextStatus === 'draft') {
-    return apiError('CANNOT_DOWNGRADE_PUBLISHED', 'Une note publiée ne peut pas redevenir brouillon', 400)
-  }
-
-  const parsed = await parseAndValidatePayload(body, nextStatus, userVisibility)
-  if ('error' in parsed) return parsed.error
-  const { payload } = parsed
-
-  await db.update(tastingNotes).set({
-    status: nextStatus,
-    tastingDate: payload.tastingDate,
-    location: payload.location,
-    locationVisibility: payload.locationVisibility,
-    latitude: payload.latitude,
-    longitude: payload.longitude,
-    country: payload.country,
-    city: payload.city,
-    overall: payload.overall,
-    rating: payload.rating,
-    updatedAt: new Date(),
-  }).where(eq(tastingNotes.id, id))
-
-  await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, id))
-  const relations: any[] = []
-  payload.tags.noseTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'nose' }))
-  payload.tags.palateTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'palate' }))
-  payload.tags.finishTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'finish' }))
-  if (relations.length > 0) {
-    await db.insert(tastingNoteTags).values(relations)
-  }
-
-  if (current.status !== 'published' && nextStatus === 'published') {
-    await db.insert(activities).values({
-      id: generateId(),
-      userId,
-      type: 'new_note',
-      targetId: current.whiskyId,
-      createdAt: new Date(),
-    } as any)
-  }
-
-  if (current.status === 'published' || nextStatus === 'published') {
-    await recomputeWhiskyAnalytics(current.whiskyId)
-    await recomputeUserAroma(userId)
-  }
-
-  if (current.status !== 'published' && nextStatus === 'published') {
-    const tagCount =
-      payload.tags.noseTagIds.length +
-      payload.tags.palateTagIds.length +
-      payload.tags.finishTagIds.length
-    await captureBusinessEvent('tasting_note_published', {
-      level: 'info',
-      tags: { userId, whiskyId: current.whiskyId },
-      extra: {
-        noteId: id,
-        publishedFrom: 'draft',
-        rating: payload.rating ?? null,
-        hasLocation: Boolean(payload.location),
-        tagCount,
-      },
+  try {
+    const limit = rateLimit(request, {
+      key: buildRateLimitKey(request, userId, 'tasting-notes-update'),
+      windowMs: 60 * 60 * 1000,
+      max: 30,
     })
-  }
+    if (!limit.ok) {
+      return NextResponse.json(
+        { errorCode: 'RATE_LIMIT', error: 'Trop de requêtes. Réessayez plus tard.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+      )
+    }
 
-  return NextResponse.json({
-    success: true,
-    status: nextStatus,
-    publishedFromDraft: current.status !== 'published' && nextStatus === 'published',
-  })
+    const { id } = await context.params
+    const body = await request.json()
+    const userRows = await db
+      .select({ visibility: users.visibility })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+    const userVisibility = (userRows?.[0]?.visibility === 'public' ? 'public' : 'private') as 'public' | 'private'
+    const existing = await db
+      .select({ id: tastingNotes.id, whiskyId: tastingNotes.whiskyId, status: tastingNotes.status })
+      .from(tastingNotes)
+      .where(and(eq(tastingNotes.id, id), eq(tastingNotes.userId, userId)))
+      .limit(1)
+
+    if (existing.length === 0) {
+      return apiError('NOTE_NOT_FOUND', 'Note introuvable', 404)
+    }
+
+    const current = existing[0]
+    const nextStatus = normalizeRequestedStatus(body?.status, (current.status as NoteStatus) || 'published')
+    if (current.status === 'published' && nextStatus === 'draft') {
+      return apiError('CANNOT_DOWNGRADE_PUBLISHED', 'Une note publiée ne peut pas redevenir brouillon', 400)
+    }
+
+    const parsed = await parseAndValidatePayload(body, nextStatus, userVisibility)
+    if ('error' in parsed) return parsed.error
+    const { payload } = parsed
+
+    await db.update(tastingNotes).set({
+      status: nextStatus,
+      tastingDate: payload.tastingDate,
+      location: payload.location,
+      locationVisibility: payload.locationVisibility,
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      country: payload.country,
+      city: payload.city,
+      overall: payload.overall,
+      rating: payload.rating,
+      updatedAt: new Date(),
+    }).where(eq(tastingNotes.id, id))
+
+    await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, id))
+    const relations: any[] = []
+    payload.tags.noseTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'nose' }))
+    payload.tags.palateTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'palate' }))
+    payload.tags.finishTagIds.forEach((tagId: string) => relations.push({ noteId: id, tagId, type: 'finish' }))
+    if (relations.length > 0) {
+      await db.insert(tastingNoteTags).values(relations)
+    }
+
+    if (current.status !== 'published' && nextStatus === 'published') {
+      await db.insert(activities).values({
+        id: generateId(),
+        userId,
+        type: 'new_note',
+        targetId: current.whiskyId,
+        createdAt: new Date(),
+      } as any)
+    }
+
+    if (current.status === 'published' || nextStatus === 'published') {
+      await recomputeWhiskyAnalytics(current.whiskyId)
+      await recomputeUserAroma(userId)
+    }
+
+    if (current.status !== 'published' && nextStatus === 'published') {
+      const tagCount =
+        payload.tags.noseTagIds.length +
+        payload.tags.palateTagIds.length +
+        payload.tags.finishTagIds.length
+      await captureBusinessEvent('tasting_note_published', {
+        level: 'info',
+        tags: { userId, whiskyId: current.whiskyId },
+        extra: {
+          noteId: id,
+          publishedFrom: 'draft',
+          rating: payload.rating ?? null,
+          hasLocation: Boolean(payload.location),
+          tagCount,
+        },
+      })
+    }
+
+    return NextResponse.json({
+      success: true,
+      status: nextStatus,
+      publishedFromDraft: current.status !== 'published' && nextStatus === 'published',
+    })
+  } catch (error) {
+    await captureServerException(error, {
+      route: '/api/tasting-notes/[id]',
+      action: 'update_tasting_note',
+      tags: { userId },
+    })
+    return apiError('SERVER_ERROR', 'Erreur serveur interne', 500)
+  }
 }
 
 export async function DELETE(
@@ -248,51 +258,60 @@ export async function DELETE(
     return apiError('UNAUTHORIZED', 'Unauthorized', 401)
   }
 
-  const limit = rateLimit(request, {
-    key: buildRateLimitKey(request, userId, 'tasting-notes-delete'),
-    windowMs: 60 * 60 * 1000,
-    max: 30,
-  })
-  if (!limit.ok) {
-    return NextResponse.json(
-      { errorCode: 'RATE_LIMIT', error: 'Trop de requêtes. Réessayez plus tard.' },
-      { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
-    )
-  }
-
-  const { id } = await context.params
-
-  const existing = await db
-    .select({ id: tastingNotes.id, whiskyId: tastingNotes.whiskyId, status: tastingNotes.status })
-    .from(tastingNotes)
-    .where(and(eq(tastingNotes.id, id), eq(tastingNotes.userId, userId)))
-    .limit(1)
-
-  if (existing.length === 0) {
-    return apiError('NOTE_NOT_FOUND', 'Note introuvable', 404)
-  }
-
-  await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, id))
-  await db.delete(tastingNotes).where(eq(tastingNotes.id, id))
-  if (existing[0].status === 'published') {
-    await db
-      .delete(activities)
-      .where(
-        and(
-          eq(activities.userId, userId),
-          eq(activities.targetId, existing[0].whiskyId),
-          eq(activities.type, 'new_note')
-        )
-      )
-
-    await recomputeWhiskyAnalytics(existing[0].whiskyId)
-    await recomputeUserAroma(userId)
-  } else {
-    await captureBusinessEvent('tasting_note_draft_deleted', {
-      level: 'info',
-      tags: { userId, whiskyId: existing[0].whiskyId },
+  try {
+    const limit = rateLimit(request, {
+      key: buildRateLimitKey(request, userId, 'tasting-notes-delete'),
+      windowMs: 60 * 60 * 1000,
+      max: 30,
     })
-  }
+    if (!limit.ok) {
+      return NextResponse.json(
+        { errorCode: 'RATE_LIMIT', error: 'Trop de requêtes. Réessayez plus tard.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+      )
+    }
 
-  return NextResponse.json({ success: true, deletedStatus: existing[0].status })
+    const { id } = await context.params
+
+    const existing = await db
+      .select({ id: tastingNotes.id, whiskyId: tastingNotes.whiskyId, status: tastingNotes.status })
+      .from(tastingNotes)
+      .where(and(eq(tastingNotes.id, id), eq(tastingNotes.userId, userId)))
+      .limit(1)
+
+    if (existing.length === 0) {
+      return apiError('NOTE_NOT_FOUND', 'Note introuvable', 404)
+    }
+
+    await db.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, id))
+    await db.delete(tastingNotes).where(eq(tastingNotes.id, id))
+    if (existing[0].status === 'published') {
+      await db
+        .delete(activities)
+        .where(
+          and(
+            eq(activities.userId, userId),
+            eq(activities.targetId, existing[0].whiskyId),
+            eq(activities.type, 'new_note')
+          )
+        )
+
+      await recomputeWhiskyAnalytics(existing[0].whiskyId)
+      await recomputeUserAroma(userId)
+    } else {
+      await captureBusinessEvent('tasting_note_draft_deleted', {
+        level: 'info',
+        tags: { userId, whiskyId: existing[0].whiskyId },
+      })
+    }
+
+    return NextResponse.json({ success: true, deletedStatus: existing[0].status })
+  } catch (error) {
+    await captureServerException(error, {
+      route: '/api/tasting-notes/[id]',
+      action: 'delete_tasting_note',
+      tags: { userId },
+    })
+    return apiError('SERVER_ERROR', 'Erreur serveur interne', 500)
+  }
 }

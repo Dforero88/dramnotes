@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { trackEvent } from '@/lib/analytics-client'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import { Heart, Drop, DropHalfBottom, DropSlash } from '@phosphor-icons/react'
+import { captureClientException } from '@/lib/sentry-client'
 
 type ShelfStatus = 'wishlist' | 'owned_unopened' | 'owned_opened' | 'finished' | 'none'
 
@@ -54,8 +55,12 @@ export default function WhiskyShelfControl({
         const res = await fetch(`/api/shelf/status?whiskyId=${encodeURIComponent(whiskyId)}`, { cache: 'no-store' })
         const json = await res.json()
         if (res.ok) setStatus((json?.status || 'none') as ShelfStatus)
-      } catch {
-        // noop
+      } catch (error) {
+        void captureClientException(error, {
+          component: 'WhiskyShelfControl',
+          action: 'load_status',
+          tags: { whiskyId, locale },
+        })
       }
     }
     load()
@@ -74,8 +79,12 @@ export default function WhiskyShelfControl({
       if (!res.ok) throw new Error(json?.error || 'Error')
       setStatus(next)
       trackEvent('shelf_status_set', { whisky_id: whiskyId, status: next })
-    } catch {
-      // keep previous state silently
+    } catch (error) {
+      void captureClientException(error, {
+        component: 'WhiskyShelfControl',
+        action: 'update_status',
+        tags: { whiskyId, locale, nextStatus: next },
+      })
     } finally {
       setLoading(false)
     }

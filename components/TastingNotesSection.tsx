@@ -8,6 +8,7 @@ import SignupCtaLink from '@/components/SignupCtaLink'
 import { getTranslations, type Locale } from '@/lib/i18n'
 import Script from 'next/script'
 import { trackEvent, trackEventOnce } from '@/lib/analytics-client'
+import { captureClientException } from '@/lib/sentry-client'
 
 type Note = {
   id: string
@@ -137,13 +138,25 @@ export default function TastingNotesSection({
   useEffect(() => {
     if (!isAuthenticated) return
     const loadMy = async () => {
-      const res = await fetch(`/api/tasting-notes/my?whiskyId=${whiskyId}&lang=${locale}`, { cache: 'no-store' })
-      const json = await res.json()
-      if (json?.note) {
-        setMyNote(json.note)
-        setMyTags(json.tags || emptyTags)
-        setEditing((json.note.status || 'published') !== 'published')
-      } else {
+      try {
+        const res = await fetch(`/api/tasting-notes/my?whiskyId=${whiskyId}&lang=${locale}`, { cache: 'no-store' })
+        if (!res.ok) throw new Error(`My tasting note load failed (${res.status})`)
+        const json = await res.json()
+        if (json?.note) {
+          setMyNote(json.note)
+          setMyTags(json.tags || emptyTags)
+          setEditing((json.note.status || 'published') !== 'published')
+        } else {
+          setMyNote(null)
+          setMyTags(emptyTags)
+          setEditing(false)
+        }
+      } catch (error) {
+        void captureClientException(error, {
+          component: 'TastingNotesSection',
+          action: 'load_my_note',
+          tags: { whiskyId, locale },
+        })
         setMyNote(null)
         setMyTags(emptyTags)
         setEditing(false)
@@ -154,26 +167,33 @@ export default function TastingNotesSection({
 
   useEffect(() => {
     const loadOthers = async () => {
-      const params = new URLSearchParams({
-        whiskyId,
-        lang: locale,
-        page: String(page),
-        pageSize: isAuthenticated ? '6' : '2',
-        sort,
-      })
-      if (filterPseudo) params.set('user', filterPseudo)
-      const res = await fetch(`/api/tasting-notes/public?${params.toString()}`, { cache: 'no-store' })
-      if (!res.ok) {
+      try {
+        const params = new URLSearchParams({
+          whiskyId,
+          lang: locale,
+          page: String(page),
+          pageSize: isAuthenticated ? '6' : '2',
+          sort,
+        })
+        if (filterPseudo) params.set('user', filterPseudo)
+        const res = await fetch(`/api/tasting-notes/public?${params.toString()}`, { cache: 'no-store' })
+        if (!res.ok) throw new Error(`Public tasting notes load failed (${res.status})`)
+        const json = await res.json()
+        const items = json?.items || []
+        setTotalOtherNotes(Number(json?.total || 0))
+        setOthers(isAuthenticated ? items : items.slice(0, 2))
+        setTotalPages(isAuthenticated ? json?.totalPages || 1 : 1)
+      } catch (error) {
+        void captureClientException(error, {
+          component: 'TastingNotesSection',
+          action: 'load_public_notes',
+          tags: { whiskyId, locale, page, isAuthenticated },
+          extra: { filterPseudo: filterPseudo || null, sort },
+        })
         setOthers([])
         setTotalOtherNotes(0)
         setTotalPages(1)
-        return
       }
-      const json = await res.json()
-      const items = json?.items || []
-      setTotalOtherNotes(Number(json?.total || 0))
-      setOthers(isAuthenticated ? items : items.slice(0, 2))
-      setTotalPages(isAuthenticated ? json?.totalPages || 1 : 1)
     }
     loadOthers()
   }, [isAuthenticated, whiskyId, locale, page, filterPseudo, sort])
@@ -326,6 +346,9 @@ export default function TastingNotesSection({
       if (res.ok) {
         const result = await res.json().catch(() => ({}))
         const reload = await fetch(`/api/tasting-notes/my?whiskyId=${whiskyId}&lang=${locale}`, { cache: 'no-store' })
+        if (!reload.ok) {
+          throw new Error(`Reload tasting note failed (${reload.status})`)
+        }
         const json = await reload.json()
         setMyNote(json?.note || null)
         setMyTags(json?.tags || emptyTags)
@@ -355,6 +378,14 @@ export default function TastingNotesSection({
       }
       const errorJson = await res.json().catch(() => ({}))
       setFormError(getTastingErrorMessage(errorJson?.errorCode, errorJson?.error))
+    } catch (error) {
+      void captureClientException(error, {
+        component: 'TastingNotesSection',
+        action: 'save_note',
+        tags: { whiskyId, locale, targetStatus },
+        extra: { isUpdate: Boolean(myNote) },
+      })
+      setFormError(getTastingErrorMessage(undefined))
     } finally {
       setSavingAction(null)
     }
@@ -376,7 +407,16 @@ export default function TastingNotesSection({
         setMyNote(null)
         setEditing(false)
         resetForm()
+      } else {
+        throw new Error(`Delete tasting note failed (${res.status})`)
       }
+    } catch (error) {
+      void captureClientException(error, {
+        component: 'TastingNotesSection',
+        action: 'delete_note',
+        tags: { whiskyId, locale, noteId: myNote.id },
+      })
+      setFormError(getTastingErrorMessage(undefined))
     } finally {
       setDeletingNote(false)
     }

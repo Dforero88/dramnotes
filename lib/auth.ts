@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { loginSchema } from '@/lib/validation/schemas'
 import { captureBusinessEvent } from '@/lib/sentry-business'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -15,59 +16,67 @@ export const authOptions: AuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials: any) {
-        // Validation
-        const validated = loginSchema.safeParse(credentials)
-        if (!validated.success) {
-          console.log('❌ Validation échouée:', validated.error.format())
-          return null
-        }
+        try {
+          const validated = loginSchema.safeParse(credentials)
+          if (!validated.success) {
+            console.log('❌ Validation échouée:', validated.error.format())
+            return null
+          }
 
-        const { email, password } = validated.data
-        const normalizedEmail = String(email || '').trim().toLowerCase()
+          const { email, password } = validated.data
+          const normalizedEmail = String(email || '').trim().toLowerCase()
 
-        // Chercher l'utilisateur
-        const userResult = await db
-          .select()
-          .from(users)
-          .where(eq(users.email, normalizedEmail))
-          .limit(1)
+          const userResult = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, normalizedEmail))
+            .limit(1)
 
-        if (userResult.length === 0) {
-          console.log('❌ Utilisateur non trouvé:', normalizedEmail)
-          return null
-        }
+          if (userResult.length === 0) {
+            console.log('❌ Utilisateur non trouvé:', normalizedEmail)
+            return null
+          }
 
-        const user = userResult[0]
+          const user = userResult[0]
 
-        // Vérifier si le compte est confirmé
-        if (!user.confirmedAt) {
-          console.log('❌ Compte non confirmé:', normalizedEmail)
-          throw new Error('EMAIL_NOT_CONFIRMED')
-        }
+          if (!user.confirmedAt) {
+            console.log('❌ Compte non confirmé:', normalizedEmail)
+            throw new Error('EMAIL_NOT_CONFIRMED')
+          }
 
-        if (!user.password || !user.pseudo) {
-          console.log('❌ Compte incomplet:', normalizedEmail)
-          throw new Error('EMAIL_NOT_CONFIRMED')
-        }
+          if (!user.password || !user.pseudo) {
+            console.log('❌ Compte incomplet:', normalizedEmail)
+            throw new Error('EMAIL_NOT_CONFIRMED')
+          }
 
-        // Vérifier le mot de passe
-        const passwordValid = await bcrypt.compare(password, user.password)
-        if (!passwordValid) {
-          console.log('❌ Mot de passe invalide pour:', normalizedEmail)
-          return null
-        }
+          const passwordValid = await bcrypt.compare(password, user.password)
+          if (!passwordValid) {
+            console.log('❌ Mot de passe invalide pour:', normalizedEmail)
+            return null
+          }
 
-        // Retourner l'utilisateur (sans le mot de passe)
-        await captureBusinessEvent('user_login', {
-          level: 'info',
-          tags: { userId: user.id },
-          extra: { locale: user.preferredLocale === 'en' ? 'en' : 'fr', method: 'credentials' },
-        })
+          await captureBusinessEvent('user_login', {
+            level: 'info',
+            tags: { userId: user.id },
+            extra: { locale: user.preferredLocale === 'en' ? 'en' : 'fr', method: 'credentials' },
+          })
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.pseudo,
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.pseudo,
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : ''
+          if (message === 'EMAIL_NOT_CONFIRMED') {
+            throw error
+          }
+
+          await captureServerException(error, {
+            route: 'nextauth.credentials.authorize',
+            action: 'login_authorize',
+          })
+          throw error
         }
       }
     })

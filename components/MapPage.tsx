@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 import SignupCtaLink from '@/components/SignupCtaLink'
+import { captureClientException } from '@/lib/sentry-client'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -63,11 +64,21 @@ export default function MapPage() {
   useEffect(() => {
     if (!isLoggedIn) return
     const load = async () => {
-      const res = await fetch('/api/map/summary', { cache: 'no-store' })
-      if (!res.ok) return
-      const json = await res.json()
-      setFriends(json.friends || [])
-      setMyCount(json.myTastingCount || 0)
+      try {
+        const res = await fetch('/api/map/summary', { cache: 'no-store' })
+        if (!res.ok) throw new Error(`Map summary load failed (${res.status})`)
+        const json = await res.json()
+        setFriends(json.friends || [])
+        setMyCount(json.myTastingCount || 0)
+      } catch (error) {
+        void captureClientException(error, {
+          component: 'MapPage',
+          action: 'load_summary',
+          tags: { locale },
+        })
+        setFriends([])
+        setMyCount(0)
+      }
     }
     load()
   }, [isLoggedIn])
@@ -86,16 +97,25 @@ export default function MapPage() {
         return
       }
 
-      const res = await fetch('/api/map/markers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ users }),
-      })
-      if (res.ok) {
+      try {
+        const res = await fetch('/api/map/markers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ users }),
+        })
+        if (!res.ok) throw new Error(`Map markers load failed (${res.status})`)
         const json = await res.json()
         setMarkers(json.items || [])
+      } catch (error) {
+        void captureClientException(error, {
+          component: 'MapPage',
+          action: 'load_markers',
+          tags: { locale, selectedUsers: users.length },
+        })
+        setMarkers([])
+      } finally {
+        setLoadingMarkers(false)
       }
-      setLoadingMarkers(false)
     }
     loadMarkers()
   }, [showMine, selectedFriends, isLoggedIn])

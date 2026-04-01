@@ -5,55 +5,57 @@ import { db, tastingNotes, tastingNoteTags, tagLang, users, isMysql } from '@/li
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { normalizeSearch } from '@/lib/moderation'
 import { getRouteCache, setRouteCache } from '@/lib/server-route-cache'
+import { captureServerException } from '@/lib/sentry-server'
 
 const CACHE_TTL_SECONDS = 30
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  const userId = session?.user?.id || null
+  try {
+    const session = await getServerSession(authOptions)
+    const userId = session?.user?.id || null
 
-  const { searchParams } = new URL(request.url)
-  const cacheKey = `tasting-notes:public:${userId || 'anon'}:${searchParams.toString()}`
-  const cached = getRouteCache<{
-    items: unknown[]
-    total: number
-    totalPages: number
-    page: number
-    pageSize: number
-    filteredUser: string | null
-  }>(cacheKey)
-  if (cached) {
-    return NextResponse.json(cached, {
-      headers: { 'Cache-Control': `public, max-age=0, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=15` },
-    })
-  }
+    const { searchParams } = new URL(request.url)
+    const cacheKey = `tasting-notes:public:${userId || 'anon'}:${searchParams.toString()}`
+    const cached = getRouteCache<{
+      items: unknown[]
+      total: number
+      totalPages: number
+      page: number
+      pageSize: number
+      filteredUser: string | null
+    }>(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { 'Cache-Control': `public, max-age=0, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=15` },
+      })
+    }
 
-  const whiskyId = searchParams.get('whiskyId')
-  const lang = (searchParams.get('lang') || 'fr').trim()
-  const pseudo = normalizeSearch(searchParams.get('user') || '', 40)
-  const sort = (searchParams.get('sort') || 'recent').trim()
-  const page = Math.max(1, Number(searchParams.get('page') || '1'))
-  const pageSize = Math.max(1, Math.min(20, Number(searchParams.get('pageSize') || '6')))
-  const offset = (page - 1) * pageSize
+    const whiskyId = searchParams.get('whiskyId')
+    const lang = (searchParams.get('lang') || 'fr').trim()
+    const pseudo = normalizeSearch(searchParams.get('user') || '', 40)
+    const sort = (searchParams.get('sort') || 'recent').trim()
+    const page = Math.max(1, Number(searchParams.get('page') || '1'))
+    const pageSize = Math.max(1, Math.min(20, Number(searchParams.get('pageSize') || '6')))
+    const offset = (page - 1) * pageSize
 
-  if (!whiskyId) {
-    return NextResponse.json({ error: 'whiskyId missing' }, { status: 400 })
-  }
+    if (!whiskyId) {
+      return NextResponse.json({ error: 'whiskyId missing' }, { status: 400 })
+    }
 
-  const filters: any[] = [
+    const filters: any[] = [
     eq(tastingNotes.whiskyId, whiskyId),
     eq(tastingNotes.status, 'published'),
     isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'),
   ]
-  if (userId) {
-    filters.push(sql`${users.id} <> ${userId}`)
-  }
+    if (userId) {
+      filters.push(sql`${users.id} <> ${userId}`)
+    }
 
-  if (pseudo) {
-    filters.push(sql`lower(${users.pseudo}) = ${pseudo.toLowerCase()}`)
-  }
+    if (pseudo) {
+      filters.push(sql`lower(${users.pseudo}) = ${pseudo.toLowerCase()}`)
+    }
 
-  const countRes = await db
+    const countRes = await db
     .select({ count: sql<number>`count(*)` })
     .from(tastingNotes)
     .leftJoin(
@@ -62,15 +64,15 @@ export async function GET(request: NextRequest) {
     )
     .where(and(...filters))
 
-  const total = Number(countRes?.[0]?.count || 0)
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+    const total = Number(countRes?.[0]?.count || 0)
+    const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
-  let orderBy = sql`${tastingNotes.tastingDate} desc`
-  if (sort === 'oldest') orderBy = sql`${tastingNotes.tastingDate} asc`
-  if (sort === 'ratingDesc') orderBy = sql`${tastingNotes.rating} desc, ${tastingNotes.tastingDate} desc`
-  if (sort === 'ratingAsc') orderBy = sql`${tastingNotes.rating} asc, ${tastingNotes.tastingDate} desc`
+    let orderBy = sql`${tastingNotes.tastingDate} desc`
+    if (sort === 'oldest') orderBy = sql`${tastingNotes.tastingDate} asc`
+    if (sort === 'ratingDesc') orderBy = sql`${tastingNotes.rating} desc, ${tastingNotes.tastingDate} desc`
+    if (sort === 'ratingAsc') orderBy = sql`${tastingNotes.rating} asc, ${tastingNotes.tastingDate} desc`
 
-  const notes = await db
+    const notes = await db
     .select({
       id: tastingNotes.id,
       tastingDate: tastingNotes.tastingDate,
@@ -93,7 +95,7 @@ export async function GET(request: NextRequest) {
     .limit(pageSize)
     .offset(offset)
 
-  type NoteRow = {
+    type NoteRow = {
     id: string
     tastingDate: string
     location: string | null
@@ -105,12 +107,12 @@ export async function GET(request: NextRequest) {
     userId: string
     pseudo: string | null
   }
-  const noteIds = (notes as NoteRow[]).map((n: NoteRow) => n.id)
-  type TagType = 'nose' | 'palate' | 'finish'
-  type TagRow = { noteId: string; type: TagType; tagId: string; name: string | null }
-  let tags: TagRow[] = []
-  if (noteIds.length > 0) {
-    tags = await db
+    const noteIds = (notes as NoteRow[]).map((n: NoteRow) => n.id)
+    type TagType = 'nose' | 'palate' | 'finish'
+    type TagRow = { noteId: string; type: TagType; tagId: string; name: string | null }
+    let tags: TagRow[] = []
+    if (noteIds.length > 0) {
+      tags = await db
       .select({
         noteId: tastingNoteTags.noteId,
         type: tastingNoteTags.type,
@@ -120,16 +122,16 @@ export async function GET(request: NextRequest) {
       .from(tastingNoteTags)
       .leftJoin(tagLang, and(eq(tagLang.tagId, tastingNoteTags.tagId), eq(tagLang.lang, lang)))
       .where(inArray(tastingNoteTags.noteId, noteIds))
-  }
+    }
 
-  type TagOut = { id: string; name: string | null }
-  const tagsByNote: Record<string, { nose: TagOut[]; palate: TagOut[]; finish: TagOut[] }> = {}
-  tags.forEach((t: TagRow) => {
-    if (!tagsByNote[t.noteId]) tagsByNote[t.noteId] = { nose: [], palate: [], finish: [] }
-    tagsByNote[t.noteId][t.type].push({ id: t.tagId, name: t.name })
-  })
+    type TagOut = { id: string; name: string | null }
+    const tagsByNote: Record<string, { nose: TagOut[]; palate: TagOut[]; finish: TagOut[] }> = {}
+    tags.forEach((t: TagRow) => {
+      if (!tagsByNote[t.noteId]) tagsByNote[t.noteId] = { nose: [], palate: [], finish: [] }
+      tagsByNote[t.noteId][t.type].push({ id: t.tagId, name: t.name })
+    })
 
-  const items = (notes as NoteRow[]).map((note: NoteRow) => ({
+    const items = (notes as NoteRow[]).map((note: NoteRow) => ({
     ...note,
     location:
       note.locationVisibility === 'public_precise'
@@ -138,16 +140,23 @@ export async function GET(request: NextRequest) {
     tags: tagsByNote[note.id] || { nose: [], palate: [], finish: [] },
   }))
 
-  const payload = {
-    items,
-    total,
-    totalPages,
-    page,
-    pageSize,
-    filteredUser: pseudo || null,
+    const payload = {
+      items,
+      total,
+      totalPages,
+      page,
+      pageSize,
+      filteredUser: pseudo || null,
+    }
+    setRouteCache(cacheKey, payload, CACHE_TTL_SECONDS)
+    return NextResponse.json(payload, {
+      headers: { 'Cache-Control': `public, max-age=0, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=15` },
+    })
+  } catch (error) {
+    await captureServerException(error, {
+      route: '/api/tasting-notes/public',
+      action: 'get_public_notes',
+    })
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
-  setRouteCache(cacheKey, payload, CACHE_TTL_SECONDS)
-  return NextResponse.json(payload, {
-    headers: { 'Cache-Control': `public, max-age=0, s-maxage=${CACHE_TTL_SECONDS}, stale-while-revalidate=15` },
-  })
 }

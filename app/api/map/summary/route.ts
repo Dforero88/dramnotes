@@ -3,16 +3,18 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db, follows, tastingNotes, users, isMysql } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
+import { captureServerException } from '@/lib/sentry-server'
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-  const userId = session.user.id
+    const userId = session.user.id
 
-  const friends = await db
+    const friends = await db
     .select({
       id: users.id,
       pseudo: users.pseudo,
@@ -36,7 +38,7 @@ export async function GET() {
     .groupBy(users.id)
     .orderBy(sql`lower(${users.pseudo}) asc`)
 
-  const myCountRes = await db
+    const myCountRes = await db
     .select({ count: sql<number>`count(*)` })
     .from(tastingNotes)
     .where(and(
@@ -45,12 +47,19 @@ export async function GET() {
       sql`${tastingNotes.latitude} is not null`
     ))
 
-  return NextResponse.json({
-    friends: (friends as { id: string; pseudo: string; tastingCount: number | null }[]).map((f) => ({
-      id: f.id,
-      pseudo: f.pseudo,
-      tastingCount: Number(f.tastingCount || 0),
-    })),
-    myTastingCount: Number(myCountRes?.[0]?.count || 0),
-  })
+    return NextResponse.json({
+      friends: (friends as { id: string; pseudo: string; tastingCount: number | null }[]).map((f) => ({
+        id: f.id,
+        pseudo: f.pseudo,
+        tastingCount: Number(f.tastingCount || 0),
+      })),
+      myTastingCount: Number(myCountRes?.[0]?.count || 0),
+    })
+  } catch (error) {
+    await captureServerException(error, {
+      route: '/api/map/summary',
+      action: 'get_summary',
+    })
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
 }
