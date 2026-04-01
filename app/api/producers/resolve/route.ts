@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveBottlerName, resolveDistillerName } from '@/lib/producer-resolver'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +24,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, resolution })
   } catch (error) {
+    await captureServerException(error, {
+      route: '/api/producers/resolve',
+      action: 'resolve_producer',
+    })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

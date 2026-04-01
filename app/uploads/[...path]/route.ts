@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
+import { captureServerException } from '@/lib/sentry-server'
 import fs from 'fs/promises'
 
 export const dynamic = 'force-dynamic'
@@ -43,6 +44,10 @@ export async function GET(
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
     console.error('❌ Erreur serve upload:', error)
+    await captureServerException(error, {
+      route: '/uploads/[...path]',
+      action: 'serve_upload',
+    })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

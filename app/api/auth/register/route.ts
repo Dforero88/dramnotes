@@ -10,6 +10,7 @@ import { generateId } from '@/lib/db'
 import { sanitizeText } from '@/lib/moderation'
 import { captureBusinessEvent } from '@/lib/sentry-business'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
+import { captureServerException, captureServerMessage } from '@/lib/sentry-server'
 
 export const runtime = 'nodejs'
 
@@ -167,6 +168,12 @@ export async function POST(request: NextRequest) {
     
     if (!emailSent) {
       console.error('⚠️ Email non envoyé pour', email)
+      await captureServerMessage('register_confirmation_email_not_sent', {
+        route: '/api/auth/register',
+        action: 'send_confirmation_email',
+        level: 'warning',
+        tags: { userId, locale, source },
+      })
     }
     
     // 7. Réponse succès
@@ -174,6 +181,10 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ Erreur inscription:', error)
+    await captureServerException(error, {
+      route: '/api/auth/register',
+      action: 'register',
+    })
     return NextResponse.json(
       { error: 'Erreur serveur interne' },
       { status: 500 }

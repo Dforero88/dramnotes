@@ -13,6 +13,7 @@ import { slugifyProducerName } from '@/lib/producer-url'
 import { slugifyWhiskyName } from '@/lib/whisky-url'
 import { normalizeWhiskyName } from '@/lib/whisky-name'
 import { rebuildWhiskyRelatedForImpactCluster } from '@/lib/whisky-related'
+import { captureServerException, captureServerMessage } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -415,11 +416,21 @@ export async function POST(request: NextRequest) {
       await rebuildWhiskyRelatedForImpactCluster(id)
     } catch (error) {
       console.error('⚠️ whisky-related recompute after create failed:', error)
+      await captureServerException(error, {
+        route: '/api/whisky/create',
+        action: 'rebuild_whisky_related_after_create',
+        level: 'warning',
+        tags: { whiskyId: id },
+      })
     }
 
     return NextResponse.json({ success: true, id, slug, bottleImageUrl })
   } catch (error) {
     console.error('❌ Erreur create whisky:', error)
+    await captureServerException(error, {
+      route: '/api/whisky/create',
+      action: 'create_whisky',
+    })
     return apiError('SERVER_ERROR', 'Erreur serveur interne', 500)
   }
 }

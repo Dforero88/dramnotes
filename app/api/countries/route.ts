@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, countries } from '@/lib/db'
 import { getRouteCache, setRouteCache } from '@/lib/server-route-cache'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 const CACHE_TTL_SECONDS = 3600
@@ -35,6 +36,10 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('❌ Erreur countries:', error)
+    await captureServerException(error, {
+      route: '/api/countries',
+      action: 'list_countries'
+    })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

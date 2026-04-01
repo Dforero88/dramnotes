@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth'
 import { isAdminEmail } from '@/lib/admin'
 import { db, bottlers, distillers, entityChangeLogItems, entityChangeLogs, isMysql, slugRedirects, whiskies } from '@/lib/db'
 import { rebuildWhiskyRelatedForMany } from '@/lib/whisky-related'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -175,6 +176,11 @@ export async function POST(request: NextRequest) {
         await rebuildWhiskyRelatedForMany(movedWhiskies.map((w: { id: string }) => w.id))
       } catch (error) {
         console.error('⚠️ whisky-related recompute after distiller merge failed:', error)
+        await captureServerException(error, {
+          route: '/api/admin/producers/merge',
+          action: 'rebuild_after_distiller_merge',
+          level: 'warning',
+        })
       }
 
       return NextResponse.json({ success: true, movedCount: movedWhiskies.length })
@@ -311,11 +317,20 @@ export async function POST(request: NextRequest) {
       await rebuildWhiskyRelatedForMany(movedWhiskies.map((w: { id: string }) => w.id))
     } catch (error) {
       console.error('⚠️ whisky-related recompute after bottler merge failed:', error)
+      await captureServerException(error, {
+        route: '/api/admin/producers/merge',
+        action: 'rebuild_after_bottler_merge',
+        level: 'warning',
+      })
     }
 
     return NextResponse.json({ success: true, movedCount: movedWhiskies.length })
   } catch (error) {
     console.error('❌ admin producers merge error:', error)
+    await captureServerException(error, {
+      route: '/api/admin/producers/merge',
+      action: 'merge_producers',
+    })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

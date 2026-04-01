@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { sanitizeText } from '@/lib/moderation'
 import { sendEmail } from '@/lib/email/sender'
+import { captureServerException, captureServerMessage } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,11 +60,20 @@ export async function POST(request: NextRequest) {
       html,
     })
     if (!ok) {
+      await captureServerMessage('contact_email_not_sent', {
+        route: '/api/contact',
+        action: 'send_contact_email',
+        level: 'error',
+      })
       return NextResponse.json({ error: locale === 'en' ? 'Unable to send message' : 'Impossible d’envoyer le message' }, { status: 500 })
     }
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('❌ contact form error:', error)
+    await captureServerException(error, {
+      route: '/api/contact',
+      action: 'submit_contact_form',
+    })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

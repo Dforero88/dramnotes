@@ -3,6 +3,7 @@ import { db, bottlers, countries, whiskies } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { normalizeSearch } from '@/lib/moderation'
 import { getRouteCache, setRouteCache } from '@/lib/server-route-cache'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 const CACHE_TTL_SECONDS = 600
@@ -106,6 +107,10 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('❌ Erreur list bottlers:', error)
+    await captureServerException(error, {
+      route: '/api/bottlers/list',
+      action: 'list_bottlers',
+    })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

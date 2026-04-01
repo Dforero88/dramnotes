@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { isAdminEmail } from '@/lib/admin'
 import { isAdminJobKey, listAdminJobs, previewAdminJob, runAdminJob } from '@/lib/admin-jobs'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,11 @@ export async function GET() {
     return NextResponse.json({ jobs })
   } catch (error) {
     console.error('❌ admin jobs list error:', error)
+    await captureServerException(error, {
+      route: '/api/admin/jobs',
+      action: 'list_jobs',
+      tags: { actorUserId: session.user.id },
+    })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
@@ -54,6 +60,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error) {
     console.error('❌ admin jobs action error:', error)
+    await captureServerException(error, {
+      route: '/api/admin/jobs',
+      action: 'job_action',
+      tags: { actorUserId: session.user.id },
+    })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

@@ -16,6 +16,7 @@ import {
   isMysql,
 } from '@/lib/db'
 import { normalizeSearch } from '@/lib/moderation'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -286,6 +287,10 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
+    await captureServerException(error, {
+      route: '/api/notebook/preview',
+      action: 'load_notebook_preview',
+    })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

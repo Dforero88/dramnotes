@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 import { authOptions } from '@/lib/auth'
 import { db, bottlers, distillers, generateId, whiskies } from '@/lib/db'
 import { isAdminEmail } from '@/lib/admin'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,6 +66,10 @@ export async function POST(
     return NextResponse.json({ success: true, imageUrl })
   } catch (error) {
     console.error('❌ admin producers image upload error:', error)
+    await captureServerException(error, {
+      route: '/api/admin/producers/[id]/image',
+      action: 'upload_producer_image',
+    })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

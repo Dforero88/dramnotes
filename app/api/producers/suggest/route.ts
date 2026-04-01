@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db, distillers, bottlers } from '@/lib/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { normalizeSearch } from '@/lib/moderation'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +44,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ items })
   } catch (error) {
+    await captureServerException(error, {
+      route: '/api/producers/suggest',
+      action: 'suggest_producers',
+      level: 'warning',
+    })
     return NextResponse.json({ items: [] })
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGoogleVision, parseWithOpenAI } from '@/lib/whisky/ocr'
 import { resolveBottlerName, resolveDistillerName } from '@/lib/producer-resolver'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +48,10 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('❌ Erreur OCR:', error)
+    await captureServerException(error, {
+      route: '/api/whisky/ocr',
+      action: 'ocr_whisky_label'
+    })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

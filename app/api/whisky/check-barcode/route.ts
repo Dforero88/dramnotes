@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, whiskies } from '@/lib/db'
 import { eq } from 'drizzle-orm'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +22,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ exists: result.length > 0 })
   } catch (error) {
     console.error('❌ Erreur check-barcode:', error)
+    await captureServerException(error, {
+      route: '/api/whisky/check-barcode',
+      action: 'check_barcode'
+    })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

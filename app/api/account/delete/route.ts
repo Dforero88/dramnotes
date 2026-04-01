@@ -19,6 +19,7 @@ import {
 } from '@/lib/db'
 import { recomputeWhiskyAnalytics } from '@/lib/whisky-analytics'
 import { captureBusinessEvent } from '@/lib/sentry-business'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const runtime = 'nodejs'
 
@@ -29,96 +30,105 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await request.json().catch(() => ({}))
-  const password = String(body?.password || '')
-  if (!password) {
-    return NextResponse.json({ error: 'Password is required' }, { status: 400 })
-  }
-
-  const userRows = await db
-    .select({ id: users.id, password: users.password })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1)
-
-  const user = userRows?.[0]
-  if (!user) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 })
-  }
-
-  const passwordOk = await bcrypt.compare(password, user.password)
-  if (!passwordOk) {
-    return NextResponse.json({ error: 'Invalid password' }, { status: 400 })
-  }
-
-  const userNoteRows = await db
-    .select({ id: tastingNotes.id, whiskyId: tastingNotes.whiskyId })
-    .from(tastingNotes)
-    .where(eq(tastingNotes.userId, userId))
-
-  const impactedWhiskyIds = Array.from(new Set((userNoteRows as { id: string; whiskyId: string }[]).map((row) => row.whiskyId)))
-  const noteIds = (userNoteRows as { id: string; whiskyId: string }[]).map((row) => row.id)
-
-  const runDeleteTransactionAsync = async (qx: any) => {
-    await qx.update(whiskies).set({ addedById: null }).where(eq(whiskies.addedById, userId))
-
-    if (noteIds.length > 0) {
-      for (const noteId of noteIds) {
-        await qx.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, noteId))
-      }
+  try {
+    const body = await request.json().catch(() => ({}))
+    const password = String(body?.password || '')
+    if (!password) {
+      return NextResponse.json({ error: 'Password is required' }, { status: 400 })
     }
 
-    await qx.delete(tastingNotes).where(eq(tastingNotes.userId, userId))
-    await qx.delete(userShelf).where(eq(userShelf.userId, userId))
-    await qx.delete(follows).where(eq(follows.followerId, userId))
-    await qx.delete(follows).where(eq(follows.followedId, userId))
-    await qx.delete(activities).where(eq(activities.userId, userId))
-    await qx.delete(activities).where(and(eq(activities.type, 'new_follow'), eq(activities.targetId, userId)))
-    await qx.delete(userTagStats).where(eq(userTagStats.userId, userId))
-    await qx.delete(userAromaProfile).where(eq(userAromaProfile.userId, userId))
-    await qx.delete(userEngagementEmails).where(eq(userEngagementEmails.userId, userId))
-    await qx.delete(users).where(eq(users.id, userId))
-  }
+    const userRows = await db
+      .select({ id: users.id, password: users.password })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
 
-  if (isMysql) {
-    await db.transaction(async (tx: any) => {
-      await runDeleteTransactionAsync(tx)
-    })
-  } else {
-    db.transaction((tx: any) => {
-      tx.update(whiskies).set({ addedById: null }).where(eq(whiskies.addedById, userId)).run()
+    const user = userRows?.[0]
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const passwordOk = await bcrypt.compare(password, user.password)
+    if (!passwordOk) {
+      return NextResponse.json({ error: 'Invalid password' }, { status: 400 })
+    }
+
+    const userNoteRows = await db
+      .select({ id: tastingNotes.id, whiskyId: tastingNotes.whiskyId })
+      .from(tastingNotes)
+      .where(eq(tastingNotes.userId, userId))
+
+    const impactedWhiskyIds = Array.from(new Set((userNoteRows as { id: string; whiskyId: string }[]).map((row) => row.whiskyId)))
+    const noteIds = (userNoteRows as { id: string; whiskyId: string }[]).map((row) => row.id)
+
+    const runDeleteTransactionAsync = async (qx: any) => {
+      await qx.update(whiskies).set({ addedById: null }).where(eq(whiskies.addedById, userId))
 
       if (noteIds.length > 0) {
         for (const noteId of noteIds) {
-          tx.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, noteId)).run()
+          await qx.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, noteId))
         }
       }
 
-      tx.delete(tastingNotes).where(eq(tastingNotes.userId, userId)).run()
-      tx.delete(userShelf).where(eq(userShelf.userId, userId)).run()
-      tx.delete(follows).where(eq(follows.followerId, userId)).run()
-      tx.delete(follows).where(eq(follows.followedId, userId)).run()
-      tx.delete(activities).where(eq(activities.userId, userId)).run()
-      tx.delete(activities).where(and(eq(activities.type, 'new_follow'), eq(activities.targetId, userId))).run()
-      tx.delete(userTagStats).where(eq(userTagStats.userId, userId)).run()
-      tx.delete(userAromaProfile).where(eq(userAromaProfile.userId, userId)).run()
-      tx.delete(userEngagementEmails).where(eq(userEngagementEmails.userId, userId)).run()
-      tx.delete(users).where(eq(users.id, userId)).run()
+      await qx.delete(tastingNotes).where(eq(tastingNotes.userId, userId))
+      await qx.delete(userShelf).where(eq(userShelf.userId, userId))
+      await qx.delete(follows).where(eq(follows.followerId, userId))
+      await qx.delete(follows).where(eq(follows.followedId, userId))
+      await qx.delete(activities).where(eq(activities.userId, userId))
+      await qx.delete(activities).where(and(eq(activities.type, 'new_follow'), eq(activities.targetId, userId)))
+      await qx.delete(userTagStats).where(eq(userTagStats.userId, userId))
+      await qx.delete(userAromaProfile).where(eq(userAromaProfile.userId, userId))
+      await qx.delete(userEngagementEmails).where(eq(userEngagementEmails.userId, userId))
+      await qx.delete(users).where(eq(users.id, userId))
+    }
+
+    if (isMysql) {
+      await db.transaction(async (tx: any) => {
+        await runDeleteTransactionAsync(tx)
+      })
+    } else {
+      db.transaction((tx: any) => {
+        tx.update(whiskies).set({ addedById: null }).where(eq(whiskies.addedById, userId)).run()
+
+        if (noteIds.length > 0) {
+          for (const noteId of noteIds) {
+            tx.delete(tastingNoteTags).where(eq(tastingNoteTags.noteId, noteId)).run()
+          }
+        }
+
+        tx.delete(tastingNotes).where(eq(tastingNotes.userId, userId)).run()
+        tx.delete(userShelf).where(eq(userShelf.userId, userId)).run()
+        tx.delete(follows).where(eq(follows.followerId, userId)).run()
+        tx.delete(follows).where(eq(follows.followedId, userId)).run()
+        tx.delete(activities).where(eq(activities.userId, userId)).run()
+        tx.delete(activities).where(and(eq(activities.type, 'new_follow'), eq(activities.targetId, userId))).run()
+        tx.delete(userTagStats).where(eq(userTagStats.userId, userId)).run()
+        tx.delete(userAromaProfile).where(eq(userAromaProfile.userId, userId)).run()
+        tx.delete(userEngagementEmails).where(eq(userEngagementEmails.userId, userId)).run()
+        tx.delete(users).where(eq(users.id, userId)).run()
+      })
+    }
+
+    await captureBusinessEvent('account_deleted', {
+      level: 'warning',
+      tags: { userId },
+      extra: {
+        notesDeleted: noteIds.length,
+        impactedWhiskies: impactedWhiskyIds.length,
+      },
     })
+
+    for (const whiskyId of impactedWhiskyIds as string[]) {
+      await recomputeWhiskyAnalytics(whiskyId)
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    await captureServerException(error, {
+      route: '/api/account/delete',
+      action: 'delete_account',
+      tags: { userId },
+    })
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
-
-  await captureBusinessEvent('account_deleted', {
-    level: 'warning',
-    tags: { userId },
-    extra: {
-      notesDeleted: noteIds.length,
-      impactedWhiskies: impactedWhiskyIds.length,
-    },
-  })
-
-  for (const whiskyId of impactedWhiskyIds as string[]) {
-    await recomputeWhiskyAnalytics(whiskyId)
-  }
-
-  return NextResponse.json({ success: true })
 }

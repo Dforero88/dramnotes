@@ -6,6 +6,7 @@ import { db, bottlers, countries, distillers, whiskies } from '@/lib/db'
 import { isAdminEmail } from '@/lib/admin'
 import { normalizeSearch } from '@/lib/moderation'
 import { isWhiskyNameAgeNormalized } from '@/lib/whisky-name'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -245,6 +246,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ items, total, totalPages, page, pageSize })
   } catch (error) {
     console.error('❌ admin producers list error:', error)
+    await captureServerException(error, {
+      route: '/api/admin/producers/list',
+      action: 'list_admin_producers',
+    })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

@@ -7,6 +7,7 @@ import { verifyConfirmationToken } from '@/lib/auth/tokens'
 import { validatePseudo } from '@/lib/moderation'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { captureBusinessEvent } from '@/lib/sentry-business'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const runtime = 'nodejs'
 
@@ -99,6 +100,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('❌ Erreur complete-account:', error)
+    await captureServerException(error, {
+      route: '/api/auth/complete-account',
+      action: 'complete_account',
+    })
     return NextResponse.json({ error: 'Erreur serveur interne' }, { status: 500 })
   }
 }

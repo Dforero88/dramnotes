@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken'
 import { getJwtSecret } from '@/lib/auth/tokens'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { captureBusinessEvent } from '@/lib/sentry-business'
+import { captureServerException } from '@/lib/sentry-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,6 +111,10 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ Erreur reset-password:', error)
+    await captureServerException(error, {
+      route: '/api/auth/reset-password',
+      action: 'reset_password',
+    })
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }

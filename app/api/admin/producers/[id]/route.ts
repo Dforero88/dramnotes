@@ -12,6 +12,7 @@ import { normalizeWhiskyName } from '@/lib/whisky-name'
 import { slugifyWhiskyName } from '@/lib/whisky-url'
 import { isSlugReserved, rememberOldSlug } from '@/lib/slug-redirects'
 import { rebuildWhiskyRelatedForImpactCluster } from '@/lib/whisky-related'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -196,6 +197,12 @@ export async function PATCH(
         await rebuildWhiskyRelatedForImpactCluster(id)
       } catch (error) {
         console.error('⚠️ whisky-related recompute after whisky patch failed:', error)
+        await captureServerException(error, {
+          route: '/api/admin/producers/[id]',
+          action: 'rebuild_whisky_related_after_patch',
+          level: 'warning',
+          tags: { whiskyId: id },
+        })
       }
 
       return NextResponse.json({ success: true, slug: nextSlug })
@@ -314,6 +321,10 @@ export async function PATCH(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('❌ admin producers patch error:', error)
+    await captureServerException(error, {
+      route: '/api/admin/producers/[id]',
+      action: 'patch_producer_or_whisky',
+    })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
@@ -446,6 +457,10 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error) {
     console.error('❌ admin producers action error:', error)
+    await captureServerException(error, {
+      route: '/api/admin/producers/[id]',
+      action: 'producer_action',
+    })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

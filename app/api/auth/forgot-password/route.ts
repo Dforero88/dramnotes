@@ -7,6 +7,7 @@ import { getResetPasswordEmailTemplate, sendEmail } from '@/lib/email/sender'
 import { getJwtSecret } from '@/lib/auth/tokens'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
 import { captureBusinessEvent } from '@/lib/sentry-business'
+import { captureServerException, captureServerMessage } from '@/lib/sentry-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,11 +78,20 @@ export async function POST(request: NextRequest) {
     // Envoyer email
     const resetUrl = `${process.env.APP_URL}/${locale}/reset-password?token=${resetToken}`
 
-    await sendEmail({
+    const emailSent = await sendEmail({
       to: normalizedEmail,
       subject: locale === 'en' ? 'Reset your DramNotes password' : 'Réinitialiser votre mot de passe DramNotes',
       html: getResetPasswordEmailTemplate(user.pseudo || 'there', resetUrl, locale),
     })
+
+    if (!emailSent) {
+      await captureServerMessage('forgot_password_email_not_sent', {
+        route: '/api/auth/forgot-password',
+        action: 'send_reset_email',
+        level: 'warning',
+        tags: { userId: user.id, locale },
+      })
+    }
 
     await captureBusinessEvent('password_reset_requested', {
       level: 'info',
@@ -96,6 +106,10 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ Erreur forgot-password:', error)
+    await captureServerException(error, {
+      route: '/api/auth/forgot-password',
+      action: 'forgot_password',
+    })
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }

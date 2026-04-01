@@ -4,6 +4,7 @@ import { db, users } from '@/lib/db'
 import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { getJwtSecret } from '@/lib/auth/tokens'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -78,6 +79,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false }, { status: 200 })
     }
     console.error('❌ Erreur validate-reset-token:', error)
+    await captureServerException(error, {
+      route: '/api/auth/validate-reset-token',
+      action: 'validate_reset_token',
+    })
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }

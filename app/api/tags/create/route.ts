@@ -4,6 +4,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import { generateId } from '@/lib/db'
 import { validateTagName } from '@/lib/moderation'
 import { buildRateLimitKey, rateLimit } from '@/lib/rate-limit'
+import { captureServerException } from '@/lib/sentry-server'
 
 async function translateWithDeepL(text: string, sourceLang: string, targetLang: string) {
   const apiKey = process.env.DEEPL_API_KEY
@@ -85,6 +86,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ tag: { id, name } })
   } catch (error) {
     console.error('❌ Erreur create tag:', error)
+    await captureServerException(error, {
+      route: '/api/tags/create',
+      action: 'create_tag',
+    })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

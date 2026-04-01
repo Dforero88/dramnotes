@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import { db, users } from '@/lib/db'
 import { validatePseudo } from '@/lib/moderation'
 import { verifyConfirmationToken } from '@/lib/auth/tokens'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const runtime = 'nodejs'
 
@@ -42,6 +43,10 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('❌ check-pseudo error:', error)
+    await captureServerException(error, {
+      route: '/api/auth/check-pseudo',
+      action: 'check_pseudo',
+    })
     return NextResponse.json({ ok: false, available: false, reason: 'SERVER' }, { status: 500 })
   }
 }

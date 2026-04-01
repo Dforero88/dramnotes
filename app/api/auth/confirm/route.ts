@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db, users } from '@/lib/db'
 import { eq } from 'drizzle-orm'
 import { verifyConfirmationToken } from '@/lib/auth/tokens'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,6 +62,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false }, { status: 200 })
     }
     console.error('❌ Erreur confirmation:', error)
+    await captureServerException(error, {
+      route: '/api/auth/confirm',
+      action: 'confirm_account',
+    })
     return NextResponse.json(
       { error: 'Erreur serveur interne' },
       { status: 500 }
