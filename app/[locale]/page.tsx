@@ -436,6 +436,7 @@ export default async function HomePage({
   const whiskiesRecentCount = Number(stats?.[0]?.totalWhiskies || 0)
   const notesRecentCount = Number(noteStats?.[0]?.totalNotes || 0)
   const membersRecentCount = Number(publicUsers?.[0]?.totalPublicUsers || 0)
+  const shouldShowRecentStats = membersRecentCount >= 5
 
   const onboardingAddedWhisky = isLoggedIn && currentUserId
     ? await db
@@ -684,29 +685,31 @@ export default async function HomePage({
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-900">{t('home.recentStatsTitle')}</h2>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <div className="text-2xl font-semibold text-gray-900">{whiskiesRecentCount}</div>
-              <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
-                {whiskiesRecentCount <= 1 ? t('home.statsWhiskiesSingular') : t('home.statsWhiskiesPlural')}
+        {shouldShowRecentStats ? (
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-gray-900">{t('home.recentStatsTitle')}</h2>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <div className="text-2xl font-semibold text-gray-900">{whiskiesRecentCount}</div>
+                <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
+                  {whiskiesRecentCount <= 1 ? t('home.statsWhiskiesSingular') : t('home.statsWhiskiesPlural')}
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-2xl font-semibold text-gray-900">{notesRecentCount}</div>
-              <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
-                {notesRecentCount <= 1 ? t('home.statsNotesSingular') : t('home.statsNotesPlural')}
+              <div>
+                <div className="text-2xl font-semibold text-gray-900">{notesRecentCount}</div>
+                <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
+                  {notesRecentCount <= 1 ? t('home.statsNotesSingular') : t('home.statsNotesPlural')}
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-2xl font-semibold text-gray-900">{membersRecentCount}</div>
-              <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
-                {membersRecentCount <= 1 ? t('home.statsContributorsSingular') : t('home.statsContributorsPlural')}
+              <div>
+                <div className="text-2xl font-semibold text-gray-900">{membersRecentCount}</div>
+                <div className="mt-2 inline-flex items-center text-[0.95rem] font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-dark-light)' }}>
+                  {membersRecentCount <= 1 ? t('home.statsContributorsSingular') : t('home.statsContributorsPlural')}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">

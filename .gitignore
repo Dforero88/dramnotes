@@ -53,3 +53,8 @@ next-env.d.ts
 !/public/uploads/producers/.gitkeep
 
 dev.db
+
+# local project guidelines / agent docs
+AGENTS.md
+PROJECT_START.md
+PROJECT_BASELINE.md
