@@ -21,7 +21,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json()
+    let body: any
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+
     const locale = body?.locale === 'en' ? 'en' : 'fr'
     const website = String(body?.website || '').trim()
     if (website) {
