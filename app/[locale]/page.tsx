@@ -10,6 +10,7 @@ import HomeActivitiesFeed from '@/components/HomeActivitiesFeed'
 import SignupCtaLink from '@/components/SignupCtaLink'
 import { buildWhiskyPath } from '@/lib/whisky-url'
 import HomeOnboardingChecklist from '@/components/HomeOnboardingChecklist'
+import { captureServerException } from '@/lib/sentry-server'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -162,86 +163,96 @@ export default async function HomePage({
   const isLoggedIn = Boolean(session?.user?.id)
   const currentUserId = session?.user?.id || null
 
-  const topUsers = (await db
-    .select({
-      id: users.id,
-      pseudo: users.pseudo,
-      notesCount: sql<number>`count(${tastingNotes.id})`,
-      countryId: users.countryId,
-    })
-    .from(users)
-    .leftJoin(
-      tastingNotes,
-      isMysql
-        ? sql`binary ${tastingNotes.userId} = binary ${users.id} and binary ${tastingNotes.status} = 'published'`
-        : sql`${tastingNotes.userId} = ${users.id} and ${tastingNotes.status} = 'published'`
-    )
-    .where(isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'))
-    .groupBy(users.id)
-    .orderBy(sql`count(${tastingNotes.id}) desc`)
-    .limit(3)) as TopUser[]
-
-  const topUserIds = topUsers.map((user) => user.id)
-  const topUsersFollowers = topUserIds.length
-    ? await db
-        .select({
-          userId: follows.followedId,
-          followersCount: sql<number>`count(${follows.followerId})`,
-        })
-        .from(follows)
-        .where(inArray(follows.followedId, topUserIds))
-        .groupBy(follows.followedId)
-    : []
-  const topUsersFollowersMap = new Map(
-    topUsersFollowers.map((row: { userId: string; followersCount: number | string | null }) => [
-      row.userId,
-      Number(row.followersCount || 0),
-    ])
-  )
-  const topUsersWithMeta = topUsers.map((user) => ({
-    ...user,
-    followersCount: topUsersFollowersMap.get(user.id) || 0,
-  }))
-  const topUsersLatestNotes = topUserIds.length
-    ? await db
-        .select({
-          userId: tastingNotes.userId,
-          whiskyName: whiskies.name,
-          whiskyImageUrl: sql<string | null>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
-          createdAt: tastingNotes.createdAt,
-        })
-        .from(tastingNotes)
-        .innerJoin(
-          whiskies,
-          isMysql
-            ? sql`binary ${whiskies.id} = binary ${tastingNotes.whiskyId}`
-            : eq(whiskies.id, tastingNotes.whiskyId)
-        )
-        .where(
-          isMysql
-            ? and(
-                sql`binary ${tastingNotes.status} = 'published'`,
-                sql`binary ${tastingNotes.userId} in (${sql.join(topUserIds.map((id) => sql`${id}`), sql`, `)})`
-              )
-            : and(inArray(tastingNotes.userId, topUserIds), eq(tastingNotes.status, 'published'))
-        )
-        .orderBy(sql`${tastingNotes.createdAt} desc`)
-    : []
-  const lastWhiskyByUser = new Map<string, { name: string; imageUrl: string | null }>()
-  topUsersLatestNotes.forEach((row: { userId: string; whiskyName: string | null; whiskyImageUrl: string | null }) => {
-    if (!row.whiskyName) return
-    if (!lastWhiskyByUser.has(row.userId)) {
-      lastWhiskyByUser.set(row.userId, {
-        name: row.whiskyName,
-        imageUrl: row.whiskyImageUrl ? normalizeImage(row.whiskyImageUrl) : null,
+  let topUsersWithLatest: TopUser[] = []
+  try {
+    const topUsers = (await db
+      .select({
+        id: users.id,
+        pseudo: users.pseudo,
+        notesCount: sql<number>`count(${tastingNotes.id})`,
+        countryId: users.countryId,
       })
-    }
-  })
-  const topUsersWithLatest = topUsersWithMeta.map((user) => ({
-    ...user,
-    lastWhiskyName: lastWhiskyByUser.get(user.id)?.name || null,
-    lastWhiskyImageUrl: lastWhiskyByUser.get(user.id)?.imageUrl || null,
-  }))
+      .from(users)
+      .leftJoin(
+        tastingNotes,
+        isMysql
+          ? sql`binary ${tastingNotes.userId} = binary ${users.id} and binary ${tastingNotes.status} = 'published'`
+          : sql`${tastingNotes.userId} = ${users.id} and ${tastingNotes.status} = 'published'`
+      )
+      .where(isMysql ? sql`binary ${users.visibility} = 'public'` : eq(users.visibility, 'public'))
+      .groupBy(users.id)
+      .orderBy(sql`count(${tastingNotes.id}) desc`)
+      .limit(3)) as TopUser[]
+
+    const topUserIds = topUsers.map((user) => user.id)
+    const topUsersFollowers = topUserIds.length
+      ? await db
+          .select({
+            userId: follows.followedId,
+            followersCount: sql<number>`count(${follows.followerId})`,
+          })
+          .from(follows)
+          .where(inArray(follows.followedId, topUserIds))
+          .groupBy(follows.followedId)
+      : []
+    const topUsersFollowersMap = new Map<string, number>(
+      topUsersFollowers.map((row: { userId: string; followersCount: number | string | null }) => [
+        row.userId,
+        Number(row.followersCount || 0),
+      ])
+    )
+    const topUsersWithMeta = topUsers.map((user) => ({
+      ...user,
+      followersCount: topUsersFollowersMap.get(user.id) || 0,
+    }))
+    const topUsersLatestNotes = topUserIds.length
+      ? await db
+          .select({
+            userId: tastingNotes.userId,
+            whiskyName: whiskies.name,
+            whiskyImageUrl: sql<string | null>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
+            createdAt: tastingNotes.createdAt,
+          })
+          .from(tastingNotes)
+          .innerJoin(
+            whiskies,
+            isMysql
+              ? sql`binary ${whiskies.id} = binary ${tastingNotes.whiskyId}`
+              : eq(whiskies.id, tastingNotes.whiskyId)
+          )
+          .where(
+            isMysql
+              ? and(
+                  sql`binary ${tastingNotes.status} = 'published'`,
+                  sql`binary ${tastingNotes.userId} in (${sql.join(topUserIds.map((id) => sql`${id}`), sql`, `)})`
+                )
+              : and(inArray(tastingNotes.userId, topUserIds), eq(tastingNotes.status, 'published'))
+          )
+          .orderBy(sql`${tastingNotes.createdAt} desc`)
+      : []
+    const lastWhiskyByUser = new Map<string, { name: string; imageUrl: string | null }>()
+    topUsersLatestNotes.forEach((row: { userId: string; whiskyName: string | null; whiskyImageUrl: string | null }) => {
+      if (!row.whiskyName) return
+      if (!lastWhiskyByUser.has(row.userId)) {
+        lastWhiskyByUser.set(row.userId, {
+          name: row.whiskyName,
+          imageUrl: row.whiskyImageUrl ? normalizeImage(row.whiskyImageUrl) : null,
+        })
+      }
+    })
+    topUsersWithLatest = topUsersWithMeta.map((user) => ({
+      ...user,
+      lastWhiskyName: lastWhiskyByUser.get(user.id)?.name || null,
+      lastWhiskyImageUrl: lastWhiskyByUser.get(user.id)?.imageUrl || null,
+    }))
+  } catch (error) {
+    await captureServerException(error, {
+      route: '/[locale]',
+      action: 'load_home_top_users',
+      level: 'error',
+      tags: { locale: safeLocale },
+    })
+  }
 
   type LatestWhisky = {
     id: string
@@ -250,193 +261,227 @@ export default async function HomePage({
     createdAt: Date | null
   }
 
-  const latestWhiskies = (await db
-    .select({
-      id: whiskies.id,
-      name: whiskies.name,
-      bottleImageUrl: whiskies.bottleImageUrl,
-      createdAt: whiskies.createdAt,
+  let latestWhiskies: LatestWhisky[] = []
+  try {
+    latestWhiskies = (await db
+      .select({
+        id: whiskies.id,
+        name: whiskies.name,
+        bottleImageUrl: whiskies.bottleImageUrl,
+        createdAt: whiskies.createdAt,
+      })
+      .from(whiskies)
+      .orderBy(sql`${whiskies.createdAt} desc`)
+      .limit(5)) as LatestWhisky[]
+  } catch (error) {
+    await captureServerException(error, {
+      route: '/[locale]',
+      action: 'load_home_latest_whiskies',
+      level: 'error',
+      tags: { locale: safeLocale },
     })
-    .from(whiskies)
-    .orderBy(sql`${whiskies.createdAt} desc`)
-    .limit(5)) as LatestWhisky[]
+  }
 
   const recentWindowStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-  const stats = await db
-    .select({
-      totalWhiskies: sql<number>`count(${whiskies.id})`,
+  let whiskiesRecentCount = 0
+  let notesRecentCount = 0
+  let membersRecentCount = 0
+  let shouldShowRecentStats = false
+  try {
+    const stats = await db
+      .select({
+        totalWhiskies: sql<number>`count(${whiskies.id})`,
+      })
+      .from(whiskies)
+      .where(gte(whiskies.createdAt, recentWindowStart))
+
+    const noteStats = await db
+      .select({
+        totalNotes: sql<number>`count(${tastingNotes.id})`,
+      })
+      .from(tastingNotes)
+      .where(and(eq(tastingNotes.status, 'published'), gte(tastingNotes.createdAt, recentWindowStart)))
+
+    const publicUsers = await db
+      .select({
+        totalPublicUsers: sql<number>`count(${users.id})`,
+      })
+      .from(users)
+      .where(and(gte(users.confirmedAt, recentWindowStart), sql`${users.confirmedAt} is not null`))
+
+    whiskiesRecentCount = Number(stats?.[0]?.totalWhiskies || 0)
+    notesRecentCount = Number(noteStats?.[0]?.totalNotes || 0)
+    membersRecentCount = Number(publicUsers?.[0]?.totalPublicUsers || 0)
+    shouldShowRecentStats = membersRecentCount >= 5
+  } catch (error) {
+    await captureServerException(error, {
+      route: '/[locale]',
+      action: 'load_home_recent_stats',
+      level: 'error',
+      tags: { locale: safeLocale },
     })
-    .from(whiskies)
-    .where(gte(whiskies.createdAt, recentWindowStart))
+  }
 
-  const noteStats = await db
-    .select({
-      totalNotes: sql<number>`count(${tastingNotes.id})`,
+  let activitiesToDisplay: ActivityItem[] = []
+  try {
+    type FollowedRow = { followedId: string }
+    const followedRows = (isLoggedIn
+      ? await db
+          .select({ followedId: follows.followedId })
+          .from(follows)
+          .where(eq(follows.followerId, session?.user?.id || ''))
+      : []) as FollowedRow[]
+    const followedIds = followedRows.map((row: FollowedRow) => row.followedId)
+
+    const recentActivities = (isLoggedIn && followedIds.length > 0
+      ? await db
+          .select({
+            id: activities.id,
+            type: activities.type,
+            createdAt: activities.createdAt,
+            actorId: activities.userId,
+            actorPseudo: users.pseudo,
+            targetId: activities.targetId,
+            whiskyName: whiskies.name,
+            whiskyImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
+            whiskyType: whiskies.type,
+            countryName: countries.name,
+            bottlingType: whiskies.bottlingType,
+            distillerName: distillers.name,
+            bottlerName: bottlers.name,
+            location: tastingNotes.location,
+            locationVisibility: tastingNotes.locationVisibility,
+            city: tastingNotes.city,
+            country: tastingNotes.country,
+            rating: tastingNotes.rating,
+            shelfStatus: userShelf.status,
+          })
+          .from(activities)
+          .leftJoin(
+            users,
+            isMysql ? sql`binary ${users.id} = binary ${activities.userId}` : eq(users.id, activities.userId)
+          )
+          .leftJoin(
+            whiskies,
+            isMysql ? sql`binary ${whiskies.id} = binary ${activities.targetId}` : eq(whiskies.id, activities.targetId)
+          )
+          .leftJoin(countries, eq(countries.id, whiskies.countryId))
+          .leftJoin(distillers, eq(distillers.id, whiskies.distillerId))
+          .leftJoin(bottlers, eq(bottlers.id, whiskies.bottlerId))
+          .leftJoin(
+            tastingNotes,
+            isMysql
+              ? sql`binary ${tastingNotes.userId} = binary ${activities.userId} and binary ${tastingNotes.whiskyId} = binary ${activities.targetId} and binary ${tastingNotes.status} = 'published'`
+              : sql`${tastingNotes.userId} = ${activities.userId} and ${tastingNotes.whiskyId} = ${activities.targetId} and ${tastingNotes.status} = 'published'`
+          )
+          .leftJoin(
+            userShelf,
+            isMysql
+              ? sql`binary ${userShelf.userId} = binary ${activities.userId} and binary ${userShelf.whiskyId} = binary ${activities.targetId}`
+              : sql`${userShelf.userId} = ${activities.userId} and ${userShelf.whiskyId} = ${activities.targetId}`
+          )
+          .where(inArray(activities.userId, followedIds))
+          .orderBy(sql`${activities.createdAt} desc`)
+          .limit(8)
+      : []) as ActivityItem[]
+
+    const guestActivities = (!isLoggedIn
+      ? await db
+          .select({
+            id: activities.id,
+            type: activities.type,
+            createdAt: activities.createdAt,
+            actorId: activities.userId,
+            actorPseudo: users.pseudo,
+            targetId: activities.targetId,
+            whiskyName: whiskies.name,
+            whiskyImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
+            whiskyType: whiskies.type,
+            countryName: countries.name,
+            bottlingType: whiskies.bottlingType,
+            distillerName: distillers.name,
+            bottlerName: bottlers.name,
+            location: tastingNotes.location,
+            locationVisibility: tastingNotes.locationVisibility,
+            city: tastingNotes.city,
+            country: tastingNotes.country,
+            rating: tastingNotes.rating,
+            shelfStatus: userShelf.status,
+          })
+          .from(activities)
+          .leftJoin(
+            users,
+            isMysql ? sql`binary ${users.id} = binary ${activities.userId}` : eq(users.id, activities.userId)
+          )
+          .leftJoin(
+            whiskies,
+            isMysql ? sql`binary ${whiskies.id} = binary ${activities.targetId}` : eq(whiskies.id, activities.targetId)
+          )
+          .leftJoin(countries, eq(countries.id, whiskies.countryId))
+          .leftJoin(distillers, eq(distillers.id, whiskies.distillerId))
+          .leftJoin(bottlers, eq(bottlers.id, whiskies.bottlerId))
+          .leftJoin(
+            tastingNotes,
+            isMysql
+              ? sql`binary ${tastingNotes.userId} = binary ${activities.userId} and binary ${tastingNotes.whiskyId} = binary ${activities.targetId} and binary ${tastingNotes.status} = 'published'`
+              : sql`${tastingNotes.userId} = ${activities.userId} and ${tastingNotes.whiskyId} = ${activities.targetId} and ${tastingNotes.status} = 'published'`
+          )
+          .leftJoin(
+            userShelf,
+            isMysql
+              ? sql`binary ${userShelf.userId} = binary ${activities.userId} and binary ${userShelf.whiskyId} = binary ${activities.targetId}`
+              : sql`${userShelf.userId} = ${activities.userId} and ${userShelf.whiskyId} = ${activities.targetId}`
+          )
+          .where(inArray(activities.type, ['new_note', 'new_whisky', 'shelf_add']))
+          .orderBy(sql`${activities.createdAt} desc`)
+          .limit(60)
+      : []) as ActivityItem[]
+
+    const sourceActivities = isLoggedIn ? recentActivities : guestActivities
+    const activityUserIds = sourceActivities.map((row: ActivityItem) => row.actorId)
+    type ActivityUserRow = { id: string; pseudo: string | null; visibility: string | null; shelfVisibility: string | null }
+    const activityUsers = activityUserIds.length
+      ? await db
+          .select({ id: users.id, pseudo: users.pseudo, visibility: users.visibility, shelfVisibility: users.shelfVisibility })
+          .from(users)
+          .where(inArray(users.id, activityUserIds))
+      : [] as ActivityUserRow[]
+    const activityUsersMap = (activityUsers as ActivityUserRow[]).reduce((acc, row: ActivityUserRow) => {
+      acc[row.id] = row
+      return acc
+    }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null; shelfVisibility: string | null }>)
+
+    const activitiesVisible = sourceActivities
+      .filter((row) => row.type === 'new_note' || row.type === 'new_whisky' || row.type === 'shelf_add')
+      .filter((row) => (row.type === 'new_note' ? row.rating !== null : true))
+      .filter((row) => activityUsersMap[row.actorId]?.visibility === 'public')
+      .filter((row) => (row.type === 'shelf_add' ? activityUsersMap[row.actorId]?.shelfVisibility === 'public' : true))
+      .sort((a, b) => {
+        const aDate = normalizeActivityDate(a.createdAt)
+        const bDate = normalizeActivityDate(b.createdAt)
+        const aTime = aDate ? aDate.getTime() : 0
+        const bTime = bDate ? bDate.getTime() : 0
+        return bTime - aTime
+      })
+      .map((row) => ({
+        ...row,
+        location:
+          row.locationVisibility === 'public_precise'
+            ? row.location
+            : [row.city, row.country].filter(Boolean).join(', ') || row.country || null,
+      }))
+    activitiesToDisplay = isLoggedIn
+      ? activitiesVisible
+      : pickActivitiesByType(activitiesVisible, ['new_note', 'new_whisky', 'shelf_add'], 2)
+  } catch (error) {
+    await captureServerException(error, {
+      route: '/[locale]',
+      action: 'load_home_recent_activities',
+      level: 'error',
+      tags: { locale: safeLocale, isLoggedIn },
     })
-    .from(tastingNotes)
-    .where(and(eq(tastingNotes.status, 'published'), gte(tastingNotes.createdAt, recentWindowStart)))
-
-  const publicUsers = await db
-    .select({
-      totalPublicUsers: sql<number>`count(${users.id})`,
-    })
-    .from(users)
-    .where(and(gte(users.confirmedAt, recentWindowStart), sql`${users.confirmedAt} is not null`))
-
-  type FollowedRow = { followedId: string }
-  const followedRows = (isLoggedIn
-    ? await db
-        .select({ followedId: follows.followedId })
-        .from(follows)
-        .where(eq(follows.followerId, session?.user?.id || ''))
-    : []) as FollowedRow[]
-  const followedIds = followedRows.map((row: FollowedRow) => row.followedId)
-
-  const recentActivities = (isLoggedIn && followedIds.length > 0
-    ? await db
-        .select({
-          id: activities.id,
-          type: activities.type,
-          createdAt: activities.createdAt,
-          actorId: activities.userId,
-          actorPseudo: users.pseudo,
-          targetId: activities.targetId,
-          whiskyName: whiskies.name,
-          whiskyImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
-          whiskyType: whiskies.type,
-          countryName: countries.name,
-          bottlingType: whiskies.bottlingType,
-          distillerName: distillers.name,
-          bottlerName: bottlers.name,
-          location: tastingNotes.location,
-          locationVisibility: tastingNotes.locationVisibility,
-          city: tastingNotes.city,
-          country: tastingNotes.country,
-          rating: tastingNotes.rating,
-          shelfStatus: userShelf.status,
-        })
-        .from(activities)
-        .leftJoin(
-          users,
-          isMysql ? sql`binary ${users.id} = binary ${activities.userId}` : eq(users.id, activities.userId)
-        )
-        .leftJoin(
-          whiskies,
-          isMysql ? sql`binary ${whiskies.id} = binary ${activities.targetId}` : eq(whiskies.id, activities.targetId)
-        )
-        .leftJoin(countries, eq(countries.id, whiskies.countryId))
-        .leftJoin(distillers, eq(distillers.id, whiskies.distillerId))
-        .leftJoin(bottlers, eq(bottlers.id, whiskies.bottlerId))
-        .leftJoin(
-          tastingNotes,
-          isMysql
-            ? sql`binary ${tastingNotes.userId} = binary ${activities.userId} and binary ${tastingNotes.whiskyId} = binary ${activities.targetId} and binary ${tastingNotes.status} = 'published'`
-            : sql`${tastingNotes.userId} = ${activities.userId} and ${tastingNotes.whiskyId} = ${activities.targetId} and ${tastingNotes.status} = 'published'`
-        )
-        .leftJoin(
-          userShelf,
-          isMysql
-            ? sql`binary ${userShelf.userId} = binary ${activities.userId} and binary ${userShelf.whiskyId} = binary ${activities.targetId}`
-            : sql`${userShelf.userId} = ${activities.userId} and ${userShelf.whiskyId} = ${activities.targetId}`
-        )
-        .where(inArray(activities.userId, followedIds))
-        .orderBy(sql`${activities.createdAt} desc`)
-        .limit(8)
-    : []) as ActivityItem[]
-
-  const guestActivities = (!isLoggedIn
-    ? await db
-        .select({
-          id: activities.id,
-          type: activities.type,
-          createdAt: activities.createdAt,
-          actorId: activities.userId,
-          actorPseudo: users.pseudo,
-          targetId: activities.targetId,
-          whiskyName: whiskies.name,
-          whiskyImageUrl: sql<string>`coalesce(${whiskies.bottleImageUrl}, ${whiskies.imageUrl})`,
-          whiskyType: whiskies.type,
-          countryName: countries.name,
-          bottlingType: whiskies.bottlingType,
-          distillerName: distillers.name,
-          bottlerName: bottlers.name,
-          location: tastingNotes.location,
-          locationVisibility: tastingNotes.locationVisibility,
-          city: tastingNotes.city,
-          country: tastingNotes.country,
-          rating: tastingNotes.rating,
-          shelfStatus: userShelf.status,
-        })
-        .from(activities)
-        .leftJoin(
-          users,
-          isMysql ? sql`binary ${users.id} = binary ${activities.userId}` : eq(users.id, activities.userId)
-        )
-        .leftJoin(
-          whiskies,
-          isMysql ? sql`binary ${whiskies.id} = binary ${activities.targetId}` : eq(whiskies.id, activities.targetId)
-        )
-        .leftJoin(countries, eq(countries.id, whiskies.countryId))
-        .leftJoin(distillers, eq(distillers.id, whiskies.distillerId))
-        .leftJoin(bottlers, eq(bottlers.id, whiskies.bottlerId))
-        .leftJoin(
-          tastingNotes,
-          isMysql
-            ? sql`binary ${tastingNotes.userId} = binary ${activities.userId} and binary ${tastingNotes.whiskyId} = binary ${activities.targetId} and binary ${tastingNotes.status} = 'published'`
-            : sql`${tastingNotes.userId} = ${activities.userId} and ${tastingNotes.whiskyId} = ${activities.targetId} and ${tastingNotes.status} = 'published'`
-        )
-        .leftJoin(
-          userShelf,
-          isMysql
-            ? sql`binary ${userShelf.userId} = binary ${activities.userId} and binary ${userShelf.whiskyId} = binary ${activities.targetId}`
-            : sql`${userShelf.userId} = ${activities.userId} and ${userShelf.whiskyId} = ${activities.targetId}`
-        )
-        .where(inArray(activities.type, ['new_note', 'new_whisky', 'shelf_add']))
-        .orderBy(sql`${activities.createdAt} desc`)
-        .limit(60)
-    : []) as ActivityItem[]
-
-  const sourceActivities = isLoggedIn ? recentActivities : guestActivities
-  const activityUserIds = sourceActivities.map((row: ActivityItem) => row.actorId)
-  type ActivityUserRow = { id: string; pseudo: string | null; visibility: string | null; shelfVisibility: string | null }
-  const activityUsers = activityUserIds.length
-    ? await db
-        .select({ id: users.id, pseudo: users.pseudo, visibility: users.visibility, shelfVisibility: users.shelfVisibility })
-        .from(users)
-        .where(inArray(users.id, activityUserIds))
-    : [] as ActivityUserRow[]
-  const activityUsersMap = (activityUsers as ActivityUserRow[]).reduce((acc, row: ActivityUserRow) => {
-    acc[row.id] = row
-    return acc
-  }, {} as Record<string, { id: string; pseudo: string | null; visibility: string | null; shelfVisibility: string | null }>)
-
-  const activitiesVisible = sourceActivities
-    .filter((row) => row.type === 'new_note' || row.type === 'new_whisky' || row.type === 'shelf_add')
-    .filter((row) => (row.type === 'new_note' ? row.rating !== null : true))
-    .filter((row) => activityUsersMap[row.actorId]?.visibility === 'public')
-    .filter((row) => (row.type === 'shelf_add' ? activityUsersMap[row.actorId]?.shelfVisibility === 'public' : true))
-    .sort((a, b) => {
-      const aDate = normalizeActivityDate(a.createdAt)
-      const bDate = normalizeActivityDate(b.createdAt)
-      const aTime = aDate ? aDate.getTime() : 0
-      const bTime = bDate ? bDate.getTime() : 0
-      return bTime - aTime
-    })
-    .map((row) => ({
-      ...row,
-      location:
-        row.locationVisibility === 'public_precise'
-          ? row.location
-          : [row.city, row.country].filter(Boolean).join(', ') || row.country || null,
-    }))
-  const activitiesToDisplay = isLoggedIn
-    ? activitiesVisible
-    : pickActivitiesByType(activitiesVisible, ['new_note', 'new_whisky', 'shelf_add'], 2)
-  const whiskiesRecentCount = Number(stats?.[0]?.totalWhiskies || 0)
-  const notesRecentCount = Number(noteStats?.[0]?.totalNotes || 0)
-  const membersRecentCount = Number(publicUsers?.[0]?.totalPublicUsers || 0)
-  const shouldShowRecentStats = membersRecentCount >= 5
+  }
 
   const onboardingAddedWhisky = isLoggedIn && currentUserId
     ? await db
@@ -463,6 +508,8 @@ export default async function HomePage({
   const hasAddedWhisky = onboardingAddedWhisky.length > 0
   const hasPublishedNote = onboardingPublishedNote.length > 0
   const hasShelfItem = onboardingShelf.length > 0
+  const shouldShowTopUsers = topUsersWithLatest.length > 0
+  const shouldShowLatestWhiskies = latestWhiskies.length > 0
   const formatUserNotesText = (count: number) => {
     return `${count} ${count <= 1 ? t('home.noteCountSingular') : t('home.noteCountPlural')}`
   }
@@ -568,122 +615,128 @@ export default async function HomePage({
           hasShelfItem={hasShelfItem}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">{t('home.topUsersTitle')}</h2>
-              <Link
-                href={`/${safeLocale}/explorer`}
-                className="text-sm font-medium"
-                style={{ color: 'var(--color-primary)' }}
-              >
-                {t('home.topUsersCta')}
-              </Link>
-            </div>
-            <div className="space-y-4">
-              {topUsersWithLatest.map((user) => {
-                const avatar = buildAvatar(user.pseudo)
-                const flagUrl = getCountryFlagUrl(user.countryId)
-                const isSelf = currentUserId && user.id === currentUserId
-                const content = (
-                  <div className="rounded-xl border border-gray-200 bg-white p-3 transition hover:shadow-sm hover:border-gray-300">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white text-lg font-semibold" style={{ backgroundColor: avatar.color }}>
-                        {avatar.initial}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="text-base font-semibold text-gray-900 truncate">{user.pseudo}</div>
-                          {flagUrl ? <img src={flagUrl} alt="" className="h-4 w-4 rounded-full shrink-0" /> : null}
-                        </div>
-                        <div className="text-sm text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span>{formatUserNotesText(Number(user.notesCount || 0))}</span>
-                          <span>·</span>
-                          <span>{formatFollowersText(Number(user.followersCount || 0))}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {user.lastWhiskyName ? (
-                      <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          {user.lastWhiskyImageUrl ? (
-                            <span className="h-9 w-9 rounded-md bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
-                              <img src={user.lastWhiskyImageUrl} alt="" className="h-full w-full object-contain" />
-                            </span>
-                          ) : null}
-                          <div className="text-sm text-gray-700 truncate">
-                            <span className="text-gray-500">{t('home.topUsersLastWhisky')}:</span>{' '}
-                            <span className="font-medium">{user.lastWhiskyName}</span>
+        {shouldShowTopUsers || shouldShowLatestWhiskies ? (
+          <div className={`grid grid-cols-1 gap-8 ${shouldShowTopUsers && shouldShowLatestWhiskies ? 'lg:grid-cols-2' : ''}`}>
+            {shouldShowTopUsers ? (
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">{t('home.topUsersTitle')}</h2>
+                  <Link
+                    href={`/${safeLocale}/explorer`}
+                    className="text-sm font-medium"
+                    style={{ color: 'var(--color-primary)' }}
+                  >
+                    {t('home.topUsersCta')}
+                  </Link>
+                </div>
+                <div className="space-y-4">
+                  {topUsersWithLatest.map((user) => {
+                    const avatar = buildAvatar(user.pseudo)
+                    const flagUrl = getCountryFlagUrl(user.countryId)
+                    const isSelf = currentUserId && user.id === currentUserId
+                    const content = (
+                      <div className="rounded-xl border border-gray-200 bg-white p-3 transition hover:shadow-sm hover:border-gray-300">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white text-lg font-semibold" style={{ backgroundColor: avatar.color }}>
+                            {avatar.initial}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <div className="text-base font-semibold text-gray-900 truncate">{user.pseudo}</div>
+                              {flagUrl ? <img src={flagUrl} alt="" className="h-4 w-4 rounded-full shrink-0" /> : null}
+                            </div>
+                            <div className="text-sm text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span>{formatUserNotesText(Number(user.notesCount || 0))}</span>
+                              <span>·</span>
+                              <span>{formatFollowersText(Number(user.followersCount || 0))}</span>
+                            </div>
                           </div>
                         </div>
+                        {user.lastWhiskyName ? (
+                          <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
+                            <div className="flex items-center gap-2">
+                              {user.lastWhiskyImageUrl ? (
+                                <span className="h-9 w-9 rounded-md bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
+                                  <img src={user.lastWhiskyImageUrl} alt="" className="h-full w-full object-contain" />
+                                </span>
+                              ) : null}
+                              <div className="text-sm text-gray-700 truncate">
+                                <span className="text-gray-500">{t('home.topUsersLastWhisky')}:</span>{' '}
+                                <span className="font-medium">{user.lastWhiskyName}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
-                )
-                return (
-                  <div key={user.id}>
-                    {isSelf ? (
-                      <div>{content}</div>
-                    ) : (
-                      <Link
-                        href={`/${safeLocale}/user/${encodeURIComponent(user.pseudo)}`}
-                        className="block"
-                      >
-                        {content}
-                      </Link>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+                    )
+                    return (
+                      <div key={user.id}>
+                        {isSelf ? (
+                          <div>{content}</div>
+                        ) : (
+                          <Link
+                            href={`/${safeLocale}/user/${encodeURIComponent(user.pseudo)}`}
+                            className="block"
+                          >
+                            {content}
+                          </Link>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
 
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">{t('home.latestWhiskiesTitle')}</h2>
-            </div>
-            <div className="space-y-4">
-              {latestWhiskies.map((whisky: LatestWhisky) => {
-                const imageSrc =
-                  typeof whisky.bottleImageUrl === 'string' && whisky.bottleImageUrl.trim() !== ''
-                    ? whisky.bottleImageUrl.startsWith('http') || whisky.bottleImageUrl.startsWith('/')
-                      ? whisky.bottleImageUrl
-                      : `/${whisky.bottleImageUrl}`
-                    : ''
-                return (
-                  <Link
-                    key={whisky.id}
-                    href={buildWhiskyPath(safeLocale, whisky.id, whisky.name)}
-                    className="flex items-center gap-4"
-                  >
-                    <div
-                      className="w-16 h-16 rounded-xl bg-white overflow-hidden flex items-center justify-center"
-                      style={{ backgroundColor: '#fff' }}
-                    >
-                      {imageSrc ? (
-                        <img
-                          src={imageSrc}
-                          alt={whisky.name}
-                          className="w-full h-full object-contain"
+            {shouldShowLatestWhiskies ? (
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">{t('home.latestWhiskiesTitle')}</h2>
+                </div>
+                <div className="space-y-4">
+                  {latestWhiskies.map((whisky: LatestWhisky) => {
+                    const imageSrc =
+                      typeof whisky.bottleImageUrl === 'string' && whisky.bottleImageUrl.trim() !== ''
+                        ? whisky.bottleImageUrl.startsWith('http') || whisky.bottleImageUrl.startsWith('/')
+                          ? whisky.bottleImageUrl
+                          : `/${whisky.bottleImageUrl}`
+                        : ''
+                    return (
+                      <Link
+                        key={whisky.id}
+                        href={buildWhiskyPath(safeLocale, whisky.id, whisky.name)}
+                        className="flex items-center gap-4"
+                      >
+                        <div
+                          className="w-16 h-16 rounded-xl bg-white overflow-hidden flex items-center justify-center"
                           style={{ backgroundColor: '#fff' }}
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-400">No image</span>
-                      )}
-                    </div>
-                    <div>
-                      <div className="text-base font-semibold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>{whisky.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {t('home.addedRecently')}
-                        {whisky.createdAt ? ` · ${new Date(whisky.createdAt).toLocaleDateString(safeLocale === 'fr' ? 'fr-FR' : 'en-US')}` : ''}
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
+                        >
+                          {imageSrc ? (
+                            <img
+                              src={imageSrc}
+                              alt={whisky.name}
+                              className="w-full h-full object-contain"
+                              style={{ backgroundColor: '#fff' }}
+                            />
+                          ) : (
+                            <span className="text-xs text-gray-400">No image</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-base font-semibold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>{whisky.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {t('home.addedRecently')}
+                            {whisky.createdAt ? ` · ${new Date(whisky.createdAt).toLocaleDateString(safeLocale === 'fr' ? 'fr-FR' : 'en-US')}` : ''}
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
-        </div>
+        ) : null}
 
         {shouldShowRecentStats ? (
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
