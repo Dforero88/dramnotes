@@ -596,6 +596,34 @@ function getDatabaseUrlForMysql(): string {
   return url
 }
 
+function getMysqlPoolConfig() {
+  const url = new URL(getDatabaseUrlForMysql())
+
+  if (!url.hostname) {
+    throw new Error('DATABASE_URL MySQL/MariaDB invalide: host manquant')
+  }
+
+  const database = url.pathname.replace(/^\//, '')
+  if (!database) {
+    throw new Error('DATABASE_URL MySQL/MariaDB invalide: base de données manquante')
+  }
+
+  return {
+    host: url.hostname,
+    port: Number(url.port || 3306),
+    user: decodeURIComponent(url.username),
+    password: decodeURIComponent(url.password),
+    database,
+    waitForConnections: true,
+    connectionLimit: 10,
+    maxIdle: 10,
+    idleTimeout: 30_000,
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
+  }
+}
+
 function getSqliteFilePath(): string {
   if (databaseUrl.startsWith('file:')) {
     return databaseUrl.replace(/^file:/, '')
@@ -1090,7 +1118,7 @@ function getDb() {
   if (useMysql) {
     const { drizzle } = require('drizzle-orm/mysql2')
     const mysql = require('mysql2/promise')
-    const pool = mysql.createPool(getDatabaseUrlForMysql())
+    const pool = mysql.createPool(getMysqlPoolConfig())
     dbInstance = drizzle(pool, { schema, mode: 'default' })
     return dbInstance
   }
